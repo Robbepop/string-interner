@@ -101,8 +101,8 @@ impl<Idx> StringInterner<Idx>
 	/// This copies the contents of the given str.
 	pub fn get_or_intern_str(&mut self, val: &str) -> Idx {
 		match self.map.get(&val.into()) {
-			Some(&intern_ref) => intern_ref,
-			None              => self.gensym(val.to_owned())
+			Some(&idx) => idx,
+			None       => self.gensym(val.to_owned())
 		}
 	}
 
@@ -113,8 +113,8 @@ impl<Idx> StringInterner<Idx>
 	/// This consumes the given String.
 	pub fn get_or_intern_string(&mut self, val: String) -> Idx {
 		match self.map.get(&val.as_str().into()) {
-			Some(&intern_ref) => intern_ref,
-			None              => self.gensym(val)
+			Some(&idx) => idx,
+			None       => self.gensym(val)
 		}
 	}
 
@@ -123,9 +123,9 @@ impl<Idx> StringInterner<Idx>
 	/// This does not check for collissions!
 	fn gensym(&mut self, new_val: String) -> Idx {
 		let new_id  = self.make_idx();
+		let new_ref = InternalStrRef::from_str(new_val.as_str());
 		self.values.push(new_val.into_boxed_str());
-		let new_ref = &**self.values.last().unwrap();
-		self.map.insert(new_ref.into(), new_id);
+		self.map.insert(new_ref, new_id);
 		new_id
 	}
 
@@ -137,16 +137,17 @@ impl<Idx> StringInterner<Idx>
 	/// Returns a string slice to the string identified by the given index if available.
 	/// Else, None is returned.
 	pub fn get(&self, index: Idx) -> Option<&str> {
-		match self.values.get(index.to_index()) {
-			Some(box_str) => Some(&box_str),
-			None          => None
-		}
+		self.values
+			.get(index.to_index())
+			.map(|string| &**string)
 	}
 
 	/// Returns the index that is mapped for the given string if available.
 	/// Else, None is returned.
 	pub fn lookup_index(&self, val: &str) -> Option<Idx> {
-		self.map.get(&val.into()).map(|&idx| idx)
+		self.map
+			.get(&val.into())
+			.map(|&idx| idx)
 	}
 
 	/// Returns the number of uniquely stored Strings interned within this interner.
