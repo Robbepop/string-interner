@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
-/// Represents references into Interner datastructures.
+/// Represents indices into the StringInterner.
 /// 
 /// Values of this type shall be lightweight as the whole purpose
-/// of interning values is to be able to store them very memory efficiently.
+/// of interning values is to be able to store them efficiently in memory.
 pub trait InternIndex: Copy {
 	fn from_index(idx: usize) -> Self;
 	fn to_index(&self) -> usize;
@@ -30,16 +30,24 @@ impl_intern_ref!(u32);
 impl_intern_ref!(u64);
 impl_intern_ref!(usize);
 
+/// Internal reference to str used only within the StringInterner itself
+/// to encapsulate the unsafe behaviour of interor references.
 #[derive(Debug, Copy, Clone, Eq)]
 struct InternalStrRef(*const str);
 
 impl InternalStrRef {
+	/// Creates an InternalStrRef from a str.
+	/// 
+	/// This just wraps the str internally.
 	fn from_str(val: &str) -> Self {
 		InternalStrRef(
 			unsafe{ &*(val as *const str) }
 		)
 	}
 
+	/// Reinterprets this InternalStrRef as a str.
+	/// 
+	/// Does not allocate memory!
 	fn as_str(&self) -> &str {
 		unsafe{ &*self.0 as &str }
 	}
@@ -63,6 +71,15 @@ impl PartialEq for InternalStrRef {
 	}
 }
 
+/// Provides a bidirectional mapping between String stored within
+/// the interner and indices.
+/// The main purpose is to store every unique String only once and
+/// make it possible to reference it via lightweight indices.
+/// 
+/// Compilers often use this for implementing a symbol table.
+/// 
+/// The main goal of this StringInterner is to store String
+/// with as low memory overhead as possible.
 #[derive(Debug, Default, Clone)]
 pub struct StringInterner<Idx = usize>
 	where Idx: InternIndex
@@ -74,6 +91,11 @@ pub struct StringInterner<Idx = usize>
 impl<Idx> StringInterner<Idx>
 	where Idx: InternIndex
 {
+	/// Interns the given str if it was not interned already
+	/// and returns an index to access the newly interned String or
+	/// to the already interned String.
+	/// 
+	/// This copies the contents of the given str.
 	pub fn get_or_intern_str(&mut self, val: &str) -> Idx {
 		match self.map.get(&val.into()) {
 			Some(&intern_ref) => intern_ref,
@@ -88,6 +110,11 @@ impl<Idx> StringInterner<Idx>
 		}
 	}
 
+	/// Interns the given String if it was not interned already
+	/// and returns an index to access the newly interned String or
+	/// to the already interned String.
+	/// 
+	/// This consumes the given String.
 	pub fn get_or_intern_string(&mut self, val: String) -> Idx {
 		match self.map.get(&val.as_str().into()) {
 			Some(&intern_ref) => intern_ref,
@@ -102,10 +129,13 @@ impl<Idx> StringInterner<Idx>
 		}
 	}
 
+	/// Creates a new index for the current state of the interner.
 	fn make_idx(&self) -> Idx {
 		Idx::from_index(self.len())
 	}
 
+	/// Returns a string slice to the string identified by the given index if available.
+	/// Else, None is returned.
 	pub fn get(&self, index: Idx) -> Option<&str> {
 		match self.values.get(index.to_index()) {
 			Some(box_str) => Some(&box_str),
@@ -113,14 +143,18 @@ impl<Idx> StringInterner<Idx>
 		}
 	}
 
+	/// Returns the index that is mapped for the given string if available.
+	/// Else, None is returned.
 	pub fn lookup_index(&self, val: &str) -> Option<Idx> {
 		self.map.get(&val.into()).map(|&idx| idx)
 	}
 
+	/// Returns the number of uniquely stored Strings interned within this interner.
 	pub fn len(&self) -> usize {
 		self.values.len()
 	}
 
+	/// Removes all interned Strings from this interner.
 	pub fn clear(&mut self) {
 		self.map.clear();
 		self.values.clear()
