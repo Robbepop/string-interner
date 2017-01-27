@@ -102,14 +102,7 @@ impl<Idx> StringInterner<Idx>
 	pub fn get_or_intern_str(&mut self, val: &str) -> Idx {
 		match self.map.get(&val.into()) {
 			Some(&intern_ref) => intern_ref,
-			_                 => {
-				let new_val = val.to_owned().into_boxed_str();
-				let new_id  = self.make_idx();
-				self.values.push(new_val);
-				let new_ref = &**self.values.last().unwrap();
-				self.map.insert(new_ref.into(), new_id);
-				new_id
-			}
+			None              => self.gensym(val.to_owned())
 		}
 	}
 
@@ -121,15 +114,19 @@ impl<Idx> StringInterner<Idx>
 	pub fn get_or_intern_string(&mut self, val: String) -> Idx {
 		match self.map.get(&val.as_str().into()) {
 			Some(&intern_ref) => intern_ref,
-			_                 => {
-				let new_val = val.into_boxed_str();
-				let new_id  = self.make_idx();
-				self.values.push(new_val);
-				let new_ref = &**self.values.last().unwrap();
-				self.map.insert(new_ref.into(), new_id);
-				new_id
-			}
+			None              => self.gensym(val)
 		}
+	}
+
+	/// Interns the given String and returns an index to access it.
+	/// 
+	/// This does not check for collissions!
+	fn gensym(&mut self, new_val: String) -> Idx {
+		let new_id  = self.make_idx();
+		self.values.push(new_val.into_boxed_str());
+		let new_ref = &**self.values.last().unwrap();
+		self.map.insert(new_ref.into(), new_id);
+		new_id
 	}
 
 	/// Creates a new index for the current state of the interner.
