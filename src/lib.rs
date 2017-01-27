@@ -5,6 +5,9 @@ use std::hash::{Hash, Hasher};
 /// 
 /// Values of this type shall be lightweight as the whole purpose
 /// of interning values is to be able to store them efficiently in memory.
+/// 
+/// This trait allows definitions of custom InternIndices besides
+/// the already supported unsigned integer primitives.
 pub trait InternIndex: Copy {
 	fn from_index(idx: usize) -> Self;
 	fn to_index(&self) -> usize;
