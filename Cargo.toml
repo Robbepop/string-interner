@@ -1,0 +1,6 @@
+[package]
+name = "string-interner"
+version = "0.1.0"
+authors = ["Robbepop <robbepop@web.de>"]
+
+[dependencies]
