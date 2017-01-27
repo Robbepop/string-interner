@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 
 /// Represents references into Interner datastructures.
 /// 
@@ -29,44 +30,73 @@ impl_intern_ref!(u32);
 impl_intern_ref!(u64);
 impl_intern_ref!(usize);
 
+#[derive(Debug, Copy, Clone, Eq)]
+struct InternalStrRef(*const str);
+
+impl InternalStrRef {
+	fn from_str(val: &str) -> Self {
+		InternalStrRef(
+			unsafe{ &*(val as *const str) }
+		)
+	}
+
+	fn as_str(&self) -> &str {
+		unsafe{ &*self.0 as &str }
+	}
+}
+
+impl<'a> From<&'a str> for InternalStrRef {
+	fn from(val: &str) -> InternalStrRef {
+		InternalStrRef::from_str(val)
+	}
+}
+
+impl Hash for InternalStrRef {
+	fn hash<H: Hasher>(&self, state: &mut H) {
+		self.as_str().hash(state)
+	}
+}
+
+impl PartialEq for InternalStrRef {
+	fn eq(&self, other: &InternalStrRef) -> bool {
+		self.as_str() == other.as_str()
+	}
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct StringInterner<Idx = usize>
 	where Idx: InternIndex
 {
-	map   : HashMap<&'static str, Idx>,
+	map   : HashMap<InternalStrRef, Idx>,
 	values: Vec<Box<str>>
 }
 
 impl<Idx> StringInterner<Idx>
 	where Idx: InternIndex
 {
-	unsafe fn to_static_str(val: &str) -> &'static str {
-		std::mem::transmute::<&str, &'static str>(val)
-	}
-
 	pub fn get_or_intern_str(&mut self, val: &str) -> Idx {
-		match self.map.get(val) {
+		match self.map.get(&val.into()) {
 			Some(&intern_ref) => intern_ref,
 			_                 => {
 				let new_val = val.to_owned().into_boxed_str();
 				let new_id  = self.make_idx();
 				self.values.push(new_val);
-				let new_ref = &*self.values.last().unwrap();
-				self.map.insert(unsafe { Self::to_static_str(new_ref) }, new_id);
+				let new_ref = &**self.values.last().unwrap();
+				self.map.insert(new_ref.into(), new_id);
 				new_id
 			}
 		}
 	}
 
 	pub fn get_or_intern_string(&mut self, val: String) -> Idx {
-		match self.map.get(unsafe { Self::to_static_str(&val) }) {
+		match self.map.get(&val.as_str().into()) {
 			Some(&intern_ref) => intern_ref,
 			_                 => {
 				let new_val = val.into_boxed_str();
 				let new_id  = self.make_idx();
 				self.values.push(new_val);
-				let new_ref = &*self.values.last().unwrap();
-				self.map.insert(unsafe { Self::to_static_str(new_ref) }, new_id);
+				let new_ref = &**self.values.last().unwrap();
+				self.map.insert(new_ref.into(), new_id);
 				new_id
 			}
 		}
@@ -84,7 +114,7 @@ impl<Idx> StringInterner<Idx>
 	}
 
 	pub fn lookup_index(&self, val: &str) -> Option<Idx> {
-		self.map.get(val).map(|&idx| idx)
+		self.map.get(&val.into()).map(|&idx| idx)
 	}
 
 	pub fn len(&self) -> usize {
@@ -99,7 +129,7 @@ impl<Idx> StringInterner<Idx>
 
 #[cfg(test)]
 mod tests {
-	use ::StringInterner;
+	use ::{StringInterner, InternalStrRef};
 
 	fn make_dummy_interner() -> (StringInterner, [usize; 8]) {
 		let mut interner = StringInterner::default();
@@ -112,6 +142,33 @@ mod tests {
 		let name6 = interner.get_or_intern_str("mao");
 		let name7 = interner.get_or_intern_str("foo");
 		(interner, [name0, name1, name2, name3, name4, name5, name6, name7])
+	}
+
+	#[test]
+	fn internal_str_ref() {
+		use std::mem;
+		assert_eq!(mem::size_of::<InternalStrRef>(), mem::size_of::<&str>());
+
+		let s0 = "Hello";
+		let s1 = ", World!";
+		let s2 = "Hello";
+		let s3 = ", World!";
+		let r0 = InternalStrRef::from_str(s0);
+		let r1 = InternalStrRef::from_str(s1);
+		let r2 = InternalStrRef::from_str(s2);
+		let r3 = InternalStrRef::from_str(s3);
+		assert_eq!(r0, r2);
+		assert_eq!(r1, r3);
+		assert_ne!(r0, r1);
+		assert_ne!(r2, r3);
+
+		use std::collections::hash_map::DefaultHasher;
+		use std::hash::Hash;
+		let mut sip = DefaultHasher::new();
+		assert_eq!(r0.hash(&mut sip), s0.hash(&mut sip));
+		assert_eq!(r1.hash(&mut sip), s1.hash(&mut sip));
+		assert_eq!(r2.hash(&mut sip), s2.hash(&mut sip));
+		assert_eq!(r3.hash(&mut sip), s3.hash(&mut sip));
 	}
 
 	#[test]
