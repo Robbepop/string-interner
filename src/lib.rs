@@ -174,7 +174,7 @@ impl<Idx> StringInterner<Idx>
 	}
 
 	/// Returns an iterator over all intern indices and their associated strings.
-	pub fn iter<'a>(&'a self) -> impl Iterator<Item=(usize, &'a str)> {
+	pub fn iter<'a>(&'a self) -> impl Iterator<Item=(Idx, &'a str)> {
 		self.values
 			.iter()
 			.enumerate()
@@ -184,7 +184,7 @@ impl<Idx> StringInterner<Idx>
 	/// Returns an iterator over all intern indices and their associated strings.
 	/// 
 	/// Allows mutable access to the iterated string contents.
-	pub fn iter_mut<'a>(&'a mut self) -> impl Iterator<Item=(usize, &'a mut str)> {
+	pub fn iter_mut<'a>(&'a mut self) -> impl Iterator<Item=(Idx, &'a mut str)> {
 		self.values
 			.iter_mut()
 			.enumerate()
