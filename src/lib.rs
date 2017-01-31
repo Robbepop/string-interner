@@ -96,6 +96,14 @@ pub struct StringInterner<Idx = usize>
 impl<Idx> StringInterner<Idx>
 	where Idx: InternIndex
 {
+	/// Creates a new StringInterner with a given capacity.
+	pub fn with_capacity(cap: usize) -> Self {
+		StringInterner{
+			map   : HashMap::with_capacity(cap),
+			values: Vec::with_capacity(cap)
+		}
+	}
+
 	/// Interns the given value.
 	/// 
 	/// Returns an index to access it within this interner.
