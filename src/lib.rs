@@ -56,9 +56,17 @@ impl InternalStrRef {
 	}
 }
 
-impl<'a> From<&'a str> for InternalStrRef {
-	fn from(val: &str) -> InternalStrRef {
-		InternalStrRef::from_str(val)
+// impl<'a> From<&'a str> for InternalStrRef {
+// 	fn from(val: &str) -> InternalStrRef {
+// 		InternalStrRef::from_str(val)
+// 	}
+// }
+
+impl<T> From<T> for InternalStrRef
+	where T: AsRef<str>
+{
+	fn from(val: T) -> Self {
+		InternalStrRef::from_str(val.as_ref())
 	}
 }
 
@@ -94,37 +102,30 @@ pub struct StringInterner<Idx = usize>
 impl<Idx> StringInterner<Idx>
 	where Idx: InternIndex
 {
-	/// Interns the given str if it was not interned already
-	/// and returns an index to access the newly interned String or
-	/// to the already interned String.
+	/// Interns the given value.
 	/// 
-	/// This copies the contents of the given str.
-	pub fn get_or_intern_str(&mut self, val: &str) -> Idx {
-		match self.map.get(&val.into()) {
-			Some(&idx) => idx,
-			None       => self.gensym(val.to_owned())
-		}
-	}
-
-	/// Interns the given String if it was not interned already
-	/// and returns an index to access the newly interned String or
-	/// to the already interned String.
+	/// Returns an index to access it within this interner.
 	/// 
-	/// This consumes the given String.
-	pub fn get_or_intern_string(&mut self, val: String) -> Idx {
-		match self.map.get(&val.as_str().into()) {
+	/// This either copies the contents of the string (e.g. for str)
+	/// or moves them into this interner (e.g. for String).
+	pub fn get_or_intern<T>(&mut self, val: T) -> Idx
+		where T: Into<String> + AsRef<str>
+	{
+		match self.map.get(&val.as_ref().into()) {
 			Some(&idx) => idx,
 			None       => self.gensym(val)
 		}
 	}
 
-	/// Interns the given String and returns an index to access it.
+	/// Interns the given value and ignores collissions.
 	/// 
-	/// This does not check for collissions!
-	fn gensym(&mut self, new_val: String) -> Idx {
-		let new_id  = self.make_idx();
-		let new_ref = InternalStrRef::from_str(new_val.as_str());
-		self.values.push(new_val.into_boxed_str());
+	/// Returns an index to access it within this interner.
+	fn gensym<T>(&mut self, new_val: T) -> Idx
+		where T: Into<String> + AsRef<str>
+	{
+		let new_id : Idx            = self.make_idx();
+		let new_ref: InternalStrRef = new_val.as_ref().into();
+		self.values.push(new_val.into().into_boxed_str());
 		self.map.insert(new_ref, new_id);
 		new_id
 	}
@@ -142,11 +143,12 @@ impl<Idx> StringInterner<Idx>
 			.map(|string| &**string)
 	}
 
-	/// Returns the index that is mapped for the given string if available.
-	/// Else, None is returned.
-	pub fn lookup_index(&self, val: &str) -> Option<Idx> {
+	/// Returns the given value's index for this interner if existent.
+	pub fn lookup_index<T>(&self, val: T) -> Option<Idx>
+		where T: AsRef<str>
+	{
 		self.map
-			.get(&val.into())
+			.get(&val.as_ref().into())
 			.map(|&idx| idx)
 	}
 
@@ -168,14 +170,14 @@ mod tests {
 
 	fn make_dummy_interner() -> (StringInterner, [usize; 8]) {
 		let mut interner = StringInterner::default();
-		let name0 = interner.get_or_intern_str("foo");
-		let name1 = interner.get_or_intern_str("bar");
-		let name2 = interner.get_or_intern_str("baz");
-		let name3 = interner.get_or_intern_str("foo");
-		let name4 = interner.get_or_intern_str("rofl");
-		let name5 = interner.get_or_intern_str("bar");
-		let name6 = interner.get_or_intern_str("mao");
-		let name7 = interner.get_or_intern_str("foo");
+		let name0 = interner.get_or_intern("foo");
+		let name1 = interner.get_or_intern("bar");
+		let name2 = interner.get_or_intern("baz");
+		let name3 = interner.get_or_intern("foo");
+		let name4 = interner.get_or_intern("rofl");
+		let name5 = interner.get_or_intern("bar");
+		let name6 = interner.get_or_intern("mao");
+		let name7 = interner.get_or_intern("foo");
 		(interner, [name0, name1, name2, name3, name4, name5, name6, name7])
 	}
 
@@ -222,17 +224,17 @@ mod tests {
 	#[test]
 	fn intern_string() {
 		let mut interner = StringInterner::<usize>::default();
-		let name_0 = interner.get_or_intern_string("Hello".to_owned());
-		let name_1 = interner.get_or_intern_string("World".to_owned());
-		let name_2 = interner.get_or_intern_string("I am a String".to_owned());
-		let name_3 = interner.get_or_intern_string("Foo".to_owned());
-		let name_4 = interner.get_or_intern_string("Bar".to_owned());
-		let name_5 = interner.get_or_intern_string("I am a String".to_owned());
-		let name_6 = interner.get_or_intern_string("Next is empty".to_owned());
-		let name_7 = interner.get_or_intern_string("".to_owned());
-		let name_8 = interner.get_or_intern_string("I am a String".to_owned());
-		let name_9 = interner.get_or_intern_string("I am a String".to_owned());
-		let name10 = interner.get_or_intern_string("Foo".to_owned());
+		let name_0 = interner.get_or_intern("Hello".to_owned());
+		let name_1 = interner.get_or_intern("World".to_owned());
+		let name_2 = interner.get_or_intern("I am a String".to_owned());
+		let name_3 = interner.get_or_intern("Foo".to_owned());
+		let name_4 = interner.get_or_intern("Bar".to_owned());
+		let name_5 = interner.get_or_intern("I am a String".to_owned());
+		let name_6 = interner.get_or_intern("Next is empty".to_owned());
+		let name_7 = interner.get_or_intern("".to_owned());
+		let name_8 = interner.get_or_intern("I am a String".to_owned());
+		let name_9 = interner.get_or_intern("I am a String".to_owned());
+		let name10 = interner.get_or_intern("Foo".to_owned());
 
 		assert_eq!(interner.len(), 7);
 
