@@ -9,18 +9,18 @@ use std::hash::{Hash, Hasher};
 /// This trait allows definitions of custom InternIndices besides
 /// the already supported unsigned integer primitives.
 pub trait InternIndex: Copy {
-	fn from_index(idx: usize) -> Self;
-	fn to_index(&self) -> usize;
+	fn from_usize(idx: usize) -> Self;
+	fn to_usize(&self) -> usize;
 }
 
 macro_rules! impl_intern_ref {
 	( $primitive:ty ) => {
 		impl InternIndex for $primitive {
-			fn from_index(idx: usize) -> Self {
+			fn from_usize(idx: usize) -> Self {
 				idx as $primitive
 			}
 
-			fn to_index(&self) -> usize {
+			fn to_usize(&self) -> usize {
 				*self as usize
 			}
 		}
@@ -55,12 +55,6 @@ impl InternalStrRef {
 		unsafe{ &*self.0 as &str }
 	}
 }
-
-// impl<'a> From<&'a str> for InternalStrRef {
-// 	fn from(val: &str) -> InternalStrRef {
-// 		InternalStrRef::from_str(val)
-// 	}
-// }
 
 impl<T> From<T> for InternalStrRef
 	where T: AsRef<str>
@@ -132,14 +126,14 @@ impl<Idx> StringInterner<Idx>
 
 	/// Creates a new index for the current state of the interner.
 	fn make_idx(&self) -> Idx {
-		Idx::from_index(self.len())
+		Idx::from_usize(self.len())
 	}
 
 	/// Returns a string slice to the string identified by the given index if available.
 	/// Else, None is returned.
 	pub fn get(&self, index: Idx) -> Option<&str> {
 		self.values
-			.get(index.to_index())
+			.get(index.to_usize())
 			.map(|string| &**string)
 	}
 
