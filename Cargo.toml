@@ -1,6 +1,14 @@
 [package]
 name = "string-interner"
 version = "0.1.0"
-authors = ["Robbepop <robbepop@web.de>"]
+authors = ["Robbepop"]
+license = "MIT/Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/robbepop/string-interner"
+documentation = "https://docs.rs/string-interner"
+keywords = ["interner", "interning", "intern", "string", "str", "symbol", "table"]
+description = """A string interning data structure that was designed for minimal memory-overhead
+and fast access to the underlying interned string contents.
+"""
 
 [dependencies]
