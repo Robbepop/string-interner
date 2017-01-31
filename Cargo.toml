@@ -8,7 +8,7 @@ repository = "https://github.com/robbepop/string-interner"
 documentation = "https://docs.rs/string-interner"
 keywords = ["interner", "interning", "intern", "string", "str", "symbol", "table"]
 description = """A string interning data structure that was designed for minimal memory-overhead
-and fast access to the underlying interned string contents.
+and fast access to the underlying interned string contents. Uses nightly only feature `conservative_impl_trait`!
 """
 
 [dependencies]
