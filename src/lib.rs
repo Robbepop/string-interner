@@ -1,4 +1,35 @@
 #![feature(conservative_impl_trait)]
+#![deny(missing_docs)]
+
+//! A string interning data structure that was designed for minimal memory-overhead
+//! and fast access to the underlying interned string contents.
+//! 
+//! Uses a similar interface as the string interner of the rust compiler.
+//! 
+//! Provides support for all primitive types for indexing.
+//! 
+//! Example usage:
+//! 
+//! ```
+//! 	use string_interner::StringInterner;
+//! 	let mut interner = StringInterner::<usize>::default();
+//! 	let name0 = interner.get_or_intern("Elephant");
+//! 	let name1 = interner.get_or_intern("Tiger");
+//! 	let name2 = interner.get_or_intern("Horse");
+//! 	let name3 = interner.get_or_intern("Tiger");
+//! 	let name4 = interner.get_or_intern("Tiger");
+//! 	let name5 = interner.get_or_intern("Mouse");
+//! 	let name6 = interner.get_or_intern("Horse");
+//! 	let name7 = interner.get_or_intern("Tiger");
+//! 	assert_eq!(name0, 0);
+//! 	assert_eq!(name1, 1);
+//! 	assert_eq!(name2, 2);
+//! 	assert_eq!(name3, 1);
+//! 	assert_eq!(name4, 1);
+//! 	assert_eq!(name5, 3);
+//! 	assert_eq!(name6, 2);
+//! 	assert_eq!(name7, 1);
+//! ```
 
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
@@ -11,7 +42,10 @@ use std::hash::{Hash, Hasher};
 /// This trait allows definitions of custom InternIndices besides
 /// the already supported unsigned integer primitives.
 pub trait InternIndex: Copy {
+	/// Creates a new `InternIndex` from a `usize`.
 	fn from_usize(idx: usize) -> Self;
+
+	/// Converts this `InternIndex` into an `usize`.
 	fn to_usize(&self) -> usize;
 }
 
@@ -87,7 +121,7 @@ impl PartialEq for InternalStrRef {
 /// 
 /// The main goal of this StringInterner is to store String
 /// with as low memory overhead as possible.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct StringInterner<Idx = usize>
 	where Idx: InternIndex
 {
@@ -166,13 +200,6 @@ impl<Idx> StringInterner<Idx>
 		self.values.iter().map(|boxed_str| boxed_str.as_ref())
 	}
 
-	/// Returns an iterator over the interned strings.
-	/// 
-	/// Allows mutable access to the iterated string contents.
-	pub fn iter_values_mut<'a>(&'a mut self) -> impl Iterator<Item=&'a mut str> {
-		self.values.iter_mut().map(|boxed_str| boxed_str.as_mut())
-	}
-
 	/// Returns an iterator over all intern indices and their associated strings.
 	pub fn iter<'a>(&'a self) -> impl Iterator<Item=(Idx, &'a str)> {
 		self.values
@@ -181,17 +208,9 @@ impl<Idx> StringInterner<Idx>
 			.map(|(num, boxed_str)| (Idx::from_usize(num), boxed_str.as_ref()))
 	}
 
-	/// Returns an iterator over all intern indices and their associated strings.
-	/// 
-	/// Allows mutable access to the iterated string contents.
-	pub fn iter_mut<'a>(&'a mut self) -> impl Iterator<Item=(Idx, &'a mut str)> {
-		self.values
-			.iter_mut()
-			.enumerate()
-			.map(|(num, boxed_str)| (Idx::from_usize(num), boxed_str.as_mut()))
-	}
-
 	/// Removes all interned Strings from this interner.
+	/// 
+	/// This invalides all `InternIndex` entities instantiated by it so far.
 	pub fn clear(&mut self) {
 		self.map.clear();
 		self.values.clear()
