@@ -178,7 +178,7 @@ impl<Idx> StringInterner<Idx>
 		self.values
 			.iter()
 			.enumerate()
-			.map(|(num, boxed_str)| (InternIndex::from_usize(num), boxed_str.as_ref()))
+			.map(|(num, boxed_str)| (Idx::from_usize(num), boxed_str.as_ref()))
 	}
 
 	/// Returns an iterator over all intern indices and their associated strings.
@@ -188,7 +188,7 @@ impl<Idx> StringInterner<Idx>
 		self.values
 			.iter_mut()
 			.enumerate()
-			.map(|(num, boxed_str)| (InternIndex::from_usize(num), boxed_str.as_mut()))
+			.map(|(num, boxed_str)| (Idx::from_usize(num), boxed_str.as_mut()))
 	}
 
 	/// Removes all interned Strings from this interner.
