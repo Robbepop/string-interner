@@ -2,13 +2,13 @@ sudo: false
 language: rust
 
 rust:
-  # - stable
-  # - beta
+  - stable
+  - beta
   - nightly
 
-# matrix:
-#     allow_failures:
-#         - rust: nightly
+matrix:
+    allow_failures:
+        - rust: nightly
 
 addons:
   apt:
@@ -29,7 +29,7 @@ script:
 
 after_success:
   # - travis-cargo --only stable doc-upload
-  - travis-cargo --only stable coveralls --no-sudo --verify
+  - travis-cargo --only nightly coveralls --no-sudo --verify
 
 env:
   global:
