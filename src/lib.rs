@@ -1,3 +1,5 @@
+#![feature(conservative_impl_trait)]
+
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
@@ -159,6 +161,36 @@ impl<Idx> StringInterner<Idx>
 		self.values.len()
 	}
 
+	/// Returns an iterator over the interned strings.
+	pub fn iter_values<'a>(&'a self) -> impl Iterator<Item=&'a str> {
+		self.values.iter().map(|boxed_str| boxed_str.as_ref())
+	}
+
+	/// Returns an iterator over the interned strings.
+	/// 
+	/// Allows mutable access to the iterated string contents.
+	pub fn iter_values_mut<'a>(&'a mut self) -> impl Iterator<Item=&'a mut str> {
+		self.values.iter_mut().map(|boxed_str| boxed_str.as_mut())
+	}
+
+	/// Returns an iterator over all intern indices and their associated strings.
+	pub fn iter<'a>(&'a self) -> impl Iterator<Item=(usize, &'a str)> {
+		self.values
+			.iter()
+			.enumerate()
+			.map(|(num, boxed_str)| (InternIndex::from_usize(num), boxed_str.as_ref()))
+	}
+
+	/// Returns an iterator over all intern indices and their associated strings.
+	/// 
+	/// Allows mutable access to the iterated string contents.
+	pub fn iter_mut<'a>(&'a mut self) -> impl Iterator<Item=(usize, &'a mut str)> {
+		self.values
+			.iter_mut()
+			.enumerate()
+			.map(|(num, boxed_str)| (InternIndex::from_usize(num), boxed_str.as_mut()))
+	}
+
 	/// Removes all interned Strings from this interner.
 	pub fn clear(&mut self) {
 		self.map.clear();
@@ -287,5 +319,29 @@ mod tests {
 		assert_eq!(interner.len(), 5);
 		interner.clear();
 		assert_eq!(interner.len(), 0);
+	}
+
+	#[test]
+	fn string_interner_iter_values() {
+		let (interner, _) = make_dummy_interner();
+		let mut it = interner.iter_values();
+		assert_eq!(it.next(), Some("foo"));
+		assert_eq!(it.next(), Some("bar"));
+		assert_eq!(it.next(), Some("baz"));
+		assert_eq!(it.next(), Some("rofl"));
+		assert_eq!(it.next(), Some("mao"));
+		assert_eq!(it.next(), None);
+	}
+
+	#[test]
+	fn string_interner_iter() {
+		let (interner, _) = make_dummy_interner();
+		let mut it = interner.iter();
+		assert_eq!(it.next(), Some((0, "foo")));
+		assert_eq!(it.next(), Some((1, "bar")));
+		assert_eq!(it.next(), Some((2, "baz")));
+		assert_eq!(it.next(), Some((3, "rofl")));
+		assert_eq!(it.next(), Some((4, "mao")));
+		assert_eq!(it.next(), None);
 	}
 }
