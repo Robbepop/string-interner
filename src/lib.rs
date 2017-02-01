@@ -178,7 +178,7 @@ impl<Idx> StringInterner<Idx>
 	pub fn get(&self, index: Idx) -> Option<&str> {
 		self.values
 			.get(index.to_usize())
-			.map(|string| &**string)
+			.map(|boxed_str| boxed_str.as_ref())
 	}
 
 	/// Returns the given value's index for this interner if existent.
