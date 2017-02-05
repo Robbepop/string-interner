@@ -1,15 +1,8 @@
 language: rust
+sudo: false
+cache: cargo
 
-channel:
-  - stable
-  - beta
-  - nightly
-
-matrix:
-  allow_failures:
-  - channel:
-    - stable
-    - beta
+rust: nightly
 
 addons:
   apt:
