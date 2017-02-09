@@ -5,7 +5,7 @@
 //! 
 //! Uses a similar interface as the string interner of the rust compiler.
 //! 
-//! Provides support for all primitive types for indexing.
+//! Provides support to use all primitive types as symbols
 //! 
 //! Example usage:
 //! 
@@ -111,15 +111,15 @@ impl PartialEq for InternalStrRef {
 /// The main goal of this StringInterner is to store String
 /// with as low memory overhead as possible.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct StringInterner<Idx = usize>
-	where Idx: Symbol
+pub struct StringInterner<Sym = usize>
+	where Sym: Symbol
 {
-	map   : HashMap<InternalStrRef, Idx>,
+	map   : HashMap<InternalStrRef, Sym>,
 	values: Vec<Box<str>>
 }
 
-impl<Idx> StringInterner<Idx>
-	where Idx: Symbol
+impl<Sym> StringInterner<Sym>
+	where Sym: Symbol
 {
 	/// Creates a new StringInterner with a given capacity.
 	pub fn with_capacity(cap: usize) -> Self {
@@ -131,11 +131,11 @@ impl<Idx> StringInterner<Idx>
 
 	/// Interns the given value.
 	/// 
-	/// Returns an index to access it within this interner.
+	/// Returns a symbol to access it within this interner.
 	/// 
 	/// This either copies the contents of the string (e.g. for str)
 	/// or moves them into this interner (e.g. for String).
-	pub fn get_or_intern<T>(&mut self, val: T) -> Idx
+	pub fn get_or_intern<T>(&mut self, val: T) -> Sym
 		where T: Into<String> + AsRef<str>
 	{
 		match self.map.get(&val.as_ref().into()) {
@@ -146,32 +146,32 @@ impl<Idx> StringInterner<Idx>
 
 	/// Interns the given value and ignores collissions.
 	/// 
-	/// Returns an index to access it within this interner.
-	fn gensym<T>(&mut self, new_val: T) -> Idx
+	/// Returns a symbol to access it within this interner.
+	fn gensym<T>(&mut self, new_val: T) -> Sym
 		where T: Into<String> + AsRef<str>
 	{
-		let new_id : Idx            = self.make_idx();
+		let new_id : Sym            = self.make_symbol();
 		let new_ref: InternalStrRef = new_val.as_ref().into();
 		self.values.push(new_val.into().into_boxed_str());
 		self.map.insert(new_ref, new_id);
 		new_id
 	}
 
-	/// Creates a new index for the current state of the interner.
-	fn make_idx(&self) -> Idx {
-		Idx::from_usize(self.len()).unwrap()
+	/// Creates a new symbol for the current state of the interner.
+	fn make_symbol(&self) -> Sym {
+		Sym::from_usize(self.len()).unwrap()
 	}
 
-	/// Returns a string slice to the string identified by the given index if available.
+	/// Returns a string slice to the string identified by the given symbol if available.
 	/// Else, None is returned.
-	pub fn get(&self, index: Idx) -> Option<&str> {
+	pub fn get(&self, symbol: Sym) -> Option<&str> {
 		self.values
-			.get(index.to_usize().unwrap())
+			.get(symbol.to_usize().unwrap())
 			.map(|boxed_str| boxed_str.as_ref())
 	}
 
-	/// Returns the given value's index for this interner if existent.
-	pub fn lookup_index<T>(&self, val: T) -> Option<Idx>
+	/// Returns the given value's symbol for this interner if existent.
+	pub fn lookup_symbol<T>(&self, val: T) -> Option<Sym>
 		where T: AsRef<str>
 	{
 		self.map
@@ -190,11 +190,11 @@ impl<Idx> StringInterner<Idx>
 	}
 
 	/// Returns an iterator over all intern indices and their associated strings.
-	pub fn iter<'a>(&'a self) -> impl Iterator<Item=(Idx, &'a str)> {
+	pub fn iter<'a>(&'a self) -> impl Iterator<Item=(Sym, &'a str)> {
 		self.values
 			.iter()
 			.enumerate()
-			.map(|(num, boxed_str)| (Idx::from_usize(num).unwrap(), boxed_str.as_ref()))
+			.map(|(num, boxed_str)| (Sym::from_usize(num).unwrap(), boxed_str.as_ref()))
 	}
 
 	/// Removes all interned Strings from this interner.
@@ -311,14 +311,14 @@ mod tests {
 	}
 
 	#[test]
-	fn lookup_index() {
+	fn lookup_symbol() {
 		let (interner, _) = make_dummy_interner();
-		assert_eq!(interner.lookup_index("foo"),  Some(0));
-		assert_eq!(interner.lookup_index("bar"),  Some(1));
-		assert_eq!(interner.lookup_index("baz"),  Some(2));
-		assert_eq!(interner.lookup_index("rofl"), Some(3));
-		assert_eq!(interner.lookup_index("mao"),  Some(4));
-		assert_eq!(interner.lookup_index("xD"),   None);
+		assert_eq!(interner.lookup_symbol("foo"),  Some(0));
+		assert_eq!(interner.lookup_symbol("bar"),  Some(1));
+		assert_eq!(interner.lookup_symbol("baz"),  Some(2));
+		assert_eq!(interner.lookup_symbol("rofl"), Some(3));
+		assert_eq!(interner.lookup_symbol("mao"),  Some(4));
+		assert_eq!(interner.lookup_symbol("xD"),   None);
 	}
 
 	#[test]
