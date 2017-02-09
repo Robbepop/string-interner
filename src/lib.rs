@@ -1,4 +1,3 @@
-#![feature(conservative_impl_trait)]
 #![deny(missing_docs)]
 
 //! A string interning data structure that was designed for minimal memory-overhead
@@ -30,6 +29,11 @@
 //! 	assert_eq!(name6, 2);
 //! 	assert_eq!(name7, 1);
 //! ```
+
+#![feature(conservative_impl_trait)]
+
+#![feature(test)]
+extern crate test;
 
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
@@ -87,8 +91,8 @@ impl InternalStrRef {
 	/// Reinterprets this InternalStrRef as a str.
 	/// 
 	/// Does not allocate memory!
-	fn as_str(&self) -> &str {
-		unsafe{ &*self.0 as &str }
+	unsafe fn as_str(&self) -> &str {
+		&*self.0 as &str
 	}
 }
 
@@ -102,13 +106,13 @@ impl<T> From<T> for InternalStrRef
 
 impl Hash for InternalStrRef {
 	fn hash<H: Hasher>(&self, state: &mut H) {
-		self.as_str().hash(state)
+		unsafe{ self.as_str().hash(state) }
 	}
 }
 
 impl PartialEq for InternalStrRef {
 	fn eq(&self, other: &InternalStrRef) -> bool {
-		self.as_str() == other.as_str()
+		unsafe{ self.as_str() == other.as_str() }
 	}
 }
 
@@ -362,5 +366,124 @@ mod tests {
 		assert_eq!(it.next(), Some((3, "rofl")));
 		assert_eq!(it.next(), Some((4, "mao")));
 		assert_eq!(it.next(), None);
+	}
+
+    use test::Bencher;
+
+	#[bench]
+	fn bench_intern_same(bencher: &mut Bencher) {
+		let (mut interner, _) = make_dummy_interner();
+		bencher.iter(|| interner.get_or_intern("foo"))
+	}
+
+	#[bench]
+	fn bench_intern_list(bencher: &mut Bencher) {
+		let (mut interner, _) = make_dummy_interner();
+		let names = &[
+			"Aaren",
+			"Aarika",
+			"Abagael",
+			"Abagail",
+			"Abbe",
+			"Abbey",
+			"Abbi",
+			"Abbie",
+			"Abby",
+			"Abbye",
+			"Abigael",
+			"Abigail",
+			"Abigale",
+			"Abra",
+			"Ada",
+			"Adah",
+			"Adaline",
+			"Adan",
+			"Adara",
+			"Adda",
+			"Addi",
+			"Addia",
+			"Addie",
+			"Addy",
+			"Adel",
+			"Adela",
+			"Adelaida",
+			"Adelaide",
+			"Adele",
+			"Adelheid",
+			"Adelice",
+			"Adelina",
+			"Adelind",
+			"Adeline",
+			"Adella",
+			"Adelle",
+			"Adena",
+			"Adey",
+			"Adi",
+			"Adiana",
+			"Adina",
+			"Adora",
+			"Adore",
+			"Adoree",
+			"Adorne",
+			"Adrea",
+			"Adria",
+			"Adriaens",
+			"Adrian",
+			"Adriana",
+			"Adriane",
+			"Adrianna",
+			"Adrianne",
+			"Adriena",
+			"Adrienne",
+			"Aeriel",
+			"Aeriela",
+			"Aeriell",
+			"Afton",
+			"Ag",
+			"Agace",
+			"Agata",
+			"Agatha",
+			"Agathe",
+			"Aggi",
+			"Aggie",
+			"Aggy",
+			"Agna",
+			"Agnella",
+			"Agnes",
+			"Agnese",
+			"Agnesse",
+			"Agneta",
+			"Agnola",
+			"Agretha",
+			"Aida",
+			"Aidan",
+			"Aigneis",
+			"Aila",
+			"Aile",
+			"Ailee",
+			"Aileen",
+			"Ailene",
+			"Ailey",
+			"Aili",
+			"Ailina",
+			"Ailis",
+			"Ailsun",
+			"Ailyn",
+			"Aime",
+			"Aimee",
+			"Aimil",
+			"Aindrea",
+			"Ainslee",
+			"Ainsley",
+			"Ainslie",
+			"Ajay",
+			"Alaine",
+			"Alameda",
+			"Alana"];
+		bencher.iter(|| {
+			for &name in names.iter() {
+				interner.get_or_intern(name);
+			}
+		})
 	}
 }
