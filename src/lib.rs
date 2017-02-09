@@ -35,8 +35,11 @@
 #![feature(test)]
 extern crate test;
 
+extern crate num_traits;
+
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
+use ::num_traits::{Unsigned, FromPrimitive, ToPrimitive};
 
 /// Represents indices into the StringInterner.
 /// 
@@ -45,33 +48,7 @@ use std::hash::{Hash, Hasher};
 /// 
 /// This trait allows definitions of custom InternIndices besides
 /// the already supported unsigned integer primitives.
-pub trait Symbol: Copy {
-	/// Creates a new `Symbol` from a `usize`.
-	fn from_usize(idx: usize) -> Self;
-
-	/// Converts this `Symbol` into an `usize`.
-	fn to_usize(&self) -> usize;
-}
-
-macro_rules! impl_intern_ref {
-	( $primitive:ty ) => {
-		impl Symbol for $primitive {
-			fn from_usize(idx: usize) -> Self {
-				idx as $primitive
-			}
-
-			fn to_usize(&self) -> usize {
-				*self as usize
-			}
-		}
-	}
-}
-
-impl_intern_ref!(u8);
-impl_intern_ref!(u16);
-impl_intern_ref!(u32);
-impl_intern_ref!(u64);
-impl_intern_ref!(usize);
+pub trait Symbol: Copy + Unsigned + FromPrimitive + ToPrimitive {}
 
 /// Internal reference to str used only within the StringInterner itself
 /// to encapsulate the unsafe behaviour of interor references.
@@ -90,9 +67,14 @@ impl InternalStrRef {
 
 	/// Reinterprets this InternalStrRef as a str.
 	/// 
+	/// This is "safe" as long as this InternalStrRef only
+	/// refers to strs that outlive this instance or
+	/// the instance that owns this InternalStrRef.
+	/// This should hold true for StringInterner.
+	/// 
 	/// Does not allocate memory!
-	unsafe fn as_str(&self) -> &str {
-		&*self.0 as &str
+	fn as_str(&self) -> &str {
+		unsafe{ &*self.0 as &str }
 	}
 }
 
@@ -106,13 +88,13 @@ impl<T> From<T> for InternalStrRef
 
 impl Hash for InternalStrRef {
 	fn hash<H: Hasher>(&self, state: &mut H) {
-		unsafe{ self.as_str().hash(state) }
+		self.as_str().hash(state)
 	}
 }
 
 impl PartialEq for InternalStrRef {
 	fn eq(&self, other: &InternalStrRef) -> bool {
-		unsafe{ self.as_str() == other.as_str() }
+		self.as_str() == other.as_str()
 	}
 }
 
@@ -174,14 +156,14 @@ impl<Idx> StringInterner<Idx>
 
 	/// Creates a new index for the current state of the interner.
 	fn make_idx(&self) -> Idx {
-		Idx::from_usize(self.len())
+		Idx::from_usize(self.len()).unwrap()
 	}
 
 	/// Returns a string slice to the string identified by the given index if available.
 	/// Else, None is returned.
 	pub fn get(&self, index: Idx) -> Option<&str> {
 		self.values
-			.get(index.to_usize())
+			.get(index.to_usize().unwrap())
 			.map(|boxed_str| boxed_str.as_ref())
 	}
 
@@ -209,7 +191,7 @@ impl<Idx> StringInterner<Idx>
 		self.values
 			.iter()
 			.enumerate()
-			.map(|(num, boxed_str)| (Idx::from_usize(num), boxed_str.as_ref()))
+			.map(|(num, boxed_str)| (Idx::from_usize(num).unwrap(), boxed_str.as_ref()))
 	}
 
 	/// Removes all interned Strings from this interner.

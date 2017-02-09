@@ -12,3 +12,4 @@ and fast access to the underlying interned string contents. Uses nightly only fe
 """
 
 [dependencies]
+num-traits = "0.1"
