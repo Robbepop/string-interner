@@ -45,17 +45,17 @@ use std::hash::{Hash, Hasher};
 /// 
 /// This trait allows definitions of custom InternIndices besides
 /// the already supported unsigned integer primitives.
-pub trait InternIndex: Copy {
-	/// Creates a new `InternIndex` from a `usize`.
+pub trait Symbol: Copy {
+	/// Creates a new `Symbol` from a `usize`.
 	fn from_usize(idx: usize) -> Self;
 
-	/// Converts this `InternIndex` into an `usize`.
+	/// Converts this `Symbol` into an `usize`.
 	fn to_usize(&self) -> usize;
 }
 
 macro_rules! impl_intern_ref {
 	( $primitive:ty ) => {
-		impl InternIndex for $primitive {
+		impl Symbol for $primitive {
 			fn from_usize(idx: usize) -> Self {
 				idx as $primitive
 			}
@@ -127,14 +127,14 @@ impl PartialEq for InternalStrRef {
 /// with as low memory overhead as possible.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct StringInterner<Idx = usize>
-	where Idx: InternIndex
+	where Idx: Symbol
 {
 	map   : HashMap<InternalStrRef, Idx>,
 	values: Vec<Box<str>>
 }
 
 impl<Idx> StringInterner<Idx>
-	where Idx: InternIndex
+	where Idx: Symbol
 {
 	/// Creates a new StringInterner with a given capacity.
 	pub fn with_capacity(cap: usize) -> Self {
@@ -214,7 +214,7 @@ impl<Idx> StringInterner<Idx>
 
 	/// Removes all interned Strings from this interner.
 	/// 
-	/// This invalides all `InternIndex` entities instantiated by it so far.
+	/// This invalides all `Symbol` entities instantiated by it so far.
 	pub fn clear(&mut self) {
 		self.map.clear();
 		self.values.clear()
