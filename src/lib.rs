@@ -49,6 +49,9 @@ use ::num_traits::{Unsigned, FromPrimitive, ToPrimitive};
 /// This trait allows definitions of custom InternIndices besides
 /// the already supported unsigned integer primitives.
 pub trait Symbol: Copy + Unsigned + FromPrimitive + ToPrimitive {}
+impl<T> Symbol for T where
+	T: Copy + Unsigned + FromPrimitive + ToPrimitive
+{} 
 
 /// Internal reference to str used only within the StringInterner itself
 /// to encapsulate the unsafe behaviour of interor references.
