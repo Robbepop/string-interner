@@ -101,6 +101,10 @@ impl PartialEq for InternalStrRef {
 	}
 }
 
+/// Defaults to using usize as the underlying and internal
+/// symbol data representation within this StringInterner.
+pub type DefaultStringInterner = StringInterner<usize>;
+
 /// Provides a bidirectional mapping between String stored within
 /// the interner and indices.
 /// The main purpose is to store every unique String only once and
@@ -111,7 +115,7 @@ impl PartialEq for InternalStrRef {
 /// The main goal of this StringInterner is to store String
 /// with as low memory overhead as possible.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct StringInterner<Sym = usize>
+pub struct StringInterner<Sym>
 	where Sym: Symbol
 {
 	map   : HashMap<InternalStrRef, Sym>,
@@ -208,10 +212,10 @@ impl<Sym> StringInterner<Sym>
 
 #[cfg(test)]
 mod tests {
-	use ::{StringInterner, InternalStrRef};
+	use ::{DefaultStringInterner, InternalStrRef};
 
-	fn make_dummy_interner() -> (StringInterner, [usize; 8]) {
-		let mut interner = StringInterner::default();
+	fn make_dummy_interner() -> (DefaultStringInterner, [usize; 8]) {
+		let mut interner = DefaultStringInterner::default();
 		let name0 = interner.get_or_intern("foo");
 		let name1 = interner.get_or_intern("bar");
 		let name2 = interner.get_or_intern("baz");
@@ -265,7 +269,7 @@ mod tests {
 
 	#[test]
 	fn intern_string() {
-		let mut interner = StringInterner::<usize>::default();
+		let mut interner = DefaultStringInterner::default();
 		let name_0 = interner.get_or_intern("Hello".to_owned());
 		let name_1 = interner.get_or_intern("World".to_owned());
 		let name_2 = interner.get_or_intern("I am a String".to_owned());
