@@ -143,7 +143,7 @@ impl<Sym> StringInterner<Sym>
 		where T: Into<String> + AsRef<str>
 	{
 		match self.map.get(&val.as_ref().into()) {
-			Some(&idx) => idx,
+			Some(&sym) => sym,
 			None       => self.gensym(val)
 		}
 	}
@@ -180,7 +180,7 @@ impl<Sym> StringInterner<Sym>
 	{
 		self.map
 			.get(&val.as_ref().into())
-			.map(|&idx| idx)
+			.map(|&sym| sym)
 	}
 
 	/// Returns the number of uniquely stored Strings interned within this interner.
