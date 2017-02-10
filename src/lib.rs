@@ -11,7 +11,7 @@
 //! 
 //! ```
 //! 	use string_interner::StringInterner;
-//! 	let mut interner = StringInterner::<usize>::default();
+//! 	let mut interner = StringInterner::<usize>::new();
 //! 	let name0 = interner.get_or_intern("Elephant");
 //! 	let name1 = interner.get_or_intern("Tiger");
 //! 	let name2 = interner.get_or_intern("Horse");
@@ -114,7 +114,7 @@ pub type DefaultStringInterner = StringInterner<usize>;
 /// 
 /// The main goal of this StringInterner is to store String
 /// with as low memory overhead as possible.
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StringInterner<Sym>
 	where Sym: Symbol
 {
@@ -125,6 +125,16 @@ pub struct StringInterner<Sym>
 impl<Sym> StringInterner<Sym>
 	where Sym: Symbol
 {
+	/// Creates a new empty StringInterner.
+	/// 
+	/// Used instead of Deriving from Default to not make internals depend on it.
+	pub fn new() -> Self {
+		StringInterner{
+			map   : HashMap::new(),
+			values: Vec::new()
+		}
+	}
+
 	/// Creates a new StringInterner with a given capacity.
 	pub fn with_capacity(cap: usize) -> Self {
 		StringInterner{
@@ -215,7 +225,7 @@ mod tests {
 	use ::{DefaultStringInterner, InternalStrRef};
 
 	fn make_dummy_interner() -> (DefaultStringInterner, [usize; 8]) {
-		let mut interner = DefaultStringInterner::default();
+		let mut interner = DefaultStringInterner::new();
 		let name0 = interner.get_or_intern("foo");
 		let name1 = interner.get_or_intern("bar");
 		let name2 = interner.get_or_intern("baz");
@@ -269,7 +279,7 @@ mod tests {
 
 	#[test]
 	fn intern_string() {
-		let mut interner = DefaultStringInterner::default();
+		let mut interner = DefaultStringInterner::new();
 		let name_0 = interner.get_or_intern("Hello".to_owned());
 		let name_1 = interner.get_or_intern("World".to_owned());
 		let name_2 = interner.get_or_intern("I am a String".to_owned());
