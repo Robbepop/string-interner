@@ -35,11 +35,21 @@
 #![feature(test)]
 extern crate test;
 
-extern crate num_traits;
-
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-use ::num_traits::{Unsigned, FromPrimitive, ToPrimitive};
+
+/// Number types implementing this trait are always non negative.
+/// 
+/// The user has to enforce that this condition is met.
+/// Default implemented for all unsigned primitive number types.
+/// 
+/// This effectively hinders default implementation for Symbol for signed primitives.
+pub trait NonNegative {}
+impl NonNegative for u8 {}
+impl NonNegative for u16 {}
+impl NonNegative for u32 {}
+impl NonNegative for u64 {}
+impl NonNegative for usize {}
 
 /// Represents indices into the StringInterner.
 /// 
@@ -48,10 +58,21 @@ use ::num_traits::{Unsigned, FromPrimitive, ToPrimitive};
 /// 
 /// This trait allows definitions of custom InternIndices besides
 /// the already supported unsigned integer primitives.
-pub trait Symbol: Copy + Unsigned + FromPrimitive + ToPrimitive {}
+pub trait Symbol: Copy + Ord + Eq + NonNegative + From<usize> + Into<usize> {
+	/// Creates a symbol explicitely from a usize primitive type.
+	/// 
+	/// Defaults to simply using the standard From<usize> trait.
+	fn from_usize(val: usize) -> Self { val.into() }
+
+	/// Creates a usize explicitely from this symbol.
+	/// 
+	/// Defaults to simply using the standard Into<usize> trait.
+	fn to_usize(self) -> usize { self.into() }
+}
+
 impl<T> Symbol for T where
-	T: Copy + Unsigned + FromPrimitive + ToPrimitive
-{} 
+	T: Copy + Ord + Eq + NonNegative + From<usize> + Into<usize>
+{}
 
 /// Internal reference to str used only within the StringInterner itself
 /// to encapsulate the unsafe behaviour of interor references.
@@ -173,14 +194,14 @@ impl<Sym> StringInterner<Sym>
 
 	/// Creates a new symbol for the current state of the interner.
 	fn make_symbol(&self) -> Sym {
-		Sym::from_usize(self.len()).unwrap()
+		Sym::from_usize(self.len())
 	}
 
 	/// Returns a string slice to the string identified by the given symbol if available.
 	/// Else, None is returned.
 	pub fn get(&self, symbol: Sym) -> Option<&str> {
 		self.values
-			.get(symbol.to_usize().unwrap())
+			.get(symbol.to_usize())
 			.map(|boxed_str| boxed_str.as_ref())
 	}
 
@@ -208,7 +229,7 @@ impl<Sym> StringInterner<Sym>
 		self.values
 			.iter()
 			.enumerate()
-			.map(|(num, boxed_str)| (Sym::from_usize(num).unwrap(), boxed_str.as_ref()))
+			.map(|(num, boxed_str)| (Sym::from_usize(num), boxed_str.as_ref()))
 	}
 
 	/// Removes all interned Strings from this interner.
