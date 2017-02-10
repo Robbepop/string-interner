@@ -1,3 +1,4 @@
+#![cfg_attr(all(feature = "bench", test), feature(test))]
 #![deny(missing_docs)]
 
 //! A string interning data structure that was designed for minimal memory-overhead
@@ -30,7 +31,7 @@
 //! 	assert_eq!(name7, 1);
 //! ```
 
-#![feature(test)]
+#[cfg(all(feature = "bench", test))]
 extern crate test;
 
 use std::collections::HashMap;
@@ -250,7 +251,7 @@ impl<'a, Sym> Iter<'a, Sym>
 	/// Creates a new iterator for the given StringIterator over pairs of 
 	/// symbols and their associated interned string.
 	fn new(interner: &'a StringInterner<Sym>) -> Self {
-		Self{
+		Iter{
 			interner: interner,
 			current : 0
 		}
@@ -292,7 +293,7 @@ impl<'a, Sym> Values<'a, Sym>
 {
 	/// Creates a new iterator for the given StringIterator over its interned strings.
 	fn new(interner: &'a StringInterner<Sym>) -> Self {
-		Self{
+		Values{
 			iter: interner.iter()
 		}
 	}
@@ -461,18 +462,22 @@ mod tests {
 		assert_eq!(it.next(), Some((4, "mao")));
 		assert_eq!(it.next(), None);
 	}
+}
 
+#[cfg(all(feature = "bench", test))]
+mod bench {
+	use super::*;
     use test::Bencher;
 
 	#[bench]
 	fn bench_intern_same(bencher: &mut Bencher) {
-		let (mut interner, _) = make_dummy_interner();
+		let mut interner = DefaultStringInterner::new();
 		bencher.iter(|| interner.get_or_intern("foo"))
 	}
 
 	#[bench]
 	fn bench_intern_list(bencher: &mut Bencher) {
-		let (mut interner, _) = make_dummy_interner();
+		let mut interner = DefaultStringInterner::new();
 		let names = &[
 			"Aaren",
 			"Aarika",

@@ -13,3 +13,6 @@ and fast access to the underlying interned string contents.
 categories = ["data-structures", "caching", "compression"]
 
 [dependencies]
+
+[features]
+bench = []
