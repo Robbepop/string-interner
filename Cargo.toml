@@ -10,6 +10,7 @@ keywords = ["interner", "intern", "string", "str", "symbol"]
 description = """A string interning data structure that was designed for minimal memory-overhead
 and fast access to the underlying interned string contents. Uses nightly only feature `conservative_impl_trait`!
 """
+categories = ["data-structures", "caching", "compression"]
 
 [dependencies]
 num-traits = "0.1"
