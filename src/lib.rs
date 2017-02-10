@@ -30,8 +30,6 @@
 //! 	assert_eq!(name7, 1);
 //! ```
 
-#![feature(conservative_impl_trait)]
-
 #![feature(test)]
 extern crate test;
 
@@ -175,14 +173,14 @@ impl<Sym> StringInterner<Sym>
 	{
 		match self.map.get(&val.as_ref().into()) {
 			Some(&sym) => sym,
-			None       => self.gensym(val)
+			None       => self.intern(val)
 		}
 	}
 
 	/// Interns the given value and ignores collissions.
 	/// 
 	/// Returns a symbol to access it within this interner.
-	fn gensym<T>(&mut self, new_val: T) -> Sym
+	fn intern<T>(&mut self, new_val: T) -> Sym
 		where T: Into<String> + AsRef<str>
 	{
 		let new_id : Sym            = self.make_symbol();
@@ -199,14 +197,14 @@ impl<Sym> StringInterner<Sym>
 
 	/// Returns a string slice to the string identified by the given symbol if available.
 	/// Else, None is returned.
-	pub fn get(&self, symbol: Sym) -> Option<&str> {
+	pub fn resolve(&self, symbol: Sym) -> Option<&str> {
 		self.values
 			.get(symbol.to_usize())
 			.map(|boxed_str| boxed_str.as_ref())
 	}
 
 	/// Returns the given value's symbol for this interner if existent.
-	pub fn lookup_symbol<T>(&self, val: T) -> Option<Sym>
+	pub fn get<T>(&self, val: T) -> Option<Sym>
 		where T: AsRef<str>
 	{
 		self.map
@@ -220,16 +218,13 @@ impl<Sym> StringInterner<Sym>
 	}
 
 	/// Returns an iterator over the interned strings.
-	pub fn iter_values<'a>(&'a self) -> impl Iterator<Item=&'a str> {
-		self.values.iter().map(|boxed_str| boxed_str.as_ref())
+	pub fn iter<'a>(&'a self) -> Iter<'a, Sym> {
+		Iter::new(self)
 	}
 
 	/// Returns an iterator over all intern indices and their associated strings.
-	pub fn iter<'a>(&'a self) -> impl Iterator<Item=(Sym, &'a str)> {
-		self.values
-			.iter()
-			.enumerate()
-			.map(|(num, boxed_str)| (Sym::from_usize(num), boxed_str.as_ref()))
+	pub fn iter_values<'a>(&'a self) -> Values<'a, Sym> {
+		Values::new(self)
 	}
 
 	/// Removes all interned Strings from this interner.
@@ -238,6 +233,85 @@ impl<Sym> StringInterner<Sym>
 	pub fn clear(&mut self) {
 		self.map.clear();
 		self.values.clear()
+	}
+}
+
+/// Iterator over the pairs of symbols and interned string for a StringInterner.
+pub struct Iter<'a, Sym>
+	where Sym: Symbol + 'a
+{
+	interner: &'a StringInterner<Sym>,
+	current : usize
+}
+
+impl<'a, Sym> Iter<'a, Sym>
+	where Sym: Symbol + 'a
+{
+	/// Creates a new iterator for the given StringIterator over pairs of 
+	/// symbols and their associated interned string.
+	fn new(interner: &'a StringInterner<Sym>) -> Self {
+		Self{
+			interner: interner,
+			current : 0
+		}
+	}
+}
+
+impl<'a, Sym> Iterator for Iter<'a, Sym>
+	where Sym: Symbol + 'a
+{
+	type Item = (Sym, &'a str);
+
+	fn next(&mut self) -> Option<Self::Item> {
+		let sym = Sym::from_usize(self.current);
+		match self.interner.resolve(sym) {
+			Some(str) => {
+				self.current += 1;
+				Some((sym, str))
+			},
+			None => None
+		}
+	}
+
+	fn size_hint(&self) -> (usize, Option<usize>) {
+		use std::cmp::max;
+		let rem_elems = max(0, self.interner.len() - self.current);
+		(rem_elems, Some(rem_elems))
+	}
+}
+
+/// Iterator over the interned strings for a StringInterner.
+pub struct Values<'a, Sym>
+	where Sym: Symbol + 'a
+{
+	iter: Iter<'a, Sym>
+}
+
+impl<'a, Sym> Values<'a, Sym>
+	where Sym: Symbol + 'a
+{
+	/// Creates a new iterator for the given StringIterator over its interned strings.
+	fn new(interner: &'a StringInterner<Sym>) -> Self {
+		Self{
+			iter: interner.iter()
+		}
+	}
+}
+
+impl<'a, Sym> Iterator for Values<'a, Sym>
+	where Sym: Symbol + 'a
+{
+	type Item = &'a str;
+
+	fn next(&mut self) -> Option<Self::Item> {
+		match self.iter.next() {
+			Some((_, string)) => Some(string),
+			None              => None
+		}
+	}
+
+	fn size_hint(&self) -> (usize, Option<usize>) {
+		self.iter.size_hint()
 	}
 }
 
@@ -337,23 +411,23 @@ mod tests {
 	#[test]
 	fn get() {
 		let (interner, _) = make_dummy_interner();
-		assert_eq!(interner.get(0), Some("foo"));
-		assert_eq!(interner.get(1), Some("bar"));
-		assert_eq!(interner.get(2), Some("baz"));
-		assert_eq!(interner.get(3), Some("rofl"));
-		assert_eq!(interner.get(4), Some("mao"));
-		assert_eq!(interner.get(5), None);
+		assert_eq!(interner.resolve(0), Some("foo"));
+		assert_eq!(interner.resolve(1), Some("bar"));
+		assert_eq!(interner.resolve(2), Some("baz"));
+		assert_eq!(interner.resolve(3), Some("rofl"));
+		assert_eq!(interner.resolve(4), Some("mao"));
+		assert_eq!(interner.resolve(5), None);
 	}
 
 	#[test]
 	fn lookup_symbol() {
 		let (interner, _) = make_dummy_interner();
-		assert_eq!(interner.lookup_symbol("foo"),  Some(0));
-		assert_eq!(interner.lookup_symbol("bar"),  Some(1));
-		assert_eq!(interner.lookup_symbol("baz"),  Some(2));
-		assert_eq!(interner.lookup_symbol("rofl"), Some(3));
-		assert_eq!(interner.lookup_symbol("mao"),  Some(4));
-		assert_eq!(interner.lookup_symbol("xD"),   None);
+		assert_eq!(interner.get("foo"),  Some(0));
+		assert_eq!(interner.get("bar"),  Some(1));
+		assert_eq!(interner.get("baz"),  Some(2));
+		assert_eq!(interner.get("rofl"), Some(3));
+		assert_eq!(interner.get("mao"),  Some(4));
+		assert_eq!(interner.get("xD"),   None);
 	}
 
 	#[test]

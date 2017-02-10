@@ -7,7 +7,6 @@ TODO - List
 	- `resolve :: Symbol -> Option<&str>`
 
 - make `StringInterner`'s `get_or_intern` work for `&String`. Should work similar to `&str`.
-- implement non-nightly-dependent version of `StringInterner::iter()` and `StringInterner::iter_interned` for `StringInterner`.
 - support different hashers (e.g. very fast fnv-hasher) for `StringInterner`.
 - remove implicit impl for `Symbol` for all types but primitives (`u8`, `u16`, ..). Or maybe this feature is wanted?
 - reiterate `gensym`'s name and decide if it is useful to move it to the public interface.
