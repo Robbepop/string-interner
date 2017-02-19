@@ -61,11 +61,13 @@ pub trait Symbol: Copy + Ord + Eq + NonNegative + From<usize> + Into<usize> {
 	/// Creates a symbol explicitely from a usize primitive type.
 	/// 
 	/// Defaults to simply using the standard From<usize> trait.
+	#[inline]
 	fn from_usize(val: usize) -> Self { val.into() }
 
 	/// Creates a usize explicitely from this symbol.
 	/// 
 	/// Defaults to simply using the standard Into<usize> trait.
+	#[inline]
 	fn to_usize(self) -> usize { self.into() }
 }
 
@@ -148,6 +150,7 @@ impl<Sym> StringInterner<Sym>
 	/// Creates a new empty StringInterner.
 	/// 
 	/// Used instead of Deriving from Default to not make internals depend on it.
+	#[inline]
 	pub fn new() -> Self {
 		StringInterner{
 			map   : HashMap::new(),
@@ -156,6 +159,7 @@ impl<Sym> StringInterner<Sym>
 	}
 
 	/// Creates a new StringInterner with a given capacity.
+	#[inline]
 	pub fn with_capacity(cap: usize) -> Self {
 		StringInterner{
 			map   : HashMap::with_capacity(cap),
@@ -169,6 +173,7 @@ impl<Sym> StringInterner<Sym>
 	/// 
 	/// This either copies the contents of the string (e.g. for str)
 	/// or moves them into this interner (e.g. for String).
+	#[inline]
 	pub fn get_or_intern<T>(&mut self, val: T) -> Sym
 		where T: Into<String> + AsRef<str>
 	{
@@ -198,13 +203,22 @@ impl<Sym> StringInterner<Sym>
 
 	/// Returns a string slice to the string identified by the given symbol if available.
 	/// Else, None is returned.
+	#[inline]
 	pub fn resolve(&self, symbol: Sym) -> Option<&str> {
 		self.values
 			.get(symbol.to_usize())
 			.map(|boxed_str| boxed_str.as_ref())
 	}
 
-	/// Returns the given value's symbol for this interner if existent.
+	/// Returns a string slice to the string identified by the given symbol,
+	/// without doing bounds checking. So use it very carefully!
+	#[inline]
+	pub unsafe fn resolve_unchecked(&self, symbol: Sym) -> &str {
+		self.values.get_unchecked(symbol.to_usize()).as_ref()
+	}
+
+	/// Returns the given string's symbol for this interner if existent.
+	#[inline]
 	pub fn get<T>(&self, val: T) -> Option<Sym>
 		where T: AsRef<str>
 	{
@@ -214,16 +228,25 @@ impl<Sym> StringInterner<Sym>
 	}
 
 	/// Returns the number of uniquely stored Strings interned within this interner.
+	#[inline]
 	pub fn len(&self) -> usize {
 		self.values.len()
 	}
 
+	/// Returns true if the string interner internes no elements.
+	#[inline]
+	pub fn is_empty(&self) -> bool {
+		self.len() == 0
+	}
+
 	/// Returns an iterator over the interned strings.
+	#[inline]
 	pub fn iter<'a>(&'a self) -> Iter<'a, Sym> {
 		Iter::new(self)
 	}
 
 	/// Returns an iterator over all intern indices and their associated strings.
+	#[inline]
 	pub fn iter_values<'a>(&'a self) -> Values<'a, Sym> {
 		Values::new(self)
 	}
@@ -231,6 +254,7 @@ impl<Sym> StringInterner<Sym>
 	/// Removes all interned Strings from this interner.
 	/// 
 	/// This invalides all `Symbol` entities instantiated by it so far.
+	#[inline]
 	pub fn clear(&mut self) {
 		self.map.clear();
 		self.values.clear()
@@ -250,6 +274,7 @@ impl<'a, Sym> Iter<'a, Sym>
 {
 	/// Creates a new iterator for the given StringIterator over pairs of 
 	/// symbols and their associated interned string.
+	#[inline]
 	fn new(interner: &'a StringInterner<Sym>) -> Self {
 		Iter{
 			interner: interner,
@@ -263,6 +288,7 @@ impl<'a, Sym> Iterator for Iter<'a, Sym>
 {
 	type Item = (Sym, &'a str);
 
+	#[inline]
 	fn next(&mut self) -> Option<Self::Item> {
 		let sym = Sym::from_usize(self.current);
 		match self.interner.resolve(sym) {
@@ -274,6 +300,7 @@ impl<'a, Sym> Iterator for Iter<'a, Sym>
 		}
 	}
 
+	#[inline]
 	fn size_hint(&self) -> (usize, Option<usize>) {
 		use std::cmp::max;
 		let rem_elems = max(0, self.interner.len() - self.current);
@@ -292,6 +319,7 @@ impl<'a, Sym> Values<'a, Sym>
 	where Sym: Symbol + 'a
 {
 	/// Creates a new iterator for the given StringIterator over its interned strings.
+	#[inline]
 	fn new(interner: &'a StringInterner<Sym>) -> Self {
 		Values{
 			iter: interner.iter()
@@ -304,6 +332,7 @@ impl<'a, Sym> Iterator for Values<'a, Sym>
 {
 	type Item = &'a str;
 
+	#[inline]
 	fn next(&mut self) -> Option<Self::Item> {
 		match self.iter.next() {
 			Some((_, string)) => Some(string),
@@ -311,6 +340,7 @@ impl<'a, Sym> Iterator for Values<'a, Sym>
 		}
 	}
 
+	#[inline]
 	fn size_hint(&self) -> (usize, Option<usize>) {
 		self.iter.size_hint()
 	}
@@ -467,122 +497,54 @@ mod tests {
 #[cfg(all(feature = "bench", test))]
 mod bench {
 	use super::*;
-    use test::Bencher;
+    use test::{Bencher, black_box};
 
-	#[bench]
-	fn bench_intern_same(bencher: &mut Bencher) {
-		let mut interner = DefaultStringInterner::new();
-		bencher.iter(|| interner.get_or_intern("foo"))
+	fn read_file_to_string(path: &str) -> String {
+		use std::io::prelude::*;
+		use std::fs::File;
+
+		let mut f = File::open(path).expect("bench file not found");
+		let mut s = String::new();
+
+		f.read_to_string(&mut s).expect("encountered problems writing bench file to string");
+		s
 	}
 
 	#[bench]
-	fn bench_intern_list(bencher: &mut Bencher) {
-		let mut interner = DefaultStringInterner::new();
-		let names = &[
-			"Aaren",
-			"Aarika",
-			"Abagael",
-			"Abagail",
-			"Abbe",
-			"Abbey",
-			"Abbi",
-			"Abbie",
-			"Abby",
-			"Abbye",
-			"Abigael",
-			"Abigail",
-			"Abigale",
-			"Abra",
-			"Ada",
-			"Adah",
-			"Adaline",
-			"Adan",
-			"Adara",
-			"Adda",
-			"Addi",
-			"Addia",
-			"Addie",
-			"Addy",
-			"Adel",
-			"Adela",
-			"Adelaida",
-			"Adelaide",
-			"Adele",
-			"Adelheid",
-			"Adelice",
-			"Adelina",
-			"Adelind",
-			"Adeline",
-			"Adella",
-			"Adelle",
-			"Adena",
-			"Adey",
-			"Adi",
-			"Adiana",
-			"Adina",
-			"Adora",
-			"Adore",
-			"Adoree",
-			"Adorne",
-			"Adrea",
-			"Adria",
-			"Adriaens",
-			"Adrian",
-			"Adriana",
-			"Adriane",
-			"Adrianna",
-			"Adrianne",
-			"Adriena",
-			"Adrienne",
-			"Aeriel",
-			"Aeriela",
-			"Aeriell",
-			"Afton",
-			"Ag",
-			"Agace",
-			"Agata",
-			"Agatha",
-			"Agathe",
-			"Aggi",
-			"Aggie",
-			"Aggy",
-			"Agna",
-			"Agnella",
-			"Agnes",
-			"Agnese",
-			"Agnesse",
-			"Agneta",
-			"Agnola",
-			"Agretha",
-			"Aida",
-			"Aidan",
-			"Aigneis",
-			"Aila",
-			"Aile",
-			"Ailee",
-			"Aileen",
-			"Ailene",
-			"Ailey",
-			"Aili",
-			"Ailina",
-			"Ailis",
-			"Ailsun",
-			"Ailyn",
-			"Aime",
-			"Aimee",
-			"Aimil",
-			"Aindrea",
-			"Ainslee",
-			"Ainsley",
-			"Ainslie",
-			"Ajay",
-			"Alaine",
-			"Alameda",
-			"Alana"];
+	fn bench_get_or_intern_unique(bencher: &mut Bencher) {
+		let input = read_file_to_string("bench/input.txt");
 		bencher.iter(|| {
-			for &name in names.iter() {
-				interner.get_or_intern(name);
+			let mut interner = DefaultStringInterner::new();
+			for line in input.split_whitespace() {
+				interner.get_or_intern(line);
 			}
-		})
+			black_box(interner);
+		});
+	}
+
+	#[bench]
+	fn bench_resolve(bencher: &mut Bencher) {
+		let input = read_file_to_string("bench/input.txt");
+		let mut interner = DefaultStringInterner::new();
+		let symbols = input.split_whitespace().map(|line| interner.get_or_intern(line)).collect::<Vec<_>>();
+		bencher.iter(|| {
+			for &sym in symbols.iter() {
+				black_box(interner.resolve(sym));
+			}
+		});
+		black_box(interner);
+	}
+
+	#[bench]
+	fn bench_resolve_unchecked(bencher: &mut Bencher) {
+		let input = read_file_to_string("bench/input.txt");
+		let mut interner = DefaultStringInterner::new();
+		let symbols = input.split_whitespace().map(|line| interner.get_or_intern(line)).collect::<Vec<_>>();
+		bencher.iter(|| {
+			for &sym in symbols.iter() {
+				unsafe{ black_box(interner.resolve_unchecked(sym)) };
+			}
+		});
+		black_box(interner);
 	}
 }
