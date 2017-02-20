@@ -510,41 +510,45 @@ mod bench {
 		s
 	}
 
+	fn setup_input<'a>(input: &'a String) -> (Vec<&'a str>, DefaultStringInterner) {
+		let lines = input.split_whitespace().collect::<Vec<&'a str>>();
+		let interner = DefaultStringInterner::with_capacity(lines.len());
+		(lines, interner)
+	}
+
 	#[bench]
 	fn bench_get_or_intern_unique(bencher: &mut Bencher) {
 		let input = read_file_to_string("bench/input.txt");
+		let (lines, mut interner) = setup_input(&input);
 		bencher.iter(|| {
-			let mut interner = DefaultStringInterner::new();
-			for line in input.split_whitespace() {
-				interner.get_or_intern(line);
+			for &line in lines.iter() {
+				black_box(interner.get_or_intern(line));
 			}
-			black_box(interner);
+			interner.clear();
 		});
 	}
 
 	#[bench]
 	fn bench_resolve(bencher: &mut Bencher) {
 		let input = read_file_to_string("bench/input.txt");
-		let mut interner = DefaultStringInterner::new();
-		let symbols = input.split_whitespace().map(|line| interner.get_or_intern(line)).collect::<Vec<_>>();
+		let (lines, mut interner) = setup_input(&input);
+		let symbols = lines.iter().map(|&line| interner.get_or_intern(line)).collect::<Vec<_>>();
 		bencher.iter(|| {
 			for &sym in symbols.iter() {
 				black_box(interner.resolve(sym));
 			}
 		});
-		black_box(interner);
 	}
 
 	#[bench]
 	fn bench_resolve_unchecked(bencher: &mut Bencher) {
 		let input = read_file_to_string("bench/input.txt");
-		let mut interner = DefaultStringInterner::new();
-		let symbols = input.split_whitespace().map(|line| interner.get_or_intern(line)).collect::<Vec<_>>();
+		let (lines, mut interner) = setup_input(&input);
+		let symbols = lines.iter().map(|&line| interner.get_or_intern(line)).collect::<Vec<_>>();
 		bencher.iter(|| {
 			for &sym in symbols.iter() {
 				unsafe{ black_box(interner.resolve_unchecked(sym)) };
 			}
 		});
-		black_box(interner);
 	}
 }
