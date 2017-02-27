@@ -85,9 +85,7 @@ impl InternalStrRef {
 	/// 
 	/// This just wraps the str internally.
 	fn from_str(val: &str) -> Self {
-		InternalStrRef(
-			unsafe{ &*(val as *const str) }
-		)
+		InternalStrRef(val as *const str)
 	}
 
 	/// Reinterprets this InternalStrRef as a str.
@@ -99,7 +97,7 @@ impl InternalStrRef {
 	/// 
 	/// Does not allocate memory!
 	fn as_str(&self) -> &str {
-		unsafe{ &*self.0 as &str }
+		unsafe{ &*self.0 }
 	}
 }
 
