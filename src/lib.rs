@@ -101,6 +101,20 @@ impl InternalStrRef {
 	}
 }
 
+
+// About `Send` and `Sync` impls for `InternalStrRef`
+// --------------------------------------------------
+// 
+// This is safe since `StringInterner` does not allow mutating its interned strings.
+// Besides that interned strings are stored with an additional indirection `Box<str`
+// so that `InternalStrRef` won't invalidate upon iterator invalidation while
+// growing the underlying `Vec<Box<str>>` of the `StringInterner`.
+
+unsafe impl Send for InternalStrRef {}
+unsafe impl Sync for InternalStrRef {}
+
+
+
 impl<T> From<T> for InternalStrRef
 	where T: AsRef<str>
 {
