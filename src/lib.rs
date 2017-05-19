@@ -37,19 +37,6 @@ extern crate test;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
-/// Number types implementing this trait are always non negative.
-/// 
-/// The user has to enforce that this condition is met.
-/// Default implemented for all unsigned primitive number types.
-/// 
-/// This effectively hinders default implementation for Symbol for signed primitives.
-pub trait NonNegative {}
-impl NonNegative for u8 {}
-impl NonNegative for u16 {}
-impl NonNegative for u32 {}
-impl NonNegative for u64 {}
-impl NonNegative for usize {}
-
 /// Represents indices into the StringInterner.
 /// 
 /// Values of this type shall be lightweight as the whole purpose
@@ -57,23 +44,24 @@ impl NonNegative for usize {}
 /// 
 /// This trait allows definitions of custom InternIndices besides
 /// the already supported unsigned integer primitives.
-pub trait Symbol: Copy + Ord + Eq + NonNegative + From<usize> + Into<usize> {
+pub trait Symbol: Copy + Ord + Eq {
 	/// Creates a symbol explicitely from a usize primitive type.
 	/// 
 	/// Defaults to simply using the standard From<usize> trait.
-	#[inline]
-	fn from_usize(val: usize) -> Self { val.into() }
+	fn from_usize(val: usize) -> Self;
 
 	/// Creates a usize explicitely from this symbol.
 	/// 
 	/// Defaults to simply using the standard Into<usize> trait.
+	fn to_usize(self) -> usize;
+}
+
+impl<T> Symbol for T where T: Copy + Ord + Eq + From<usize> + Into<usize> {
+	#[inline]
+	fn from_usize(val: usize) -> Self { val.into() }
 	#[inline]
 	fn to_usize(self) -> usize { self.into() }
 }
-
-impl<T> Symbol for T where
-	T: Copy + Ord + Eq + NonNegative + From<usize> + Into<usize>
-{}
 
 /// Internal reference to str used only within the StringInterner itself
 /// to encapsulate the unsafe behaviour of interor references.
