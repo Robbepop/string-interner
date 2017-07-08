@@ -35,6 +35,9 @@
 #[cfg(all(feature = "bench", test))]
 extern crate test;
 
+#[cfg(all(feature = "bench", test))]
+extern crate fnv;
+
 #[cfg(test)]
 mod tests;
 
