@@ -520,16 +520,26 @@ mod bench {
 		s
 	}
 
-	fn setup_input<'a>(input: &'a String) -> (Vec<&'a str>, DefaultStringInterner) {
+	fn read_default_test() -> String {
+		read_file_to_string("bench/input.txt")
+	}
+
+	fn empty_setup<'a>(input: &'a str) -> (Vec<&'a str>, DefaultStringInterner) {
 		let lines = input.split_whitespace().collect::<Vec<&'a str>>();
 		let interner = DefaultStringInterner::with_capacity(lines.len());
 		(lines, interner)
 	}
 
+	fn filled_setup<'a>(input: &'a str) -> (Vec<usize>, DefaultStringInterner) {
+		let (lines, mut interner) = empty_setup(&input);
+		let symbols = lines.iter().map(|&line| interner.get_or_intern(line)).collect::<Vec<_>>();
+		(symbols, interner)
+	}
+
 	#[bench]
 	fn bench_get_or_intern_unique(bencher: &mut Bencher) {
-		let input = read_file_to_string("bench/input.txt");
-		let (lines, mut interner) = setup_input(&input);
+		let input = read_default_test();
+		let (lines, mut interner) = empty_setup(&input);
 		bencher.iter(|| {
 			for &line in lines.iter() {
 				black_box(interner.get_or_intern(line));
@@ -540,9 +550,8 @@ mod bench {
 
 	#[bench]
 	fn bench_resolve(bencher: &mut Bencher) {
-		let input = read_file_to_string("bench/input.txt");
-		let (lines, mut interner) = setup_input(&input);
-		let symbols = lines.iter().map(|&line| interner.get_or_intern(line)).collect::<Vec<_>>();
+		let input = read_default_test();
+		let (symbols, interner) = filled_setup(&input);
 		bencher.iter(|| {
 			for &sym in symbols.iter() {
 				black_box(interner.resolve(sym));
@@ -552,13 +561,34 @@ mod bench {
 
 	#[bench]
 	fn bench_resolve_unchecked(bencher: &mut Bencher) {
-		let input = read_file_to_string("bench/input.txt");
-		let (lines, mut interner) = setup_input(&input);
-		let symbols = lines.iter().map(|&line| interner.get_or_intern(line)).collect::<Vec<_>>();
+		let input = read_default_test();
+		let (symbols, interner) = filled_setup(&input);
 		bencher.iter(|| {
 			for &sym in symbols.iter() {
 				unsafe{ black_box(interner.resolve_unchecked(sym)) };
 			}
 		});
+	}
+
+	#[bench]
+	fn bench_iter(bencher: &mut Bencher) {
+		let input = read_default_test();
+		let (_, interner) = filled_setup(&input);
+		bencher.iter(|| {
+			for (sym, strref) in interner.iter() {
+				black_box((sym, strref));
+			}
+		})
+	}
+
+	#[bench]
+	fn bench_values_iter(bencher: &mut Bencher) {
+		let input = read_default_test();
+		let (_, interner) = filled_setup(&input);
+		bencher.iter(|| {
+			for strref in interner.iter_values() {
+				black_box(strref);
+			}
+		})
 	}
 }
