@@ -76,6 +76,7 @@ impl InternalStrRef {
 		InternalStrRef(val as *const str)
 	}
 
+
 	/// Reinterprets this InternalStrRef as a str.
 	/// 
 	/// This is "safe" as long as this InternalStrRef only
@@ -143,6 +144,14 @@ pub struct StringInterner<Sym>
 {
 	map   : HashMap<InternalStrRef, Sym>,
 	values: Vec<Box<str>>
+}
+
+impl<S> Default for StringInterner<S>
+	where S: Symbol
+{
+	fn default() -> Self {
+		StringInterner::new()
+	}
 }
 
 impl<Sym> StringInterner<Sym>
@@ -225,7 +234,7 @@ impl<Sym> StringInterner<Sym>
 	{
 		self.map
 			.get(&val.as_ref().into())
-			.map(|&sym| sym)
+			.cloned()
 	}
 
 	/// Returns the number of uniquely stored Strings interned within this interner.
@@ -242,13 +251,13 @@ impl<Sym> StringInterner<Sym>
 
 	/// Returns an iterator over the interned strings.
 	#[inline]
-	pub fn iter<'a>(&'a self) -> Iter<'a, Sym> {
+	pub fn iter(&self) -> Iter<Sym> {
 		Iter::new(self)
 	}
 
 	/// Returns an iterator over all intern indices and their associated strings.
 	#[inline]
-	pub fn iter_values<'a>(&'a self) -> Values<'a, Sym> {
+	pub fn iter_values(&self) -> Values<Sym> {
 		Values::new(self)
 	}
 
