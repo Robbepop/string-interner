@@ -37,12 +37,12 @@ extern crate test;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
-/// Represents indices into the StringInterner.
+/// Represents indices into the `StringInterner`.
 /// 
 /// Values of this type shall be lightweight as the whole purpose
 /// of interning values is to be able to store them efficiently in memory.
 /// 
-/// This trait allows definitions of custom InternIndices besides
+/// This trait allows definitions of custom `Symbol`s besides
 /// the already supported unsigned integer primitives.
 pub trait Symbol: Copy + Ord + Eq {
 	/// Creates a symbol explicitely from a usize primitive type.
@@ -63,7 +63,7 @@ impl<T> Symbol for T where T: Copy + Ord + Eq + From<usize> + Into<usize> {
 	fn to_usize(self) -> usize { self.into() }
 }
 
-/// Internal reference to str used only within the StringInterner itself
+/// Internal reference to str used only within the `StringInterner` itself
 /// to encapsulate the unsafe behaviour of interor references.
 #[derive(Debug, Copy, Clone, Eq)]
 struct InternalStrRef(*const str);
@@ -81,7 +81,7 @@ impl InternalStrRef {
 	/// This is "safe" as long as this InternalStrRef only
 	/// refers to strs that outlive this instance or
 	/// the instance that owns this InternalStrRef.
-	/// This should hold true for StringInterner.
+	/// This should hold true for `StringInterner`.
 	/// 
 	/// Does not allocate memory!
 	fn as_str(&self) -> &str {
@@ -125,7 +125,7 @@ impl PartialEq for InternalStrRef {
 }
 
 /// Defaults to using usize as the underlying and internal
-/// symbol data representation within this StringInterner.
+/// symbol data representation within this `StringInterner`.
 pub type DefaultStringInterner = StringInterner<usize>;
 
 /// Provides a bidirectional mapping between String stored within
@@ -135,7 +135,7 @@ pub type DefaultStringInterner = StringInterner<usize>;
 /// 
 /// Compilers often use this for implementing a symbol table.
 /// 
-/// The main goal of this StringInterner is to store String
+/// The main goal of this `StringInterner` is to store String
 /// with as low memory overhead as possible.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StringInterner<Sym>
@@ -148,7 +148,7 @@ pub struct StringInterner<Sym>
 impl<Sym> StringInterner<Sym>
 	where Sym: Symbol
 {
-	/// Creates a new empty StringInterner.
+	/// Creates a new empty `StringInterner`.
 	/// 
 	/// Used instead of Deriving from Default to not make internals depend on it.
 	#[inline]
@@ -159,7 +159,7 @@ impl<Sym> StringInterner<Sym>
 		}
 	}
 
-	/// Creates a new StringInterner with a given capacity.
+	/// Creates a new `StringInterner` with a given capacity.
 	#[inline]
 	pub fn with_capacity(cap: usize) -> Self {
 		StringInterner{
@@ -262,7 +262,7 @@ impl<Sym> StringInterner<Sym>
 	}
 }
 
-/// Iterator over the pairs of symbols and interned string for a StringInterner.
+/// Iterator over the pairs of symbols and interned string for a `StringInterner`.
 pub struct Iter<'a, Sym>
 	where Sym: Symbol + 'a
 {
@@ -309,7 +309,7 @@ impl<'a, Sym> Iterator for Iter<'a, Sym>
 	}
 }
 
-/// Iterator over the interned strings for a StringInterner.
+/// Iterator over the interned strings for a `StringInterner`.
 pub struct Values<'a, Sym>
 	where Sym: Symbol + 'a
 {
