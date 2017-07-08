@@ -1,4 +1,5 @@
 #![cfg_attr(all(feature = "bench", test), feature(test))]
+
 #![deny(missing_docs)]
 
 //! A string interning data structure that was designed for minimal memory-overhead
@@ -34,13 +35,17 @@
 #[cfg(all(feature = "bench", test))]
 extern crate test;
 
+#[cfg(test)]
+mod tests;
+
 use std::vec;
 use std::slice;
 use std::iter;
 use std::marker;
 
+use std::hash::{Hash, Hasher, BuildHasher};
 use std::collections::HashMap;
-use std::hash::{Hash, Hasher};
+use std::collections::hash_map::RandomState;
 
 /// Represents indices into the `StringInterner`.
 /// 
@@ -144,16 +149,15 @@ pub type DefaultStringInterner = StringInterner<usize>;
 /// The main goal of this `StringInterner` is to store String
 /// with as low memory overhead as possible.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StringInterner<Sym>
-	where Sym: Symbol
+pub struct StringInterner<Sym, H = RandomState>
+	where Sym: Symbol,
+	      H  : BuildHasher
 {
-	map   : HashMap<InternalStrRef, Sym>,
+	map   : HashMap<InternalStrRef, Sym, H>,
 	values: Vec<Box<str>>
 }
 
-impl<S> Default for StringInterner<S>
-	where S: Symbol
-{
+impl Default for StringInterner<usize, RandomState> {
 	fn default() -> Self {
 		StringInterner::new()
 	}
@@ -163,21 +167,43 @@ impl<Sym> StringInterner<Sym>
 	where Sym: Symbol
 {
 	/// Creates a new empty `StringInterner`.
-	/// 
-	/// Used instead of Deriving from Default to not make internals depend on it.
 	#[inline]
-	pub fn new() -> Self {
+	pub fn new() -> StringInterner<Sym, RandomState> {
 		StringInterner{
 			map   : HashMap::new(),
 			values: Vec::new()
 		}
 	}
 
-	/// Creates a new `StringInterner` with a given capacity.
+	/// Creates a new `StringInterner` with the given initial capacity.
 	#[inline]
 	pub fn with_capacity(cap: usize) -> Self {
 		StringInterner{
 			map   : HashMap::with_capacity(cap),
+			values: Vec::with_capacity(cap)
+		}
+	}
+
+}
+
+impl<Sym, H> StringInterner<Sym, H>
+	where Sym: Symbol,
+	      H  : BuildHasher
+{
+	/// Creates a new empty `StringInterner` with the given hasher.
+	#[inline]
+	pub fn with_hasher(hash_builder: H) -> StringInterner<Sym, H> {
+		StringInterner{
+			map   : HashMap::with_hasher(hash_builder),
+			values: Vec::new()
+		}
+	}
+
+	/// Creates a new empty `StringInterner` with the given initial capacity and the given hasher.
+	#[inline]
+	pub fn with_capacity_and_hasher(cap: usize, hash_builder: H) -> StringInterner<Sym, H> {
+		StringInterner{
+			map   : HashMap::with_hasher(hash_builder),
 			values: Vec::with_capacity(cap)
 		}
 	}
@@ -277,9 +303,7 @@ impl<Sym> StringInterner<Sym>
 }
 
 /// Iterator over the pairs of symbols and interned string for a `StringInterner`.
-pub struct Iter<'a, Sym>
-	where Sym: Symbol + 'a
-{
+pub struct Iter<'a, Sym> {
 	iter: iter::Enumerate<slice::Iter<'a, Box<str>>>,
 	mark: marker::PhantomData<Sym>
 }
@@ -290,7 +314,9 @@ impl<'a, Sym> Iter<'a, Sym>
 	/// Creates a new iterator for the given StringIterator over pairs of 
 	/// symbols and their associated interned string.
 	#[inline]
-	fn new(interner: &'a StringInterner<Sym>) -> Self {
+	fn new<H>(interner: &'a StringInterner<Sym, H>) -> Self
+		where H  : BuildHasher
+	{
 		Iter{iter: interner.values.iter().enumerate(), mark: marker::PhantomData}
 	}
 }
@@ -324,7 +350,9 @@ impl<'a, Sym> Values<'a, Sym>
 {
 	/// Creates a new iterator for the given StringIterator over its interned strings.
 	#[inline]
-	fn new(interner: &'a StringInterner<Sym>) -> Self {
+	fn new<H>(interner: &'a StringInterner<Sym, H>) -> Self
+		where H  : BuildHasher
+	{
 		Values{
 			iter: interner.values.iter(),
 			mark: marker::PhantomData
@@ -348,8 +376,9 @@ impl<'a, Sym> Iterator for Values<'a, Sym>
 	}
 }
 
-impl<Sym> iter::IntoIterator for StringInterner<Sym>
-	where Sym: Symbol
+impl<Sym, H> iter::IntoIterator for StringInterner<Sym, H>
+	where Sym: Symbol,
+	      H  : BuildHasher
 {
 	type Item = (Sym, String);
 	type IntoIter = IntoIter<Sym>;
@@ -380,166 +409,6 @@ impl<Sym> Iterator for IntoIter<Sym>
 	#[inline]
 	fn size_hint(&self) -> (usize, Option<usize>) {
 		self.iter.size_hint()
-	}
-}
-
-#[cfg(test)]
-mod tests {
-	use ::{DefaultStringInterner, InternalStrRef};
-
-	fn make_dummy_interner() -> (DefaultStringInterner, [usize; 8]) {
-		let mut interner = DefaultStringInterner::new();
-		let name0 = interner.get_or_intern("foo");
-		let name1 = interner.get_or_intern("bar");
-		let name2 = interner.get_or_intern("baz");
-		let name3 = interner.get_or_intern("foo");
-		let name4 = interner.get_or_intern("rofl");
-		let name5 = interner.get_or_intern("bar");
-		let name6 = interner.get_or_intern("mao");
-		let name7 = interner.get_or_intern("foo");
-		(interner, [name0, name1, name2, name3, name4, name5, name6, name7])
-	}
-
-	#[test]
-	fn internal_str_ref() {
-		use std::mem;
-		assert_eq!(mem::size_of::<InternalStrRef>(), mem::size_of::<&str>());
-
-		let s0 = "Hello";
-		let s1 = ", World!";
-		let s2 = "Hello";
-		let s3 = ", World!";
-		let r0 = InternalStrRef::from_str(s0);
-		let r1 = InternalStrRef::from_str(s1);
-		let r2 = InternalStrRef::from_str(s2);
-		let r3 = InternalStrRef::from_str(s3);
-		assert_eq!(r0, r2);
-		assert_eq!(r1, r3);
-		assert_ne!(r0, r1);
-		assert_ne!(r2, r3);
-
-		use std::collections::hash_map::DefaultHasher;
-		use std::hash::Hash;
-		let mut sip = DefaultHasher::new();
-		assert_eq!(r0.hash(&mut sip), s0.hash(&mut sip));
-		assert_eq!(r1.hash(&mut sip), s1.hash(&mut sip));
-		assert_eq!(r2.hash(&mut sip), s2.hash(&mut sip));
-		assert_eq!(r3.hash(&mut sip), s3.hash(&mut sip));
-	}
-
-	#[test]
-	fn intern_str() {
-		let (_, names) = make_dummy_interner();
-		assert_eq!(names[0], 0);
-		assert_eq!(names[1], 1);
-		assert_eq!(names[2], 2);
-		assert_eq!(names[3], 0);
-		assert_eq!(names[4], 3);
-		assert_eq!(names[5], 1);
-		assert_eq!(names[6], 4);
-		assert_eq!(names[7], 0);
-	}
-
-	#[test]
-	fn intern_string() {
-		let mut interner = DefaultStringInterner::new();
-		let name_0 = interner.get_or_intern("Hello".to_owned());
-		let name_1 = interner.get_or_intern("World".to_owned());
-		let name_2 = interner.get_or_intern("I am a String".to_owned());
-		let name_3 = interner.get_or_intern("Foo".to_owned());
-		let name_4 = interner.get_or_intern("Bar".to_owned());
-		let name_5 = interner.get_or_intern("I am a String".to_owned());
-		let name_6 = interner.get_or_intern("Next is empty".to_owned());
-		let name_7 = interner.get_or_intern("".to_owned());
-		let name_8 = interner.get_or_intern("I am a String".to_owned());
-		let name_9 = interner.get_or_intern("I am a String".to_owned());
-		let name10 = interner.get_or_intern("Foo".to_owned());
-
-		assert_eq!(interner.len(), 7);
-
-		assert_eq!(name_0, 0);
-		assert_eq!(name_1, 1);
-		assert_eq!(name_2, 2);
-		assert_eq!(name_3, 3);
-		assert_eq!(name_4, 4);
-		assert_eq!(name_5, 2);
-		assert_eq!(name_6, 5);
-		assert_eq!(name_7, 6);
-		assert_eq!(name_8, 2);
-		assert_eq!(name_9, 2);
-		assert_eq!(name10, 3);
-	}
-
-	#[test]
-	fn len() {
-		let (interner, _) = make_dummy_interner();
-		assert_eq!(interner.len(), 5);	
-	}
-
-	#[test]
-	fn get() {
-		let (interner, _) = make_dummy_interner();
-		assert_eq!(interner.resolve(0), Some("foo"));
-		assert_eq!(interner.resolve(1), Some("bar"));
-		assert_eq!(interner.resolve(2), Some("baz"));
-		assert_eq!(interner.resolve(3), Some("rofl"));
-		assert_eq!(interner.resolve(4), Some("mao"));
-		assert_eq!(interner.resolve(5), None);
-	}
-
-	#[test]
-	fn lookup_symbol() {
-		let (interner, _) = make_dummy_interner();
-		assert_eq!(interner.get("foo"),  Some(0));
-		assert_eq!(interner.get("bar"),  Some(1));
-		assert_eq!(interner.get("baz"),  Some(2));
-		assert_eq!(interner.get("rofl"), Some(3));
-		assert_eq!(interner.get("mao"),  Some(4));
-		assert_eq!(interner.get("xD"),   None);
-	}
-
-	#[test]
-	fn clear() {
-		let (mut interner, _) = make_dummy_interner();
-		assert_eq!(interner.len(), 5);
-		interner.clear();
-		assert_eq!(interner.len(), 0);
-	}
-
-	#[test]
-	fn iter_values() {
-		let (interner, _) = make_dummy_interner();
-		let mut it = interner.iter_values();
-		assert_eq!(it.next(), Some("foo"));
-		assert_eq!(it.next(), Some("bar"));
-		assert_eq!(it.next(), Some("baz"));
-		assert_eq!(it.next(), Some("rofl"));
-		assert_eq!(it.next(), Some("mao"));
-		assert_eq!(it.next(), None);
-	}
-
-	#[test]
-	fn iter() {
-		let (interner, _) = make_dummy_interner();
-		let mut it = interner.iter();
-		assert_eq!(it.next(), Some((0, "foo")));
-		assert_eq!(it.next(), Some((1, "bar")));
-		assert_eq!(it.next(), Some((2, "baz")));
-		assert_eq!(it.next(), Some((3, "rofl")));
-		assert_eq!(it.next(), Some((4, "mao")));
-		assert_eq!(it.next(), None);
-	}
-
-	#[test]
-	fn into_iter() {
-		let (interner, _) = make_dummy_interner();
-		let mut it = interner.into_iter();
-		assert_eq!(it.next(), Some((0, "foo".to_owned())));
-		assert_eq!(it.next(), Some((1, "bar".to_owned())));
-		assert_eq!(it.next(), Some((2, "baz".to_owned())));
-		assert_eq!(it.next(), Some((3, "rofl".to_owned())));
-		assert_eq!(it.next(), Some((4, "mao".to_owned())));
-		assert_eq!(it.next(), None);
 	}
 }
 
