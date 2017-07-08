@@ -34,6 +34,11 @@
 #[cfg(all(feature = "bench", test))]
 extern crate test;
 
+use std::vec;
+use std::slice;
+use std::iter;
+use std::marker;
+
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
@@ -275,8 +280,8 @@ impl<Sym> StringInterner<Sym>
 pub struct Iter<'a, Sym>
 	where Sym: Symbol + 'a
 {
-	interner: &'a StringInterner<Sym>,
-	current : usize
+	iter: iter::Enumerate<slice::Iter<'a, Box<str>>>,
+	mark: marker::PhantomData<Sym>
 }
 
 impl<'a, Sym> Iter<'a, Sym>
@@ -286,10 +291,7 @@ impl<'a, Sym> Iter<'a, Sym>
 	/// symbols and their associated interned string.
 	#[inline]
 	fn new(interner: &'a StringInterner<Sym>) -> Self {
-		Iter{
-			interner: interner,
-			current : 0
-		}
+		Iter{iter: interner.values.iter().enumerate(), mark: marker::PhantomData}
 	}
 }
 
@@ -300,21 +302,12 @@ impl<'a, Sym> Iterator for Iter<'a, Sym>
 
 	#[inline]
 	fn next(&mut self) -> Option<Self::Item> {
-		let sym = Sym::from_usize(self.current);
-		match self.interner.resolve(sym) {
-			Some(str) => {
-				self.current += 1;
-				Some((sym, str))
-			},
-			None => None
-		}
+		self.iter.next().map(|(num, boxed_str)| (Sym::from_usize(num), boxed_str.as_ref()))
 	}
 
 	#[inline]
 	fn size_hint(&self) -> (usize, Option<usize>) {
-		use std::cmp::max;
-		let rem_elems = max(0, self.interner.len() - self.current);
-		(rem_elems, Some(rem_elems))
+		self.iter.size_hint()
 	}
 }
 
@@ -355,10 +348,6 @@ impl<'a, Sym> Iterator for Values<'a, Sym>
 		self.iter.size_hint()
 	}
 }
-
-use std::vec;
-use std::iter;
-use std::marker;
 
 impl<Sym> iter::IntoIterator for StringInterner<Sym>
 	where Sym: Symbol
