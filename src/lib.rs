@@ -630,4 +630,25 @@ mod bench {
 			}
 		})
 	}
+
+	/// Mainly needed to approximate the `into_iterator` test below.
+	#[bench]
+	fn bench_clone(bencher: &mut Bencher) {
+		let input = read_default_test();
+		let (_, interner) = filled_setup(&input);
+		bencher.iter(|| {
+			black_box(interner.clone());
+		})
+	}
+
+	#[bench]
+	fn bench_into_iterator(bencher: &mut Bencher) {
+		let input = read_default_test();
+		let (_, interner) = filled_setup(&input);
+		bencher.iter(|| {
+			for (sym, string) in interner.clone() {
+				black_box((sym, string));
+			}
+		})
+	}
 }
