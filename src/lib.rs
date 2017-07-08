@@ -315,7 +315,8 @@ impl<'a, Sym> Iterator for Iter<'a, Sym>
 pub struct Values<'a, Sym>
 	where Sym: Symbol + 'a
 {
-	iter: Iter<'a, Sym>
+	iter: slice::Iter<'a, Box<str>>,
+	mark: marker::PhantomData<Sym>
 }
 
 impl<'a, Sym> Values<'a, Sym>
@@ -325,7 +326,8 @@ impl<'a, Sym> Values<'a, Sym>
 	#[inline]
 	fn new(interner: &'a StringInterner<Sym>) -> Self {
 		Values{
-			iter: interner.iter()
+			iter: interner.values.iter(),
+			mark: marker::PhantomData
 		}
 	}
 }
@@ -337,10 +339,7 @@ impl<'a, Sym> Iterator for Values<'a, Sym>
 
 	#[inline]
 	fn next(&mut self) -> Option<Self::Item> {
-		match self.iter.next() {
-			Some((_, string)) => Some(string),
-			None              => None
-		}
+		self.iter.next().map(|boxed_str| boxed_str.as_ref())
 	}
 
 	#[inline]
