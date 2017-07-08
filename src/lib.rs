@@ -508,7 +508,7 @@ mod tests {
 	}
 
 	#[test]
-	fn string_interner_iter_values() {
+	fn iter_values() {
 		let (interner, _) = make_dummy_interner();
 		let mut it = interner.iter_values();
 		assert_eq!(it.next(), Some("foo"));
@@ -520,7 +520,7 @@ mod tests {
 	}
 
 	#[test]
-	fn string_interner_iter() {
+	fn iter() {
 		let (interner, _) = make_dummy_interner();
 		let mut it = interner.iter();
 		assert_eq!(it.next(), Some((0, "foo")));
@@ -528,6 +528,18 @@ mod tests {
 		assert_eq!(it.next(), Some((2, "baz")));
 		assert_eq!(it.next(), Some((3, "rofl")));
 		assert_eq!(it.next(), Some((4, "mao")));
+		assert_eq!(it.next(), None);
+	}
+
+	#[test]
+	fn into_iter() {
+		let (interner, _) = make_dummy_interner();
+		let mut it = interner.into_iter();
+		assert_eq!(it.next(), Some((0, "foo".to_owned())));
+		assert_eq!(it.next(), Some((1, "bar".to_owned())));
+		assert_eq!(it.next(), Some((2, "baz".to_owned())));
+		assert_eq!(it.next(), Some((3, "rofl".to_owned())));
+		assert_eq!(it.next(), Some((4, "mao".to_owned())));
 		assert_eq!(it.next(), None);
 	}
 }
