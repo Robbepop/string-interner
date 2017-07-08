@@ -1,5 +1,3 @@
-#![cfg(test)]
-
 use ::{DefaultStringInterner, InternalStrRef};
 
 fn make_dummy_interner() -> (DefaultStringInterner, [usize; 8]) {
