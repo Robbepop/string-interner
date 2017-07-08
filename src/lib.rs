@@ -164,6 +164,7 @@ pub struct StringInterner<Sym, H = RandomState>
 }
 
 impl Default for StringInterner<usize, RandomState> {
+	#[inline]
 	fn default() -> Self {
 		StringInterner::new()
 	}
