@@ -356,6 +356,45 @@ impl<'a, Sym> Iterator for Values<'a, Sym>
 	}
 }
 
+use std::vec;
+use std::iter;
+use std::marker;
+
+impl<Sym> iter::IntoIterator for StringInterner<Sym>
+	where Sym: Symbol
+{
+	type Item = (Sym, String);
+	type IntoIter = IntoIter<Sym>;
+
+	fn into_iter(self) -> Self::IntoIter {
+		IntoIter{iter: self.values.into_iter().enumerate(), mark: marker::PhantomData}
+	}
+}
+
+/// Iterator over the pairs of symbols and associated interned string when 
+/// morphing a `StringInterner` into an iterator.
+pub struct IntoIter<Sym>
+	where Sym: Symbol
+{
+	iter: iter::Enumerate<vec::IntoIter<Box<str>>>,
+	mark: marker::PhantomData<Sym>
+}
+
+impl<Sym> Iterator for IntoIter<Sym>
+	where Sym: Symbol
+{
+	type Item = (Sym, String);
+
+	fn next(&mut self) -> Option<Self::Item> {
+		self.iter.next().map(|(num, boxed_str)| (Sym::from_usize(num), boxed_str.into_string()))
+	}
+
+	#[inline]
+	fn size_hint(&self) -> (usize, Option<usize>) {
+		self.iter.size_hint()
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use ::{DefaultStringInterner, InternalStrRef};
