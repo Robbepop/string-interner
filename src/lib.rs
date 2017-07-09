@@ -163,13 +163,22 @@ pub type DefaultStringInterner = StringInterner<usize>;
 /// 
 /// The main goal of this `StringInterner` is to store String
 /// with as low memory overhead as possible.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Eq)]
 pub struct StringInterner<Sym, H = RandomState>
 	where Sym: Symbol,
 	      H  : BuildHasher
 {
 	map   : HashMap<InternalStrRef, Sym, H>,
 	values: Vec<Box<str>>
+}
+
+impl<Sym, H> PartialEq for StringInterner<Sym, H>
+	where Sym: Symbol,
+	      H  : BuildHasher
+{
+	fn eq(&self, rhs: &Self) -> bool {
+		self.len() == rhs.len() && self.values == rhs.values
+	}
 }
 
 impl Default for StringInterner<usize, RandomState> {

@@ -162,12 +162,5 @@ fn serde() {
 	let (interner, _) = make_dummy_interner();
 	let serialized    = serde_json::to_string(&interner).unwrap();
 	let deserialized: DefaultStringInterner = serde_json::from_str(&serialized).unwrap();
-	// assert_eq!(interner, deserialized);
-	let mut it = deserialized.into_iter();
-	assert_eq!(it.next(), Some((0, "foo".to_owned())));
-	assert_eq!(it.next(), Some((1, "bar".to_owned())));
-	assert_eq!(it.next(), Some((2, "baz".to_owned())));
-	assert_eq!(it.next(), Some((3, "rofl".to_owned())));
-	assert_eq!(it.next(), Some((4, "mao".to_owned())));
-	assert_eq!(it.next(), None);
+	assert_eq!(interner, deserialized);
 }
