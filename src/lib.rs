@@ -38,11 +38,17 @@ extern crate test;
 #[cfg(all(feature = "bench", test))]
 extern crate fnv;
 
+#[cfg(feature = "serde_support")]
+extern crate serde;
+
 #[cfg(test)]
 mod tests;
 
 #[cfg(all(feature = "bench", test))]
 mod benches;
+
+#[cfg(feature = "serde_support")]
+mod serde_impl;
 
 use std::vec;
 use std::slice;
