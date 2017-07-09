@@ -63,7 +63,7 @@ impl<'de, Sym, H> Visitor<'de> for StringInternerVisitor<Sym, H>
 	{
 		let mut interner: StringInterner<Sym, H> = StringInterner::with_capacity_and_hasher(
 			seq.size_hint().unwrap_or(0), H::default());
-		while let Some(s) = seq.next_element::<&'de str>()? {
+		while let Some(s) = seq.next_element::<Box<str>>()? {
 			interner.get_or_intern(s);
 		}
 		Ok(interner)
