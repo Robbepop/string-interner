@@ -132,7 +132,7 @@ fn into_iterator(bencher: &mut Bencher) {
 }
 
 #[bench]
-fn fnv_get_or_intern_unique(bencher: &mut Bencher) {
+fn fnv_get_or_intern_empty(bencher: &mut Bencher) {
 	let input = read_default_test();
 	let (lines, interner) = empty_setup_with_hasher(
 		&input, BuildHasherDefault::<FnvHasher>::default());
