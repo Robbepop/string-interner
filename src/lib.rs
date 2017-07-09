@@ -12,8 +12,8 @@
 //! Example usage:
 //! 
 //! ```
-//! 	use string_interner::StringInterner;
-//! 	let mut interner = StringInterner::<usize>::new();
+//! 	use string_interner::DefaultStringInterner;
+//! 	let mut interner = DefaultStringInterner::default();
 //! 	let name0 = interner.get_or_intern("Elephant");
 //! 	let name1 = interner.get_or_intern("Tiger");
 //! 	let name2 = interner.get_or_intern("Horse");
