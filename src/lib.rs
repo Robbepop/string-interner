@@ -255,7 +255,7 @@ impl<Sym, H> StringInterner<Sym, H>
 	fn intern<T>(&mut self, new_val: T) -> Sym
 		where T: Into<String> + AsRef<str>
 	{
-		let new_id : Sym            = self.make_symbol();
+		let new_id: Sym = self.make_symbol();
 		let new_boxed_val = new_val.into().into_boxed_str();
 		let new_ref: InternalStrRef = new_boxed_val.as_ref().into();
 		self.values.push(new_boxed_val);
