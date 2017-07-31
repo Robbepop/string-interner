@@ -30,6 +30,10 @@ while the hashmap has internal references into the internal vector to avoid dupl
 
 ## Changelog
 
+- 0.6.1
+
+	- fixed a bug that inserting non-owning string types (e.g. `str`) was broken due to dangling pointers (Thanks to artemshein for fixing it!)
+
 - 0.6.0
 
 	- added optional serde serialization and deserialization support
