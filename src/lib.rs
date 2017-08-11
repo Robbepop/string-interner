@@ -326,6 +326,12 @@ impl<Sym, H> StringInterner<Sym, H>
 		self.map.clear();
 		self.values.clear()
 	}
+
+	/// Shrinks the capacity of the interner as much as possible.
+	pub fn shrink_to_fit(&mut self) {
+		self.map.shrink_to_fit();
+		self.values.shrink_to_fit();
+	}
 }
 
 /// Iterator over the pairs of symbols and interned string for a `StringInterner`.
