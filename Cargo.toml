@@ -1,6 +1,6 @@
 [package]
 name = "string-interner"
-version = "0.6.1"
+version = "0.6.2"
 authors = ["Robbepop"]
 license = "MIT"
 readme = "README.md"
