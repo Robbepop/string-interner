@@ -38,7 +38,7 @@ after_success: |
   make install DESTDIR=../../kcov-build &&
   cd ../.. &&
   rm -rf kcov-master &&
-  for file in target/debug/{string_interner}-*[^\d]; do
+  for file in target/debug/string_interner-*[^\d]; do
     mkdir -p "target/cov/$(basename $file)";
     ./kcov-build/usr/local/bin/kcov --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/$(basename $file)" "$file";
   done &&
