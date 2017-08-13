@@ -1,6 +1,7 @@
-sudo: true
 language: rust
 cache: cargo
+dist: trusty
+sudo: false
 
 rust:
   - stable
@@ -8,8 +9,12 @@ rust:
   - nightly
 
 matrix:
-    allow_failures:
-        - rust: nightly
+  allow_failures:
+    - rust: nightly
+
+env:
+  global:
+  - RUSTFLAGS="-C link-dead-code"
 
 addons:
   apt:
@@ -19,7 +24,8 @@ addons:
       - libdw-dev
       - cmake
       - gcc
-      - binutils-dev # optional: only required for the --verify flag of coveralls
+      - binutils-dev
+      - libiberty-dev
 
 after_success: |
   wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
@@ -29,10 +35,12 @@ after_success: |
   cd build &&
   cmake .. &&
   make &&
-  sudo make install &&
+  make install DESTDIR=../../kcov-build &&
   cd ../.. &&
   rm -rf kcov-master &&
-  ls -al target/debug &&
-  for file in target/debug/string_interner*; do mkdir -p "target/cov/$(basename $file)"; kcov --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/$(basename $file)" "$file"; done &&
+  for file in target/debug/{string_interner}-*[^\d]; do
+    mkdir -p "target/cov/$(basename $file)";
+    ./kcov-build/usr/local/bin/kcov --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/$(basename $file)" "$file";
+  done &&
   bash <(curl -s https://codecov.io/bash) &&
   echo "Uploaded code coverage"
