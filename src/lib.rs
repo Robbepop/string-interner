@@ -115,21 +115,6 @@ impl InternalStrRef {
 	}
 }
 
-// About `Send` and `Sync` impls for `StringInterner`
-// --------------------------------------------------
-// 
-// tl;dr: Automation of Send+Sync impl was prevented by `InternalStrRef`
-// being an unsafe abstraction and thus prevented Send+Sync default derivation.
-// 
-// These implementations are safe due to the following reasons:
-//  - `InternalStrRef` cannot be used outside `StringInterner`.
-//  - Strings stored in `StringInterner` are not mutable.
-//  - Iterator invalidation while growing the underlying `Vec<Box<str>>` is prevented by
-//    using an additional indirection to store strings.
-unsafe impl<Sym> Send for StringInterner<Sym> where Sym: Symbol + Send {}
-unsafe impl<Sym> Sync for StringInterner<Sym> where Sym: Symbol + Sync {}
-
-
 impl<T> From<T> for InternalStrRef
 	where T: AsRef<str>
 {
@@ -187,6 +172,20 @@ impl Default for StringInterner<usize, RandomState> {
 		StringInterner::new()
 	}
 }
+
+// About `Send` and `Sync` impls for `StringInterner`
+// --------------------------------------------------
+// 
+// tl;dr: Automation of Send+Sync impl was prevented by `InternalStrRef`
+// being an unsafe abstraction and thus prevented Send+Sync default derivation.
+// 
+// These implementations are safe due to the following reasons:
+//  - `InternalStrRef` cannot be used outside `StringInterner`.
+//  - Strings stored in `StringInterner` are not mutable.
+//  - Iterator invalidation while growing the underlying `Vec<Box<str>>` is prevented by
+//    using an additional indirection to store strings.
+unsafe impl<Sym, H> Send for StringInterner<Sym, H> where Sym: Symbol + Send, H: BuildHasher {}
+unsafe impl<Sym, H> Sync for StringInterner<Sym, H> where Sym: Symbol + Sync, H: BuildHasher {}
 
 impl<Sym> StringInterner<Sym>
 	where Sym: Symbol
