@@ -1,6 +1,6 @@
 [package]
 name = "string-interner"
-version = "0.6.2"
+version = "0.6.3"
 authors = ["Robbepop"]
 license = "MIT"
 readme = "README.md"
@@ -13,7 +13,7 @@ and fast access to the underlying interned string contents.
 categories = ["data-structures"]
 
 [dependencies]
-serde        = { version = "1.0.0", optional = true }
+serde = { version = "1.0.0", optional = true }
 
 [dev-dependencies]
 fnv = "1.0.0" # required for some bench tests
