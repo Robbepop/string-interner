@@ -53,6 +53,8 @@ mod benches;
 #[cfg(feature = "serde_support")]
 mod serde_impl;
 
+pub mod wrapped;
+
 use std::vec;
 use std::slice;
 use std::iter;
