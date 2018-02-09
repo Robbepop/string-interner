@@ -4,13 +4,13 @@
 
 //! A string interning data structure that was designed for minimal memory-overhead
 //! and fast access to the underlying interned string contents.
-//! 
+//!
 //! Uses a similar interface as the string interner of the rust compiler.
-//! 
+//!
 //! Provides support to use all primitive types as symbols
-//! 
+//!
 //! Example usage:
-//! 
+//!
 //! ```
 //! 	use string_interner::DefaultStringInterner;
 //! 	let mut interner = DefaultStringInterner::default();
@@ -40,6 +40,9 @@ extern crate fnv;
 
 #[cfg(feature = "serde_support")]
 extern crate serde;
+#[macro_use]
+#[cfg(feature = "serde_support")]
+extern crate serde_derive;
 
 #[cfg(all(feature = "serde_support", test))]
 extern crate serde_json;
@@ -65,20 +68,20 @@ use std::collections::HashMap;
 use std::collections::hash_map::RandomState;
 
 /// Represents indices into the `StringInterner`.
-/// 
+///
 /// Values of this type shall be lightweight as the whole purpose
 /// of interning values is to be able to store them efficiently in memory.
-/// 
+///
 /// This trait allows definitions of custom `Symbol`s besides
 /// the already supported unsigned integer primitives.
 pub trait Symbol: Copy + Ord + Eq {
 	/// Creates a symbol explicitely from a usize primitive type.
-	/// 
+	///
 	/// Defaults to simply using the standard From<usize> trait.
 	fn from_usize(val: usize) -> Self;
 
 	/// Creates a usize explicitely from this symbol.
-	/// 
+	///
 	/// Defaults to simply using the standard Into<usize> trait.
 	fn to_usize(self) -> usize;
 }
@@ -97,7 +100,7 @@ struct InternalStrRef(*const str);
 
 impl InternalStrRef {
 	/// Creates an InternalStrRef from a str.
-	/// 
+	///
 	/// This just wraps the str internally.
 	fn from_str(val: &str) -> Self {
 		InternalStrRef(val as *const str)
@@ -105,12 +108,12 @@ impl InternalStrRef {
 
 
 	/// Reinterprets this InternalStrRef as a str.
-	/// 
+	///
 	/// This is "safe" as long as this InternalStrRef only
 	/// refers to strs that outlive this instance or
 	/// the instance that owns this InternalStrRef.
 	/// This should hold true for `StringInterner`.
-	/// 
+	///
 	/// Does not allocate memory!
 	fn as_str(&self) -> &str {
 		unsafe{ &*self.0 }
@@ -145,9 +148,9 @@ pub type DefaultStringInterner = StringInterner<usize>;
 /// the interner and indices.
 /// The main purpose is to store every unique String only once and
 /// make it possible to reference it via lightweight indices.
-/// 
+///
 /// Compilers often use this for implementing a symbol table.
-/// 
+///
 /// The main goal of this `StringInterner` is to store String
 /// with as low memory overhead as possible.
 #[derive(Debug, Clone, Eq)]
@@ -177,10 +180,10 @@ impl Default for StringInterner<usize, RandomState> {
 
 // About `Send` and `Sync` impls for `StringInterner`
 // --------------------------------------------------
-// 
+//
 // tl;dr: Automation of Send+Sync impl was prevented by `InternalStrRef`
 // being an unsafe abstraction and thus prevented Send+Sync default derivation.
-// 
+//
 // These implementations are safe due to the following reasons:
 //  - `InternalStrRef` cannot be used outside `StringInterner`.
 //  - Strings stored in `StringInterner` are not mutable.
@@ -235,9 +238,9 @@ impl<Sym, H> StringInterner<Sym, H>
 	}
 
 	/// Interns the given value.
-	/// 
+	///
 	/// Returns a symbol to access it within this interner.
-	/// 
+	///
 	/// This either copies the contents of the string (e.g. for str)
 	/// or moves them into this interner (e.g. for String).
 	#[inline]
@@ -251,7 +254,7 @@ impl<Sym, H> StringInterner<Sym, H>
 	}
 
 	/// Interns the given value and ignores collissions.
-	/// 
+	///
 	/// Returns a symbol to access it within this interner.
 	fn intern<T>(&mut self, new_val: T) -> Sym
 		where T: Into<String> + AsRef<str>
@@ -320,7 +323,7 @@ impl<Sym, H> StringInterner<Sym, H>
 	}
 
 	/// Removes all interned Strings from this interner.
-	/// 
+	///
 	/// This invalides all `Symbol` entities instantiated by it so far.
 	#[inline]
 	pub fn clear(&mut self) {
@@ -344,7 +347,7 @@ pub struct Iter<'a, Sym> {
 impl<'a, Sym> Iter<'a, Sym>
 	where Sym: Symbol + 'a
 {
-	/// Creates a new iterator for the given StringIterator over pairs of 
+	/// Creates a new iterator for the given StringIterator over pairs of
 	/// symbols and their associated interned string.
 	#[inline]
 	fn new<H>(interner: &'a StringInterner<Sym, H>) -> Self
@@ -421,7 +424,7 @@ impl<Sym, H> iter::IntoIterator for StringInterner<Sym, H>
 	}
 }
 
-/// Iterator over the pairs of symbols and associated interned string when 
+/// Iterator over the pairs of symbols and associated interned string when
 /// morphing a `StringInterner` into an iterator.
 pub struct IntoIter<Sym>
 	where Sym: Symbol

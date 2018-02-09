@@ -1,12 +1,16 @@
 #![allow(missing_docs)]
 
-use {StringInterner, Symbol, Iter, Values};
+use {Iter, StringInterner, Symbol, Values};
 use std::collections::hash_map::RandomState;
 use std::hash::BuildHasher;
 use std::ops::Deref;
 
 #[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "serde_support", derive(Serialize, Deserialize))]
 pub struct PooledStr<'pool, Sym: Symbol + 'pool = usize, H: BuildHasher + 'pool = RandomState> {
+	#[cfg_attr(feature = "serde_support",
+	           serde(bound(serialize = "&'pool StringPool<Sym, H>: ::serde::Serialize",
+	                       deserialize = "&'pool StringPool<Sym, H>: ::serde::Deserialize<'de>")))]
 	pool: &'pool StringPool<Sym, H>,
 	sym: Sym,
 }
@@ -37,9 +41,21 @@ impl<'pool, Sym: Symbol + 'pool, H: BuildHasher + 'pool> PooledStr<'pool, Sym, H
 	}
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "serde_support", derive(Serialize, Deserialize))]
 pub struct StringPool<Sym: Symbol = usize, H: BuildHasher = RandomState> {
+	#[cfg_attr(feature = "serde_support",
+	           serde(bound(serialize = "StringInterner<Sym, H>: ::serde::Serialize",
+	                       deserialize = "StringInterner<Sym, H>: ::serde::Deserialize<'de>")))]
 	interner: StringInterner<Sym, H>,
+}
+
+impl<Sym: Symbol> Default for StringPool<Sym> {
+	fn default() -> Self {
+		StringPool {
+			interner: Default::default(),
+		}
+	}
 }
 
 impl<Sym: Symbol> StringPool<Sym> {
