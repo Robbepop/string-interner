@@ -82,7 +82,7 @@ impl<'a, Sym: Symbol, H: BuildHasher> StringPool<'a, Sym, H> {
 	}
 
 	/// Returns the given string's pooled reference if existent.
-	pub fn get<T>(&self, val: T) -> Option<PooledStr<Sym, H>>
+	pub fn get<T>(&self, val: T) -> Option<PooledStr<'a, Sym, H>>
 		where T: AsRef<str>
 	{
 		self.interner.get(val).map(|sym| {
