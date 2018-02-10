@@ -9,12 +9,19 @@ rust:
   - nightly
 
 matrix:
-  allow_failures:
+  include:
     - rust: nightly
+      env: FEATURES="--all-features"
 
 env:
   global:
   - RUSTFLAGS="-C link-dead-code"
+  matrix:
+  - FEATURES=""
+  - FEATURES="--no-default-features"
+
+script:
+  - cargo test $FEATURES
 
 addons:
   apt:
