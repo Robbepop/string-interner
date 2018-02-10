@@ -40,9 +40,6 @@ extern crate fnv;
 
 #[cfg(feature = "serde_support")]
 extern crate serde;
-#[macro_use]
-#[cfg(feature = "serde_support")]
-extern crate serde_derive;
 
 #[cfg(all(feature = "serde_support", test))]
 extern crate serde_json;

@@ -2,16 +2,28 @@ use {Iter, StringInterner, Symbol};
 use std::collections::hash_map::RandomState;
 use std::hash::BuildHasher;
 use std::ops::Deref;
+use std::marker::PhantomData;
+use std::mem;
 
 /// A reference to an interned string pooled in a `StringPool`.
+// # Safety
+// - The `PooledStr` _MUST_ not outlive `pool`.
 #[derive(Copy, Clone, Debug)]
-#[cfg_attr(feature = "serde_support", derive(Serialize, Deserialize))]
 pub struct PooledStr<'pool, Sym: Symbol + 'pool = usize, H: BuildHasher + 'pool = RandomState> {
-	#[cfg_attr(feature = "serde_support",
-	           serde(bound(serialize = "&'pool StringPool<Sym, H>: ::serde::Serialize",
-	                       deserialize = "&'pool StringPool<Sym, H>: ::serde::Deserialize<'de>")))]
-	pool: &'pool StringPool<Sym, H>,
+	pool: *const StringInterner<Sym, H>,
 	sym: Sym,
+	marker: PhantomData<&'pool StringInterner<Sym, H>>
+}
+
+impl<'pool, Sym: Symbol + 'pool, H: BuildHasher + 'pool> PooledStr<'pool, Sym, H> {
+	/// Create a new PooledStr.
+	///
+	/// # Safety
+	///
+	/// `pool` must outlive `'pool`.
+	unsafe fn new(pool: *const StringInterner<Sym, H>, sym: Sym) -> Self {
+		PooledStr { pool, sym, marker: PhantomData }
+	}
 }
 
 impl<'pool, Sym: Symbol + 'pool, H: BuildHasher + 'pool> Eq for PooledStr<'pool, Sym, H> {}
@@ -24,7 +36,6 @@ impl<'pool, Sym: Symbol + 'pool, H: BuildHasher + 'pool> PartialEq<Self> for Poo
 impl<'pool, Sym: Symbol + 'pool, H: BuildHasher + 'pool> Deref for PooledStr<'pool, Sym, H> {
 	type Target = str;
 	fn deref(&self) -> &str {
-		// in the future, maybe use resolve_unchecked
 		PooledStr::resolve(self)
 	}
 }
@@ -34,71 +45,27 @@ impl<'pool, Sym: Symbol + 'pool, H: BuildHasher + 'pool> PooledStr<'pool, Sym, H
 	///
 	/// `PooledStr` dereferences directly to the slice, so prefer `&*pooled`.
 	pub fn resolve(this: &Self) -> &str {
-		this.pool.interner.resolve(this.sym)
-			.expect("PooledStr exists without entry in StringPool")
-	}
-
-	/// Resolves this reference without doing bounds checking.
-	///
-	/// A `PooledStr` should not be able to exist without being valid,
-	/// but the regular `resolve` does the check and panic if this isn't true.
-	///
-	/// `PooledStr` dereferences directly to the slice, so prefer `&*pooled`.
-	pub unsafe fn resolve_unchecked(this: &Self) -> &str {
-		this.pool.interner.resolve_unchecked(this.sym)
+		unsafe {
+			mem::transmute((*this.pool).resolve_unchecked(this.sym))
+		}
 	}
 }
 
 /// A pool for interning strings. The interned strings are given out
 /// as `PooledStr` references rather than just as an opaque index.
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde_support", derive(Serialize, Deserialize))]
-pub struct StringPool<Sym: Symbol = usize, H: BuildHasher = RandomState> {
-	#[cfg_attr(feature = "serde_support",
-	           serde(bound(serialize = "StringInterner<Sym, H>: ::serde::Serialize",
-	                       deserialize = "StringInterner<Sym, H>: ::serde::Deserialize<'de>")))]
-	interner: StringInterner<Sym, H>,
+// # Safety
+// - `interner` _MUST_ be append-only for `StringRef` to never point to freed memory.
+#[derive(Debug, Eq, PartialEq)]
+pub struct StringPool<'a, Sym: Symbol + 'a = usize, H: BuildHasher + 'a = RandomState> {
+	interner: &'a mut StringInterner<Sym, H>,
 }
 
-impl<Sym: Symbol> Default for StringPool<Sym>
-	where StringInterner<Sym>: Default
-{
-	fn default() -> Self {
-		StringPool {
-			interner: Default::default(),
-		}
-	}
-}
-
-impl<Sym: Symbol> StringPool<Sym> {
-	/// Creates a new empty `StringPool`.
-	pub fn new() -> Self {
-		StringPool {
-			interner: StringInterner::new(),
-		}
-	}
-
-	/// Creates a new `StringPool` with the given initial capacity.
-	pub fn with_capacity(cap: usize) -> Self {
-		StringPool {
-			interner: StringInterner::with_capacity(cap),
-		}
-	}
-}
-
-impl<Sym: Symbol, H: BuildHasher> StringPool<Sym, H> {
-	/// Creates a new empty `StringPool` with the given hasher.
-	pub fn with_hasher(hasher: H) -> Self {
-		StringPool {
-			interner: StringInterner::with_hasher(hasher),
-		}
-	}
-
-	/// Creates a new empty `StringPool` with the given initial capacity and the given hasher.
-	pub fn with_capacity_and_hasher(cap: usize, hasher: H) -> Self {
-		StringPool {
-			interner: StringInterner::with_capacity_and_hasher(cap, hasher),
-		}
+impl<'a, Sym: Symbol, H: BuildHasher> StringPool<'a, Sym, H> {
+	/// Creates a new empty `StringPool` backed by a given interner.
+	/// The backing `StringInterner` must be empty.
+	pub fn new(interner: &'a mut StringInterner<Sym, H>) -> Self {
+		assert!(interner.is_empty(), "`StringPool` must be built on an empty `StringInterner`");
+		StringPool { interner }
 	}
 
 	/// Interns the given value.
@@ -107,14 +74,11 @@ impl<Sym: Symbol, H: BuildHasher> StringPool<Sym, H> {
 	///
 	/// This either copies the contents of the string (e.g. for str)
 	/// or moves them into this interner (e.g. for String).
-	pub fn get_or_intern<T>(&mut self, val: T) -> PooledStr<Sym, H>
+	pub fn get_or_intern<T>(&mut self, val: T) -> PooledStr<'a, Sym, H>
 		where T: Into<String> + AsRef<str>
 	{
 		let sym = self.interner.get_or_intern(val);
-		PooledStr {
-			pool: self,
-			sym,
-		}
+		unsafe { PooledStr::new(self.interner, sym) }
 	}
 
 	/// Returns the given string's pooled reference if existent.
@@ -122,10 +86,7 @@ impl<Sym: Symbol, H: BuildHasher> StringPool<Sym, H> {
 		where T: AsRef<str>
 	{
 		self.interner.get(val).map(|sym| {
-			PooledStr {
-				pool: self,
-				sym,
-			}
+			unsafe { PooledStr::new(self.interner, sym) }
 		})
 	}
 
@@ -153,10 +114,12 @@ impl<Sym: Symbol, H: BuildHasher> StringPool<Sym, H> {
 #[cfg(test)]
 mod tests {
     use super::*;
+	use StringInterner;
 
     #[test]
     fn basic_usage() {
-        let mut pool = StringPool::default();
+	    let mut interner = StringInterner::default();
+        let mut pool = StringPool::new(&mut interner);
 	    let a1 = pool.get_or_intern("a");
 	    let a2 = pool.get("a").unwrap();
 	    assert_eq!(a1, a2);
