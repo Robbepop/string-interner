@@ -149,3 +149,16 @@ impl<Sym: Symbol, H: BuildHasher> StringPool<Sym, H> {
 		self.interner.shrink_to_fit()
 	}
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn basic_usage() {
+        let mut pool = StringPool::default();
+	    let a1 = pool.get_or_intern("a");
+	    let a2 = pool.get("a").unwrap();
+	    assert_eq!(a1, a2);
+    }
+}
