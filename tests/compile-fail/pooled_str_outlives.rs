@@ -12,44 +12,24 @@ fn case1() {
 	println!("garbage: {:?}", s_ref);
 }
 
+// OK because s_ref's validity is tied to `interner` not `pool`
 fn case2() {
 	let mut interner = StringInterner::default();
 	let s_ref;
 	{
-		let mut pool = StringPool::new(&mut interner); //~ ERROR does not live long enough
+		let mut pool = StringPool::new(&mut interner);
 		s_ref = pool.get_or_intern("case2");
 	}
-	println!("garbage: {:?}", s_ref);
+	println!("ok: {:?}", s_ref);
 }
 
 fn case3() {
-	let s;
-	{
-		let mut interner = StringInterner::default();
-		let mut pool = StringPool::new(&mut interner); //~ ERROR does not live long enough
-		s = &*pool.get_or_intern("case3"); //~ ERROR does not live long enough
-	}
-	println!("garbage: {:?}", s);
-}
-
-fn case4() {
-	let mut interner = StringInterner::default();
-	let s;
-	{
-		let mut pool = StringPool::new(&mut interner);
-		s = &*pool.get_or_intern("case4"); //~ ERROR does not live long enough
-	}
-	println!("garbage: {:?}", s);
-}
-
-fn case5() {
 	let mut interner = StringInterner::default();
 	let mut pool = StringPool::new(&mut interner);
-	let s;
-	{
-		s = &*pool.get_or_intern("case5"); //~ ERROR does not live long enough
-	}
-	println!("ok: {:?}", s);
+	let s_ref = pool.get_or_intern("case2");
+	drop(pool);
+	drop(interner); //~ ERROR cannot move
+	println!("garbage: {:?}", s_ref);
 }
 
 fn main() {}

@@ -15,16 +15,24 @@ categories = ["data-structures"]
 [dependencies]
 serde = { version = "1.0.0", optional = true }
 
+# should be a dev-dependency but optional dev dependencies aren't allowed rust-lang/cargo#1596
+compiletest_rs = { version = "0.3.6", optional = true } # required to test compile failures
+
 [dev-dependencies]
 fnv = "1.0.0" # required for some bench tests
 serde_json = "1.0.0" # required for testing the serde imlementation
-compiletest_rs = "0.3.6" # required to test `PooledStr` cannot not outlive its `StringPool`
 
 [features]
 default       = ["serde_support"]
 bench         = []
 serde_support = ["serde"]
+compiletest   = ["compiletest_rs"]
 
 [badges]
 travis-ci = { repository = "Robbepop/string-interner" }
 appveyor = { repository = "Robbepop/string-interner", branch = "master", service = "github" }
+
+[[test]]
+name = "compiletests"
+path = "tests/compiletests.rs"
+required-features = ["compiletest"]
