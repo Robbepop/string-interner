@@ -1,4 +1,4 @@
-extern crate compiletest_rs as compiletest;
+/*extern crate compiletest_rs as compiletest;
 
 use std::path::PathBuf;
 
@@ -20,5 +20,8 @@ fn run_mode(mode: &'static str) {
 
 #[test]
 fn compile_test() {
+	// Currently, this test fails on Travis because string-interner is duplicated in the link args
+	// https://travis-ci.org/Robbepop/string-interner/jobs/339735884
+	// FIXME(CAD97): compile-fail tests are therefore disabled until this can be figured out
 	run_mode("compile-fail");
-}
+}*/
