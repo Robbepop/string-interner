@@ -56,6 +56,7 @@ mod benches;
 #[cfg(feature = "serde_support")]
 mod serde_impl;
 
+/// A safe wrapped interface where the symbols transparently deref to `&str`
 pub mod wrapped;
 
 use std::vec;
