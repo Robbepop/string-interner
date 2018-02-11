@@ -32,4 +32,16 @@ fn case3() {
 	println!("garbage: {:?}", s_ref);
 }
 
+fn case4() {
+	let mut interner = StringInterner::default();
+	let dangle;
+	{
+		let mut pool = StringPool::new(&mut interner);
+		pool.get_or_intern("dangle");
+		dangle = pool.get("dangle").unwrap();
+	}
+	interner.clear(); //~ ERROR cannot borrow `interner` as mutable more than once
+	println!("{}", &*dangle);
+}
+
 fn main() {}
