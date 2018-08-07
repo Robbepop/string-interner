@@ -53,6 +53,7 @@ mod benches;
 #[cfg(feature = "serde_support")]
 mod serde_impl;
 
+use std::iter::FromIterator;
 use std::{
 	collections::{hash_map::RandomState, HashMap},
 	hash::{BuildHasher, Hash, Hasher},
@@ -372,6 +373,23 @@ where
 	pub fn shrink_to_fit(&mut self) {
 		self.map.shrink_to_fit();
 		self.values.shrink_to_fit();
+	}
+}
+
+impl<T, S> FromIterator<T> for StringInterner<S>
+where
+	S: Symbol,
+	T: Into<String> + AsRef<str>,
+{
+	fn from_iter<I>(iter: I) -> Self
+	where
+		I: IntoIterator<Item = T>,
+	{
+		let mut interner = StringInterner::new();
+		for s in iter.into_iter() {
+			interner.get_or_intern(s);
+		}
+		interner
 	}
 }
 
