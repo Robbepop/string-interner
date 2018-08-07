@@ -163,9 +163,8 @@ impl PartialEq for InternalStrRef {
 	}
 }
 
-/// Defaults to using usize as the underlying and internal
-/// symbol data representation within this `StringInterner`.
-pub type DefaultStringInterner = StringInterner<usize>;
+/// `StringInterner` that uses `Sym` as its underlying symbol type.
+pub type DefaultStringInterner = StringInterner<Sym>;
 
 /// Provides a bidirectional mapping between String stored within
 /// the interner and indices.
@@ -177,24 +176,26 @@ pub type DefaultStringInterner = StringInterner<usize>;
 /// The main goal of this `StringInterner` is to store String
 /// with as low memory overhead as possible.
 #[derive(Debug, Clone, Eq)]
-pub struct StringInterner<Sym, H = RandomState>
-	where Sym: Symbol,
-	      H  : BuildHasher
+pub struct StringInterner<S, H = RandomState>
+where
+	S: Symbol,
+	H: BuildHasher,
 {
-	map   : HashMap<InternalStrRef, Sym, H>,
-	values: Vec<Box<str>>
+	map: HashMap<InternalStrRef, S, H>,
+	values: Vec<Box<str>>,
 }
 
-impl<Sym, H> PartialEq for StringInterner<Sym, H>
-	where Sym: Symbol,
-	      H  : BuildHasher
+impl<S, H> PartialEq for StringInterner<S, H>
+where
+	S: Symbol,
+	H: BuildHasher,
 {
 	fn eq(&self, rhs: &Self) -> bool {
 		self.len() == rhs.len() && self.values == rhs.values
 	}
 }
 
-impl Default for StringInterner<usize, RandomState> {
+impl Default for StringInterner<Sym, RandomState> {
 	#[inline]
 	fn default() -> Self {
 		StringInterner::new()
@@ -212,18 +213,29 @@ impl Default for StringInterner<usize, RandomState> {
 //  - Strings stored in `StringInterner` are not mutable.
 //  - Iterator invalidation while growing the underlying `Vec<Box<str>>` is prevented by
 //    using an additional indirection to store strings.
-unsafe impl<Sym, H> Send for StringInterner<Sym, H> where Sym: Symbol + Send, H: BuildHasher {}
-unsafe impl<Sym, H> Sync for StringInterner<Sym, H> where Sym: Symbol + Sync, H: BuildHasher {}
+unsafe impl<S, H> Send for StringInterner<S, H>
+where
+	S: Symbol + Send,
+	H: BuildHasher,
+{
+}
+unsafe impl<S, H> Sync for StringInterner<S, H>
+where
+	S: Symbol + Sync,
+	H: BuildHasher,
+{
+}
 
-impl<Sym> StringInterner<Sym>
-	where Sym: Symbol
+impl<S> StringInterner<S>
+where
+	S: Symbol,
 {
 	/// Creates a new empty `StringInterner`.
 	#[inline]
-	pub fn new() -> StringInterner<Sym, RandomState> {
-		StringInterner{
-			map   : HashMap::new(),
-			values: Vec::new()
+	pub fn new() -> StringInterner<S, RandomState> {
+		StringInterner {
+			map: HashMap::new(),
+			values: Vec::new(),
 		}
 	}
 
@@ -238,13 +250,14 @@ impl<Sym> StringInterner<Sym>
 
 }
 
-impl<Sym, H> StringInterner<Sym, H>
-	where Sym: Symbol,
-	      H  : BuildHasher
+impl<S, H> StringInterner<S, H>
+where
+	S: Symbol,
+	H: BuildHasher,
 {
 	/// Creates a new empty `StringInterner` with the given hasher.
 	#[inline]
-	pub fn with_hasher(hash_builder: H) -> StringInterner<Sym, H> {
+	pub fn with_hasher(hash_builder: H) -> StringInterner<S, H> {
 		StringInterner{
 			map   : HashMap::with_hasher(hash_builder),
 			values: Vec::new()
@@ -253,7 +266,7 @@ impl<Sym, H> StringInterner<Sym, H>
 
 	/// Creates a new empty `StringInterner` with the given initial capacity and the given hasher.
 	#[inline]
-	pub fn with_capacity_and_hasher(cap: usize, hash_builder: H) -> StringInterner<Sym, H> {
+	pub fn with_capacity_and_hasher(cap: usize, hash_builder: H) -> StringInterner<S, H> {
 		StringInterner{
 			map   : HashMap::with_hasher(hash_builder),
 			values: Vec::with_capacity(cap)
@@ -267,7 +280,7 @@ impl<Sym, H> StringInterner<Sym, H>
 	/// This either copies the contents of the string (e.g. for str)
 	/// or moves them into this interner (e.g. for String).
 	#[inline]
-	pub fn get_or_intern<T>(&mut self, val: T) -> Sym
+	pub fn get_or_intern<T>(&mut self, val: T) -> S
 		where T: Into<String> + AsRef<str>
 	{
 		match self.map.get(&val.as_ref().into()) {
@@ -279,10 +292,10 @@ impl<Sym, H> StringInterner<Sym, H>
 	/// Interns the given value and ignores collissions.
 	/// 
 	/// Returns a symbol to access it within this interner.
-	fn intern<T>(&mut self, new_val: T) -> Sym
+	fn intern<T>(&mut self, new_val: T) -> S
 		where T: Into<String> + AsRef<str>
 	{
-		let new_id: Sym = self.make_symbol();
+		let new_id: S = self.make_symbol();
 		let new_boxed_val = new_val.into().into_boxed_str();
 		let new_ref: InternalStrRef = new_boxed_val.as_ref().into();
 		self.values.push(new_boxed_val);
@@ -291,14 +304,14 @@ impl<Sym, H> StringInterner<Sym, H>
 	}
 
 	/// Creates a new symbol for the current state of the interner.
-	fn make_symbol(&self) -> Sym {
-		Sym::from_usize(self.len())
+	fn make_symbol(&self) -> S {
+		S::from_usize(self.len())
 	}
 
 	/// Returns a string slice to the string identified by the given symbol if available.
 	/// Else, None is returned.
 	#[inline]
-	pub fn resolve(&self, symbol: Sym) -> Option<&str> {
+	pub fn resolve(&self, symbol: S) -> Option<&str> {
 		self.values
 			.get(symbol.to_usize())
 			.map(|boxed_str| boxed_str.as_ref())
@@ -307,13 +320,13 @@ impl<Sym, H> StringInterner<Sym, H>
 	/// Returns a string slice to the string identified by the given symbol,
 	/// without doing bounds checking. So use it very carefully!
 	#[inline]
-	pub unsafe fn resolve_unchecked(&self, symbol: Sym) -> &str {
+	pub unsafe fn resolve_unchecked(&self, symbol: S) -> &str {
 		self.values.get_unchecked(symbol.to_usize()).as_ref()
 	}
 
 	/// Returns the given string's symbol for this interner if existent.
 	#[inline]
-	pub fn get<T>(&self, val: T) -> Option<Sym>
+	pub fn get<T>(&self, val: T) -> Option<S>
 		where T: AsRef<str>
 	{
 		self.map
@@ -335,13 +348,13 @@ impl<Sym, H> StringInterner<Sym, H>
 
 	/// Returns an iterator over the interned strings.
 	#[inline]
-	pub fn iter(&self) -> Iter<Sym> {
+	pub fn iter(&self) -> Iter<S> {
 		Iter::new(self)
 	}
 
 	/// Returns an iterator over all intern indices and their associated strings.
 	#[inline]
-	pub fn iter_values(&self) -> Values<Sym> {
+	pub fn iter_values(&self) -> Values<S> {
 		Values::new(self)
 	}
 
@@ -362,28 +375,30 @@ impl<Sym, H> StringInterner<Sym, H>
 }
 
 /// Iterator over the pairs of symbols and interned string for a `StringInterner`.
-pub struct Iter<'a, Sym> {
+pub struct Iter<'a, S> {
 	iter: iter::Enumerate<slice::Iter<'a, Box<str>>>,
-	mark: marker::PhantomData<Sym>
+	mark: marker::PhantomData<S>,
 }
 
-impl<'a, Sym> Iter<'a, Sym>
-	where Sym: Symbol + 'a
+impl<'a, S> Iter<'a, S>
+where
+	S: Symbol + 'a,
 {
 	/// Creates a new iterator for the given StringIterator over pairs of 
 	/// symbols and their associated interned string.
 	#[inline]
-	fn new<H>(interner: &'a StringInterner<Sym, H>) -> Self
+	fn new<H>(interner: &'a StringInterner<S, H>) -> Self
 		where H  : BuildHasher
 	{
 		Iter{iter: interner.values.iter().enumerate(), mark: marker::PhantomData}
 	}
 }
 
-impl<'a, Sym> Iterator for Iter<'a, Sym>
-	where Sym: Symbol + 'a
+impl<'a, S> Iterator for Iter<'a, S>
+where
+	S: Symbol + 'a,
 {
-	type Item = (Sym, &'a str);
+	type Item = (S, &'a str);
 
 	#[inline]
 	fn next(&mut self) -> Option<Self::Item> {
@@ -397,19 +412,21 @@ impl<'a, Sym> Iterator for Iter<'a, Sym>
 }
 
 /// Iterator over the interned strings for a `StringInterner`.
-pub struct Values<'a, Sym>
-	where Sym: Symbol + 'a
+pub struct Values<'a, S>
+where
+	S: Symbol + 'a,
 {
 	iter: slice::Iter<'a, Box<str>>,
-	mark: marker::PhantomData<Sym>
+	mark: marker::PhantomData<S>,
 }
 
-impl<'a, Sym> Values<'a, Sym>
-	where Sym: Symbol + 'a
+impl<'a, S> Values<'a, S>
+where
+	S: Symbol + 'a,
 {
 	/// Creates a new iterator for the given StringIterator over its interned strings.
 	#[inline]
-	fn new<H>(interner: &'a StringInterner<Sym, H>) -> Self
+	fn new<H>(interner: &'a StringInterner<S, H>) -> Self
 		where H  : BuildHasher
 	{
 		Values{
@@ -419,8 +436,9 @@ impl<'a, Sym> Values<'a, Sym>
 	}
 }
 
-impl<'a, Sym> Iterator for Values<'a, Sym>
-	where Sym: Symbol + 'a
+impl<'a, S> Iterator for Values<'a, S>
+where
+	S: Symbol + 'a,
 {
 	type Item = &'a str;
 
@@ -435,12 +453,13 @@ impl<'a, Sym> Iterator for Values<'a, Sym>
 	}
 }
 
-impl<Sym, H> iter::IntoIterator for StringInterner<Sym, H>
-	where Sym: Symbol,
-	      H  : BuildHasher
+impl<S, H> iter::IntoIterator for StringInterner<S, H>
+where
+	S: Symbol,
+	H: BuildHasher,
 {
-	type Item = (Sym, String);
-	type IntoIter = IntoIter<Sym>;
+	type Item = (S, String);
+	type IntoIter = IntoIter<S>;
 
 	fn into_iter(self) -> Self::IntoIter {
 		IntoIter{iter: self.values.into_iter().enumerate(), mark: marker::PhantomData}
@@ -449,17 +468,19 @@ impl<Sym, H> iter::IntoIterator for StringInterner<Sym, H>
 
 /// Iterator over the pairs of symbols and associated interned string when 
 /// morphing a `StringInterner` into an iterator.
-pub struct IntoIter<Sym>
-	where Sym: Symbol
+pub struct IntoIter<S>
+where
+	S: Symbol,
 {
 	iter: iter::Enumerate<vec::IntoIter<Box<str>>>,
-	mark: marker::PhantomData<Sym>
+	mark: marker::PhantomData<S>,
 }
 
-impl<Sym> Iterator for IntoIter<Sym>
-	where Sym: Symbol
+impl<S> Iterator for IntoIter<S>
+where
+	S: Symbol,
 {
-	type Item = (Sym, String);
+	type Item = (S, String);
 
 	fn next(&mut self) -> Option<Self::Item> {
 		self.iter.next().map(|(num, boxed_str)| (Sym::from_usize(num), boxed_str.into_string()))
