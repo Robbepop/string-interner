@@ -1,8 +1,8 @@
 # String Interner
 
-|        Linux        |       Windows       |       Coverage      |        Docs        |     Crates.io      |
-|:-------------------:|:-------------------:|:-------------------:|:------------------:|:------------------:|
-| [![travisCI][1]][2] | [![appveyor][3]][4] | [![coverage][5]][6] | [![docs][11]][12 ] | [![chat][9]][10]   |
+|        Linux        |       Windows       |       Codecov        |       Coveralls      |       Docs       |       Crates.io      |
+|:-------------------:|:-------------------:|:--------------------:|:--------------------:|:----------------:|:--------------------:|
+| [![travisCI][1]][2] | [![appveyor][3]][4] | [![codecov][5]][6] | [![coveralls][7]][8] | [![docs][9]][10]   | [![crates][11]][12] |
 
 A data structure to cache strings efficiently, with minimal memory footprint and the ability to assicate
 the interned strings with unique symbols.
@@ -88,18 +88,19 @@ additional terms or conditions.
 
 	- added `Send` and `Sync` to `InternalStrRef` to make `StringInterner` itself `Send` and `Sync`
 
-[1]: https://travis-ci.org/Robbepop/string-interner.svg?branch=master
-[2]: https://travis-ci.org/Robbepop/string-interner
-[3]: https://ci.appveyor.com/api/projects/status/16fc9l6rtroo4xqd?svg=true
-[4]: https://ci.appveyor.com/project/Robbepop/string-interner/branch/master
-[5]: https://coveralls.io/repos/github/Robbepop/string-interner/badge.svg?branch=master
-[6]: https://coveralls.io/github/Robbepop/string-interner?branch=master
-[7]: https://img.shields.io/badge/license-MIT-blue.svg
-[8]: ./LICENCE
-[9]: https://img.shields.io/crates/v/string-interner.svg
-[10]: https://crates.io/crates/string-interner
-[11]: https://docs.rs/string-interner/badge.svg
-[12]: https://docs.rs/string-interner
+
+[1]:  https://travis-ci.org/Robbepop/string-interner.svg?branch=master
+[2]:  https://travis-ci.org/Robbepop/string-interner
+[3]:  https://ci.appveyor.com/api/projects/status/16fc9l6rtroo4xqd?svg=true
+[4]:  https://ci.appveyor.com/project/Robbepop/string-interner/branch/master
+[5]:  https://codecov.io/gh/robbepop/string-interner/branch/master/graph/badge.svg
+[6]:  https://codecov.io/gh/Robbepop/string-interner/branch/master
+[7]:  https://coveralls.io/repos/github/Robbepop/string-interner/badge.svg?branch=master
+[8]:  https://coveralls.io/github/Robbepop/string-interner?branch=master
+[9]:  https://docs.rs/string-interner/badge.svg
+[10]: https://docs.rs/string-interner
+[11]: https://img.shields.io/crates/v/string-interner.svg
+[12]: https://crates.io/crates/string-interner
 
 [gh-issue-4]: (https://github.com/Robbepop/string-interner/issues/4)
 
