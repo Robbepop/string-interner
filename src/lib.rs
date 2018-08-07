@@ -24,10 +24,10 @@
 //! ### Example: Creation by `FromIterator`
 //!
 //! ```
-//! # use string_interner::StringInterner;
+//! # use string_interner::DefaultStringInterner;
 //! let interner = vec!["Elephant", "Tiger", "Horse", "Tiger"]
 //! 	.into_iter()
-//! 	.collect::<StringInterner>();
+//! 	.collect::<DefaultStringInterner>();
 //! ```
 //!
 //! ### Example: Look-up
@@ -42,10 +42,10 @@
 //! ### Example: Iteration
 //!
 //! ```
-//! # use string_interner::StringInterner;
+//! # use string_interner::DefaultStringInterner;
 //! let interner = vec!["Earth", "Water", "Fire", "Air"]
 //! 	.into_iter()
-//! 	.collect::<StringInterner>();
+//! 	.collect::<DefaultStringInterner>();
 //! for (sym, str) in interner {
 //! 	// iteration code here!
 //! }
