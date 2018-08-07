@@ -53,13 +53,6 @@ mod benches;
 #[cfg(feature = "serde_support")]
 mod serde_impl;
 
-/// Represents indices into the `StringInterner`.
-/// 
-/// Values of this type shall be lightweight as the whole purpose
-/// of interning values is to be able to store them efficiently in memory.
-/// 
-/// This trait allows definitions of custom `Symbol`s besides
-/// the already supported unsigned integer primitives.
 use std::{
 	collections::{hash_map::RandomState, HashMap},
 	hash::{BuildHasher, Hash, Hasher},
@@ -68,15 +61,23 @@ use std::{
 	slice, u32, vec,
 };
 
+/// Types implementing this trait are able to act as symbols for string interners.
+///
+/// Symbols are returned by `StringInterner::get_or_intern` and allow look-ups of the
+/// original string contents with `StringInterner::resolve`.
+///
+/// # Note
+///
+/// Optimal symbols allow for efficient comparisons and have a small memory footprint.
 pub trait Symbol: Copy + Ord + Eq {
-	/// Creates a symbol explicitely from a usize primitive type.
-	/// 
-	/// Defaults to simply using the standard From<usize> trait.
+	/// Creates a symbol from a `usize`.
+	///
+	/// # Note
+	///
+	/// Implementations panic if the operation cannot succeed.
 	fn from_usize(val: usize) -> Self;
 
-	/// Creates a usize explicitely from this symbol.
-	/// 
-	/// Defaults to simply using the standard Into<usize> trait.
+	/// Returns the `usize` representation of `self`.
 	fn to_usize(self) -> usize;
 }
 
