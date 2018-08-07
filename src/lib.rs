@@ -20,6 +20,35 @@
 //! assert_ne!(sym1, sym2);
 //! assert_eq!(sym1, sym3); // same!
 //! ```
+//!
+//! ### Example: Creation by `FromIterator`
+//!
+//! ```
+//! # use string_interner::StringInterner;
+//! let interner = vec!["Elephant", "Tiger", "Horse", "Tiger"]
+//! 	.into_iter()
+//! 	.collect::<StringInterner>();
+//! ```
+//!
+//! ### Example: Look-up
+//!
+//! ```
+//! # use string_interner::StringInterner;
+//! let mut interner = StringInterner::default();
+//! let sym = interner.get_or_intern("Banana");
+//! assert_eq!(interner.resolve(sym), Some("Banana"));
+//! ```
+//!
+//! ### Example: Iteration
+//!
+//! ```
+//! # use string_interner::StringInterner;
+//! let interner = vec!["Earth", "Water", "Fire", "Air"]
+//! 	.into_iter()
+//! 	.collect::<StringInterner>();
+//! for (sym, str) in interner {
+//! 	// iteration code here!
+//! }
 //! ```
 
 #[cfg(all(feature = "bench", test))]
