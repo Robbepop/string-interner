@@ -136,8 +136,8 @@ impl Symbol for usize {
 	}
 }
 
-/// Internal reference to str used only within the `StringInterner` itself
-/// to encapsulate the unsafe behaviour of interor references.
+/// Internal reference to `str` used only within the `StringInterner` itself
+/// to encapsulate the unsafe behaviour of interior references.
 #[derive(Debug, Copy, Clone, Eq)]
 struct InternalStrRef(*const str);
 
@@ -186,15 +186,8 @@ impl PartialEq for InternalStrRef {
 /// `StringInterner` that uses `Sym` as its underlying symbol type.
 pub type DefaultStringInterner = StringInterner<Sym>;
 
-/// Provides a bidirectional mapping between String stored within
-/// the interner and indices.
-/// The main purpose is to store every unique String only once and
-/// make it possible to reference it via lightweight indices.
-/// 
-/// Compilers often use this for implementing a symbol table.
-/// 
-/// The main goal of this `StringInterner` is to store String
-/// with as low memory overhead as possible.
+/// Caches strings efficiently, with minimal memory footprint and associates them with unique symbols.
+/// These symbols allow constant time comparisons and look-ups to the underlying interned strings.
 #[derive(Debug, Clone, Eq)]
 pub struct StringInterner<S, H = RandomState>
 where
@@ -346,8 +339,8 @@ where
 		S::from_usize(self.len())
 	}
 
-	/// Returns a string slice to the string identified by the given symbol if available.
-	/// Else, None is returned.
+	/// Returns the string slice associated with the given symbol if available,
+	/// otherwise returns `None`.
 	#[inline]
 	pub fn resolve(&self, symbol: S) -> Option<&str> {
 		self.values
@@ -355,14 +348,24 @@ where
 			.map(|boxed_str| boxed_str.as_ref())
 	}
 
-	/// Returns a string slice to the string identified by the given symbol,
-	/// without doing bounds checking. So use it very carefully!
+	/// Returns the string associated with the given symbol.
+	///
+	/// # Note
+	///
+	/// This does not check whether the given symbol has an associated string
+	/// for the given string interner instance.
+	///
+	/// # Safety
+	///
+	/// This will result in undefined behaviour if the given symbol
+	/// had no associated string for this interner instance.
 	#[inline]
 	pub unsafe fn resolve_unchecked(&self, symbol: S) -> &str {
 		self.values.get_unchecked(symbol.to_usize()).as_ref()
 	}
 
-	/// Returns the given string's symbol for this interner if existent.
+	/// Returns the symbol associated with the given string for this interner
+	/// if existent, otherwise returns `None`.
 	#[inline]
 	pub fn get<T>(&self, val: T) -> Option<S>
 	where
@@ -371,13 +374,13 @@ where
 		self.map.get(&val.as_ref().into()).cloned()
 	}
 
-	/// Returns the number of uniquely stored Strings interned within this interner.
+	/// Returns the number of uniquely interned strings within this interner.
 	#[inline]
 	pub fn len(&self) -> usize {
 		self.values.len()
 	}
 
-	/// Returns true if the string interner internes no elements.
+	/// Returns true if the string interner holds no elements.
 	#[inline]
 	pub fn is_empty(&self) -> bool {
 		self.len() == 0
@@ -419,7 +422,7 @@ where
 	}
 }
 
-/// Iterator over the pairs of symbols and interned string for a `StringInterner`.
+/// Iterator over the pairs of associated symbols and interned strings for a `StringInterner`.
 pub struct Iter<'a, S> {
 	iter: iter::Enumerate<slice::Iter<'a, Box<str>>>,
 	mark: marker::PhantomData<S>,
@@ -429,7 +432,7 @@ impl<'a, S> Iter<'a, S>
 where
 	S: Symbol + 'a,
 {
-	/// Creates a new iterator for the given StringIterator over pairs of 
+	/// Creates a new iterator for the given StringIterator over pairs of
 	/// symbols and their associated interned string.
 	#[inline]
 	fn new<H>(interner: &'a StringInterner<S, H>) -> Self
@@ -462,7 +465,7 @@ where
 	}
 }
 
-/// Iterator over the interned strings for a `StringInterner`.
+/// Iterator over the interned strings of a `StringInterner`.
 pub struct Values<'a, S>
 where
 	S: Symbol + 'a,
@@ -521,8 +524,9 @@ where
 	}
 }
 
-/// Iterator over the pairs of symbols and associated interned string when 
-/// morphing a `StringInterner` into an iterator.
+/// Iterator over the pairs of associated symbol and strings.
+///
+/// Consumes the `StringInterner` upon usage.
 pub struct IntoIter<S>
 where
 	S: Symbol,
