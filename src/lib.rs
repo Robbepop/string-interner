@@ -55,6 +55,10 @@
 extern crate test;
 
 #[cfg(all(feature = "bench", test))]
+#[macro_use]
+extern crate lazy_static;
+
+#[cfg(all(feature = "bench", test))]
 extern crate fnv;
 
 #[cfg(feature = "serde_support")]
