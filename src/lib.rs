@@ -81,11 +81,39 @@ pub trait Symbol: Copy + Ord + Eq {
 	fn to_usize(self) -> usize;
 }
 
-impl<T> Symbol for T where T: Copy + Ord + Eq + From<usize> + Into<usize> {
-	#[inline]
-	fn from_usize(val: usize) -> Self { val.into() }
-	#[inline]
-	fn to_usize(self) -> usize { self.into() }
+/// Symbol type used by the `DefaultStringInterner`.
+///
+/// # Note
+///
+/// This special symbol type has a memory footprint of 32 bits
+/// and allows for certain space optimizations such as using it within an option: `Option<Sym>`
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Sym(NonZeroU32);
+
+impl Symbol for Sym {
+	/// Creates a `Sym` from the given `usize`.
+	///
+	/// # Panics
+	///
+	/// If the given `usize` is greater than `u32::MAX - 1`.
+	fn from_usize(val: usize) -> Self {
+		assert!(val < u32::MAX as usize);
+		Sym(unsafe { NonZeroU32::new_unchecked((val + 1) as u32) })
+	}
+
+	fn to_usize(self) -> usize {
+		(self.0.get() as usize) - 1
+	}
+}
+
+impl Symbol for usize {
+	fn from_usize(val: usize) -> Self {
+		val
+	}
+
+	fn to_usize(self) -> usize {
+		self
+	}
 }
 
 /// Internal reference to str used only within the `StringInterner` itself
