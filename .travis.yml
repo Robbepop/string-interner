@@ -1,7 +1,7 @@
 language: rust
 cache: cargo
 dist: trusty
-sudo: false
+sudo: true
 
 rust:
   - stable
@@ -22,25 +22,24 @@ addons:
       - libcurl4-openssl-dev
       - libelf-dev
       - libdw-dev
-      - cmake
-      - gcc
       - binutils-dev
       - libiberty-dev
 
-after_success: |
-  wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
-  tar xzf master.tar.gz &&
-  cd kcov-master &&
-  mkdir build &&
-  cd build &&
-  cmake .. &&
-  make &&
-  make install DESTDIR=../../kcov-build &&
-  cd ../.. &&
-  rm -rf kcov-master &&
-  for file in target/debug/string_interner-*[^\d]; do
-    mkdir -p "target/cov/$(basename $file)";
-    ./kcov-build/usr/local/bin/kcov --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/$(basename $file)" "$file";
-  done &&
-  bash <(curl -s https://codecov.io/bash) &&
-  echo "Uploaded code coverage"
+before_script:
+- |
+  cargo install cargo-kcov
+  if [ ! -x $HOME/.cargo/bin/kcov ] || [ ! -f $HOME/.cargo/bin/kcov ]; then
+    mkdir kcov
+    cd kcov
+    cargo kcov --print-install-kcov-sh | sh
+    cd ${TRAVIS_BUILD_DIR}
+    rm -rf kcov
+  fi
+
+script:
+- |
+  cargo check &&
+  cargo test &&
+  cargo test --release &&
+  cargo kcov --verbose --coveralls &&
+  bash <(curl -s https://codecov.io/bash)
