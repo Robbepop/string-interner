@@ -123,28 +123,28 @@ struct InternalStrRef(*const str);
 
 impl InternalStrRef {
 	/// Creates an InternalStrRef from a str.
-	/// 
+	///
 	/// This just wraps the str internally.
 	fn from_str(val: &str) -> Self {
 		InternalStrRef(val as *const str)
 	}
 
-
 	/// Reinterprets this InternalStrRef as a str.
-	/// 
+	///
 	/// This is "safe" as long as this InternalStrRef only
 	/// refers to strs that outlive this instance or
 	/// the instance that owns this InternalStrRef.
 	/// This should hold true for `StringInterner`.
-	/// 
+	///
 	/// Does not allocate memory!
 	fn as_str(&self) -> &str {
-		unsafe{ &*self.0 }
+		unsafe { &*self.0 }
 	}
 }
 
 impl<T> From<T> for InternalStrRef
-	where T: AsRef<str>
+where
+	T: AsRef<str>,
 {
 	fn from(val: T) -> Self {
 		InternalStrRef::from_str(val.as_ref())
@@ -204,10 +204,10 @@ impl Default for StringInterner<Sym, RandomState> {
 
 // About `Send` and `Sync` impls for `StringInterner`
 // --------------------------------------------------
-// 
+//
 // tl;dr: Automation of Send+Sync impl was prevented by `InternalStrRef`
 // being an unsafe abstraction and thus prevented Send+Sync default derivation.
-// 
+//
 // These implementations are safe due to the following reasons:
 //  - `InternalStrRef` cannot be used outside `StringInterner`.
 //  - Strings stored in `StringInterner` are not mutable.
@@ -242,9 +242,9 @@ where
 	/// Creates a new `StringInterner` with the given initial capacity.
 	#[inline]
 	pub fn with_capacity(cap: usize) -> Self {
-		StringInterner{
-			map   : HashMap::with_capacity(cap),
-			values: Vec::with_capacity(cap)
+		StringInterner {
+			map: HashMap::with_capacity(cap),
+			values: Vec::with_capacity(cap),
 		}
 	}
 
@@ -258,42 +258,44 @@ where
 	/// Creates a new empty `StringInterner` with the given hasher.
 	#[inline]
 	pub fn with_hasher(hash_builder: H) -> StringInterner<S, H> {
-		StringInterner{
-			map   : HashMap::with_hasher(hash_builder),
-			values: Vec::new()
+		StringInterner {
+			map: HashMap::with_hasher(hash_builder),
+			values: Vec::new(),
 		}
 	}
 
 	/// Creates a new empty `StringInterner` with the given initial capacity and the given hasher.
 	#[inline]
 	pub fn with_capacity_and_hasher(cap: usize, hash_builder: H) -> StringInterner<S, H> {
-		StringInterner{
-			map   : HashMap::with_hasher(hash_builder),
-			values: Vec::with_capacity(cap)
+		StringInterner {
+			map: HashMap::with_hasher(hash_builder),
+			values: Vec::with_capacity(cap),
 		}
 	}
 
 	/// Interns the given value.
-	/// 
+	///
 	/// Returns a symbol to access it within this interner.
-	/// 
+	///
 	/// This either copies the contents of the string (e.g. for str)
 	/// or moves them into this interner (e.g. for String).
 	#[inline]
 	pub fn get_or_intern<T>(&mut self, val: T) -> S
-		where T: Into<String> + AsRef<str>
+	where
+		T: Into<String> + AsRef<str>,
 	{
 		match self.map.get(&val.as_ref().into()) {
 			Some(&sym) => sym,
-			None       => self.intern(val)
+			None => self.intern(val),
 		}
 	}
 
 	/// Interns the given value and ignores collissions.
-	/// 
+	///
 	/// Returns a symbol to access it within this interner.
 	fn intern<T>(&mut self, new_val: T) -> S
-		where T: Into<String> + AsRef<str>
+	where
+		T: Into<String> + AsRef<str>,
 	{
 		let new_id: S = self.make_symbol();
 		let new_boxed_val = new_val.into().into_boxed_str();
@@ -327,11 +329,10 @@ where
 	/// Returns the given string's symbol for this interner if existent.
 	#[inline]
 	pub fn get<T>(&self, val: T) -> Option<S>
-		where T: AsRef<str>
+	where
+		T: AsRef<str>,
 	{
-		self.map
-			.get(&val.as_ref().into())
-			.cloned()
+		self.map.get(&val.as_ref().into()).cloned()
 	}
 
 	/// Returns the number of uniquely stored Strings interned within this interner.
@@ -388,9 +389,13 @@ where
 	/// symbols and their associated interned string.
 	#[inline]
 	fn new<H>(interner: &'a StringInterner<S, H>) -> Self
-		where H  : BuildHasher
+	where
+		H: BuildHasher,
 	{
-		Iter{iter: interner.values.iter().enumerate(), mark: marker::PhantomData}
+		Iter {
+			iter: interner.values.iter().enumerate(),
+			mark: marker::PhantomData,
+		}
 	}
 }
 
@@ -402,7 +407,9 @@ where
 
 	#[inline]
 	fn next(&mut self) -> Option<Self::Item> {
-		self.iter.next().map(|(num, boxed_str)| (Sym::from_usize(num), boxed_str.as_ref()))
+		self.iter
+			.next()
+			.map(|(num, boxed_str)| (S::from_usize(num), boxed_str.as_ref()))
 	}
 
 	#[inline]
@@ -427,11 +434,12 @@ where
 	/// Creates a new iterator for the given StringIterator over its interned strings.
 	#[inline]
 	fn new<H>(interner: &'a StringInterner<S, H>) -> Self
-		where H  : BuildHasher
+	where
+		H: BuildHasher,
 	{
-		Values{
+		Values {
 			iter: interner.values.iter(),
-			mark: marker::PhantomData
+			mark: marker::PhantomData,
 		}
 	}
 }
@@ -462,7 +470,10 @@ where
 	type IntoIter = IntoIter<S>;
 
 	fn into_iter(self) -> Self::IntoIter {
-		IntoIter{iter: self.values.into_iter().enumerate(), mark: marker::PhantomData}
+		IntoIter {
+			iter: self.values.into_iter().enumerate(),
+			mark: marker::PhantomData,
+		}
 	}
 }
 
@@ -483,7 +494,9 @@ where
 	type Item = (S, String);
 
 	fn next(&mut self) -> Option<Self::Item> {
-		self.iter.next().map(|(num, boxed_str)| (Sym::from_usize(num), boxed_str.into_string()))
+		self.iter
+			.next()
+			.map(|(num, boxed_str)| (S::from_usize(num), boxed_str.into_string()))
 	}
 
 	#[inline]
