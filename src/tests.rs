@@ -1,166 +1,375 @@
-use ::{DefaultStringInterner, InternalStrRef};
+use {DefaultStringInterner, InternalStrRef, StringInterner, Sym, Symbol};
 
-fn make_dummy_interner() -> (DefaultStringInterner, [usize; 8]) {
-	let mut interner = DefaultStringInterner::new();
-	let name0 = interner.get_or_intern("foo");
-	let name1 = interner.get_or_intern("bar");
-	let name2 = interner.get_or_intern("baz");
-	let name3 = interner.get_or_intern("foo");
-	let name4 = interner.get_or_intern("rofl");
-	let name5 = interner.get_or_intern("bar");
-	let name6 = interner.get_or_intern("mao");
-	let name7 = interner.get_or_intern("foo");
-	(interner, [name0, name1, name2, name3, name4, name5, name6, name7])
+mod sym {
+	use super::*;
+
+	#[test]
+	fn same_size_as_optional() {
+		use std::mem;
+		assert_eq!(mem::size_of::<Sym>(), mem::size_of::<Option<Sym>>());
+	}
 }
 
-#[test]
-fn internal_str_ref() {
-	use std::mem;
-	assert_eq!(mem::size_of::<InternalStrRef>(), mem::size_of::<&str>());
+mod internal_str_ref {
+	use super::*;
 
-	let s0 = "Hello";
-	let s1 = ", World!";
-	let s2 = "Hello";
-	let s3 = ", World!";
-	let r0 = InternalStrRef::from_str(s0);
-	let r1 = InternalStrRef::from_str(s1);
-	let r2 = InternalStrRef::from_str(s2);
-	let r3 = InternalStrRef::from_str(s3);
-	assert_eq!(r0, r2);
-	assert_eq!(r1, r3);
-	assert_ne!(r0, r1);
-	assert_ne!(r2, r3);
+	#[test]
+	fn size_of() {
+		use std::mem;
+		assert_eq!(mem::size_of::<InternalStrRef>(), mem::size_of::<&str>());
+	}
 
-	use std::collections::hash_map::DefaultHasher;
-	use std::hash::Hash;
-	let mut sip = DefaultHasher::new();
-	assert_eq!(r0.hash(&mut sip), s0.hash(&mut sip));
-	assert_eq!(r1.hash(&mut sip), s1.hash(&mut sip));
-	assert_eq!(r2.hash(&mut sip), s2.hash(&mut sip));
-	assert_eq!(r3.hash(&mut sip), s3.hash(&mut sip));
+	#[test]
+	fn eq() {
+		// same origin (aka pointer to str)
+		let s = "bar";
+		assert_eq!(InternalStrRef::from_str(s), InternalStrRef::from_str(s));
+		// different origins (aka pointers)
+		assert_eq!(
+			InternalStrRef::from_str("foo"),
+			InternalStrRef::from_str("foo")
+		);
+	}
+
+	#[test]
+	fn ne() {
+		assert_ne!(
+			InternalStrRef::from_str("foo"),
+			InternalStrRef::from_str("bar")
+		)
+	}
+
+	#[test]
+	fn hash_same_as_str() {
+		use std::{collections::hash_map::DefaultHasher, hash::Hash};
+		let (s0, s1) = ("foo", "bar");
+		let (r0, r1) = (InternalStrRef::from_str(s0), InternalStrRef::from_str(s1));
+		let mut sip = DefaultHasher::new();
+		assert_eq!(r0.hash(&mut sip), s0.hash(&mut sip));
+		assert_eq!(r1.hash(&mut sip), s1.hash(&mut sip));
+	}
 }
 
-#[test]
-fn intern_str() {
-	let (_, names) = make_dummy_interner();
-	assert_eq!(names[0], 0);
-	assert_eq!(names[1], 1);
-	assert_eq!(names[2], 2);
-	assert_eq!(names[3], 0);
-	assert_eq!(names[4], 3);
-	assert_eq!(names[5], 1);
-	assert_eq!(names[6], 4);
-	assert_eq!(names[7], 0);
+mod len {
+	use super::*;
+
+	#[test]
+	fn new_len() {
+		assert_eq!(DefaultStringInterner::new().len(), 0)
+	}
+
+	#[test]
+	fn len_after_intern() {
+		let mut interner = DefaultStringInterner::new();
+		interner.get_or_intern("foo");
+		assert_eq!(interner.len(), 1)
+	}
+
+	#[test]
+	fn len_after_same() {
+		let mut interner = DefaultStringInterner::new();
+		interner.get_or_intern("foo");
+		interner.get_or_intern("foo");
+		assert_eq!(interner.len(), 1)
+	}
+
+	#[test]
+	fn len_after_diff() {
+		let mut interner = DefaultStringInterner::new();
+		interner.get_or_intern("foo");
+		interner.get_or_intern("bar");
+		assert_eq!(interner.len(), 2)
+	}
 }
 
-#[test]
-fn intern_string() {
-	let mut interner = DefaultStringInterner::new();
-	let name_0 = interner.get_or_intern("Hello".to_owned());
-	let name_1 = interner.get_or_intern("World".to_owned());
-	let name_2 = interner.get_or_intern("I am a String".to_owned());
-	let name_3 = interner.get_or_intern("Foo".to_owned());
-	let name_4 = interner.get_or_intern("Bar".to_owned());
-	let name_5 = interner.get_or_intern("I am a String".to_owned());
-	let name_6 = interner.get_or_intern("Next is empty".to_owned());
-	let name_7 = interner.get_or_intern("".to_owned());
-	let name_8 = interner.get_or_intern("I am a String".to_owned());
-	let name_9 = interner.get_or_intern("I am a String".to_owned());
-	let name10 = interner.get_or_intern("Foo".to_owned());
+mod is_empty {
+	use super::*;
 
-	assert_eq!(interner.len(), 7);
+	#[test]
+	fn new() {
+		assert_eq!(DefaultStringInterner::new().is_empty(), true)
+	}
 
-	assert_eq!(name_0, 0);
-	assert_eq!(name_1, 1);
-	assert_eq!(name_2, 2);
-	assert_eq!(name_3, 3);
-	assert_eq!(name_4, 4);
-	assert_eq!(name_5, 2);
-	assert_eq!(name_6, 5);
-	assert_eq!(name_7, 6);
-	assert_eq!(name_8, 2);
-	assert_eq!(name_9, 2);
-	assert_eq!(name10, 3);
+	#[test]
+	fn not_empty() {
+		let mut interner = DefaultStringInterner::with_capacity(1);
+		interner.get_or_intern("foo");
+		assert_eq!(interner.is_empty(), false)
+	}
 }
 
-#[test]
-fn len() {
-	let (interner, _) = make_dummy_interner();
-	assert_eq!(interner.len(), 5);	
+mod get_or_intern {
+	use super::*;
+
+	#[test]
+	fn simple() {
+		assert_eq!(
+			DefaultStringInterner::new().get_or_intern("foo"),
+			Sym::from_usize(0)
+		)
+	}
+
+	#[test]
+	fn empty_string() {
+		assert_eq!(
+			DefaultStringInterner::new().get_or_intern(""),
+			Sym::from_usize(0)
+		)
+	}
+
+	#[test]
+	fn same_twice() {
+		let mut interner = DefaultStringInterner::new();
+		let fst = interner.get_or_intern("foo");
+		let snd = interner.get_or_intern("foo");
+		assert_eq!(fst, snd);
+	}
+
+	#[test]
+	fn two_different() {
+		let mut interner = DefaultStringInterner::new();
+		let fst = interner.get_or_intern("foo");
+		let snd = interner.get_or_intern("bar");
+		assert_ne!(fst, snd);
+	}
+
+	#[test]
+	fn act_same() {
+		let mut interner1 = DefaultStringInterner::new();
+		let mut interner2 = DefaultStringInterner::new();
+		let sym1 = interner1.get_or_intern("foo");
+		let sym2 = interner2.get_or_intern("foo");
+		assert_eq!(sym1, sym2);
+	}
+
+	#[test]
+	fn intern_string() {
+		assert_eq!(
+			DefaultStringInterner::new().get_or_intern(String::from("foo")),
+			Sym::from_usize(0)
+		)
+	}
 }
 
-#[test]
-fn get() {
-	let (interner, _) = make_dummy_interner();
-	assert_eq!(interner.resolve(0), Some("foo"));
-	assert_eq!(interner.resolve(1), Some("bar"));
-	assert_eq!(interner.resolve(2), Some("baz"));
-	assert_eq!(interner.resolve(3), Some("rofl"));
-	assert_eq!(interner.resolve(4), Some("mao"));
-	assert_eq!(interner.resolve(5), None);
+mod default {
+	use super::*;
+
+	#[test]
+	fn same_as_empty() {
+		assert_eq!(StringInterner::default(), DefaultStringInterner::new())
+	}
 }
 
-#[test]
-fn lookup_symbol() {
-	let (interner, _) = make_dummy_interner();
-	assert_eq!(interner.get("foo"),  Some(0));
-	assert_eq!(interner.get("bar"),  Some(1));
-	assert_eq!(interner.get("baz"),  Some(2));
-	assert_eq!(interner.get("rofl"), Some(3));
-	assert_eq!(interner.get("mao"),  Some(4));
-	assert_eq!(interner.get("xD"),   None);
+mod capacity {
+	use super::*;
+
+	#[test]
+	fn new() {
+		assert_eq!(DefaultStringInterner::new().capacity(), 0)
+	}
+
+	#[test]
+	fn with_capacity() {
+		assert_eq!(DefaultStringInterner::with_capacity(42).capacity(), 42)
+	}
+
+	#[test]
+	fn with_capacity_len_0() {
+		assert_eq!(DefaultStringInterner::with_capacity(5).len(), 0)
+	}
+
+	#[test]
+	fn reserve() {
+		let mut interner = DefaultStringInterner::new();
+		assert_eq!(interner.capacity(), 0);
+		interner.reserve(1337);
+		assert_eq!(interner.capacity(), 1337);
+	}
+
+	#[test]
+	fn with_capacity_eq_reserve() {
+		let interner1 = DefaultStringInterner::with_capacity(42);
+		let mut interner2 = DefaultStringInterner::new();
+		assert_ne!(interner1.capacity(), interner2.capacity());
+		interner2.reserve(42);
+		assert_eq!(interner1.capacity(), interner2.capacity());
+	}
+
+	#[test]
+	fn empty_shrink_to_fit() {
+		let mut interner = DefaultStringInterner::with_capacity(100);
+		assert_eq!(interner.capacity(), 100);
+		interner.shrink_to_fit();
+		assert_eq!(interner.capacity(), 0);
+	}
+
+	#[test]
+	fn full_shrink_to_fit() {
+		let mut interner = DefaultStringInterner::with_capacity(1);
+		interner.get_or_intern("foo");
+		assert_eq!(interner.capacity(), 1);
+		interner.shrink_to_fit();
+		assert_eq!(interner.capacity(), 1);
+	}
+
+	#[test]
+	fn partial_shrink_to_fit() {
+		let mut interner = DefaultStringInterner::with_capacity(3);
+		interner.get_or_intern("foo");
+		interner.get_or_intern("bar");
+		assert_eq!(interner.capacity(), 3);
+		interner.shrink_to_fit();
+		assert_eq!(interner.capacity(), 2);
+	}
 }
 
-#[test]
-fn clear() {
-	let (mut interner, _) = make_dummy_interner();
-	assert_eq!(interner.len(), 5);
-	interner.clear();
-	assert_eq!(interner.len(), 0);
+mod resolve {
+	use super::*;
+
+	#[test]
+	fn simple() {
+		let mut interner = DefaultStringInterner::new();
+		let sym = interner.get_or_intern("foo");
+		assert_eq!(interner.resolve(sym), Some("foo"));
+	}
+
+	#[test]
+	fn not_found() {
+		let interner = DefaultStringInterner::new();
+		assert_eq!(interner.resolve(Sym::from_usize(0)), None);
+	}
+
+	#[test]
+	fn unchecked() {
+		let mut interner = DefaultStringInterner::new();
+		let sym = interner.get_or_intern("foo");
+		assert_eq!(unsafe { interner.resolve_unchecked(sym) }, "foo");
+	}
 }
 
-#[test]
-fn iter_values() {
-	let (interner, _) = make_dummy_interner();
-	let mut it = interner.iter_values();
-	assert_eq!(it.next(), Some("foo"));
-	assert_eq!(it.next(), Some("bar"));
-	assert_eq!(it.next(), Some("baz"));
-	assert_eq!(it.next(), Some("rofl"));
-	assert_eq!(it.next(), Some("mao"));
-	assert_eq!(it.next(), None);
+mod get {
+	use super::*;
+
+	#[test]
+	fn simple() {
+		let mut interner = DefaultStringInterner::new();
+		let sym = interner.get_or_intern("foo");
+		assert_eq!(interner.get("foo"), Some(sym));
+	}
+
+	#[test]
+	fn not_founds() {
+		let interner = DefaultStringInterner::new();
+		assert_eq!(interner.get("foo"), None);
+	}
+
+	#[test]
+	fn simple_strings() {
+		let mut interner = DefaultStringInterner::new();
+		let sym = interner.get_or_intern("foo");
+		assert_eq!(interner.get(String::from("foo")), Some(sym));
+	}
 }
 
-#[test]
-fn iter() {
-	let (interner, _) = make_dummy_interner();
-	let mut it = interner.iter();
-	assert_eq!(it.next(), Some((0, "foo")));
-	assert_eq!(it.next(), Some((1, "bar")));
-	assert_eq!(it.next(), Some((2, "baz")));
-	assert_eq!(it.next(), Some((3, "rofl")));
-	assert_eq!(it.next(), Some((4, "mao")));
-	assert_eq!(it.next(), None);
+mod iter {
+	use super::*;
+
+	#[test]
+	fn empty() {
+		assert_eq!(DefaultStringInterner::new().iter().next(), None)
+	}
+
+	#[test]
+	fn simple() {
+		let interner: DefaultStringInterner =
+			vec!["foo", "bar", "baz", "foo"].into_iter().collect();
+		let mut iter = interner.iter();
+		assert_eq!(iter.next(), Some((Sym::from_usize(0), "foo")));
+		assert_eq!(iter.next(), Some((Sym::from_usize(1), "bar")));
+		assert_eq!(iter.next(), Some((Sym::from_usize(2), "baz")));
+		assert_eq!(iter.next(), None);
+	}
 }
 
-#[test]
-fn into_iter() {
-	let (interner, _) = make_dummy_interner();
-	let mut it = interner.into_iter();
-	assert_eq!(it.next(), Some((0, "foo".to_owned())));
-	assert_eq!(it.next(), Some((1, "bar".to_owned())));
-	assert_eq!(it.next(), Some((2, "baz".to_owned())));
-	assert_eq!(it.next(), Some((3, "rofl".to_owned())));
-	assert_eq!(it.next(), Some((4, "mao".to_owned())));
-	assert_eq!(it.next(), None);
+mod iter_values {
+	use super::*;
+
+	#[test]
+	fn empty() {
+		assert_eq!(DefaultStringInterner::new().iter_values().next(), None)
+	}
+
+	#[test]
+	fn simple() {
+		let interner: DefaultStringInterner =
+			vec!["foo", "bar", "baz", "foo"].into_iter().collect();
+		let mut iter = interner.iter_values();
+		assert_eq!(iter.next(), Some("foo"));
+		assert_eq!(iter.next(), Some("bar"));
+		assert_eq!(iter.next(), Some("baz"));
+		assert_eq!(iter.next(), None);
+	}
 }
 
-#[test]
-#[cfg(feature = "serde_support")]
-fn serde() {
-	use serde_json;
-	let (interner, _) = make_dummy_interner();
-	let serialized    = serde_json::to_string(&interner).unwrap();
-	let deserialized: DefaultStringInterner = serde_json::from_str(&serialized).unwrap();
-	assert_eq!(interner, deserialized);
+mod into_iter {
+	use super::*;
+
+	#[test]
+	fn empty() {
+		assert_eq!(DefaultStringInterner::new().into_iter().next(), None)
+	}
+
+	#[test]
+	fn simple() {
+		let interner: DefaultStringInterner =
+			vec!["foo", "bar", "baz", "foo"].into_iter().collect();
+		let mut iter = interner.into_iter();
+		assert_eq!(iter.next(), Some((Sym::from_usize(0), String::from("foo"))));
+		assert_eq!(iter.next(), Some((Sym::from_usize(1), String::from("bar"))));
+		assert_eq!(iter.next(), Some((Sym::from_usize(2), String::from("baz"))));
+		assert_eq!(iter.next(), None);
+	}
+}
+
+mod from_iterator {
+	use super::*;
+
+	#[test]
+	fn empty() {
+		assert_eq!(
+			DefaultStringInterner::new(),
+			Vec::<&str>::new()
+				.into_iter()
+				.collect::<DefaultStringInterner>()
+		)
+	}
+
+	#[test]
+	fn simple() {
+		assert_eq!(
+			vec!["foo", "bar"]
+				.into_iter()
+				.collect::<DefaultStringInterner>(),
+			{
+				let mut interner = DefaultStringInterner::new();
+				interner.get_or_intern("foo");
+				interner.get_or_intern("bar");
+				interner
+			}
+		);
+	}
+
+	#[test]
+	fn multiple_same() {
+		assert_eq!(
+			vec!["foo", "foo"]
+				.into_iter()
+				.collect::<DefaultStringInterner>(),
+			{
+				let mut interner = DefaultStringInterner::new();
+				interner.get_or_intern("foo");
+				interner
+			}
+		);
+	}
 }
