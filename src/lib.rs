@@ -360,15 +360,6 @@ where
 		Values::new(self)
 	}
 
-	/// Removes all interned Strings from this interner.
-	/// 
-	/// This invalides all `Symbol` entities instantiated by it so far.
-	#[inline]
-	pub fn clear(&mut self) {
-		self.map.clear();
-		self.values.clear()
-	}
-
 	/// Shrinks the capacity of the interner as much as possible.
 	pub fn shrink_to_fit(&mut self) {
 		self.map.shrink_to_fit();
