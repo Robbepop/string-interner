@@ -1,5 +1,5 @@
 #![cfg_attr(all(feature = "bench", test), feature(test))]
-
+#![doc(html_root_url = "https://docs.rs/crate/string-interner/0.7.0")]
 #![deny(missing_docs)]
 
 //! A string interning data structure that was designed for minimal memory-overhead
