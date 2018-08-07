@@ -2,34 +2,24 @@
 #![doc(html_root_url = "https://docs.rs/crate/string-interner/0.7.0")]
 #![deny(missing_docs)]
 
-//! A string interning data structure that was designed for minimal memory-overhead
-//! and fast access to the underlying interned string contents.
-//! 
-//! Uses a similar interface as the string interner of the rust compiler.
-//! 
-//! Provides support to use all primitive types as symbols
-//! 
-//! Example usage:
-//! 
+//! Caches strings efficiently, with minimal memory footprint and associates them with unique symbols.
+//! These symbols allow constant time comparisons and look-ups to the underlying interned strings.
+//!
+//! ### Example: Interning & Symbols
+//!
 //! ```
-//! 	use string_interner::DefaultStringInterner;
-//! 	let mut interner = DefaultStringInterner::default();
-//! 	let name0 = interner.get_or_intern("Elephant");
-//! 	let name1 = interner.get_or_intern("Tiger");
-//! 	let name2 = interner.get_or_intern("Horse");
-//! 	let name3 = interner.get_or_intern("Tiger");
-//! 	let name4 = interner.get_or_intern("Tiger");
-//! 	let name5 = interner.get_or_intern("Mouse");
-//! 	let name6 = interner.get_or_intern("Horse");
-//! 	let name7 = interner.get_or_intern("Tiger");
-//! 	assert_eq!(name0, 0);
-//! 	assert_eq!(name1, 1);
-//! 	assert_eq!(name2, 2);
-//! 	assert_eq!(name3, 1);
-//! 	assert_eq!(name4, 1);
-//! 	assert_eq!(name5, 3);
-//! 	assert_eq!(name6, 2);
-//! 	assert_eq!(name7, 1);
+//! use string_interner::StringInterner;
+//!
+//! let mut interner = StringInterner::default();
+//! let sym0 = interner.get_or_intern("Elephant");
+//! let sym1 = interner.get_or_intern("Tiger");
+//! let sym2 = interner.get_or_intern("Horse");
+//! let sym3 = interner.get_or_intern("Tiger");
+//! assert_ne!(sym0, sym1);
+//! assert_ne!(sym0, sym2);
+//! assert_ne!(sym1, sym2);
+//! assert_eq!(sym1, sym3); // same!
+//! ```
 //! ```
 
 #[cfg(all(feature = "bench", test))]
