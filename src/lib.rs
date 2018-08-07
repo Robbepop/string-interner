@@ -53,15 +53,6 @@ mod benches;
 #[cfg(feature = "serde_support")]
 mod serde_impl;
 
-use std::vec;
-use std::slice;
-use std::iter;
-use std::marker;
-
-use std::hash::{Hash, Hasher, BuildHasher};
-use std::collections::HashMap;
-use std::collections::hash_map::RandomState;
-
 /// Represents indices into the `StringInterner`.
 /// 
 /// Values of this type shall be lightweight as the whole purpose
@@ -69,6 +60,14 @@ use std::collections::hash_map::RandomState;
 /// 
 /// This trait allows definitions of custom `Symbol`s besides
 /// the already supported unsigned integer primitives.
+use std::{
+	collections::{hash_map::RandomState, HashMap},
+	hash::{BuildHasher, Hash, Hasher},
+	iter, marker,
+	num::NonZeroU32,
+	slice, u32, vec,
+};
+
 pub trait Symbol: Copy + Ord + Eq {
 	/// Creates a symbol explicitely from a usize primitive type.
 	/// 
