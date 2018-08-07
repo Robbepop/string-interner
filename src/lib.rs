@@ -249,6 +249,12 @@ where
 		}
 	}
 
+	/// Returns the number of elements the `StringInterner` can hold without reallocating.
+	#[inline]
+	pub fn capacity(&self) -> usize {
+		std::cmp::min(self.map.capacity(), self.values.capacity())
+	}
+
 }
 
 impl<S, H> StringInterner<S, H>
