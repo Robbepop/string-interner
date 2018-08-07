@@ -255,6 +255,16 @@ where
 		std::cmp::min(self.map.capacity(), self.values.capacity())
 	}
 
+	/// Reserves capacity for at least `additional` more elements to be interned into `self`.
+	///
+	/// The collection may reserve more space to avoid frequent allocations.
+	/// After calling `reserve`, capacity will be greater than or equal to `self.len() + additional`.
+	/// Does nothing if capacity is already sufficient.
+	#[inline]
+	pub fn reserve(&mut self, additional: usize) {
+		self.map.reserve(additional);
+		self.values.reserve(additional);
+	}
 }
 
 impl<S, H> StringInterner<S, H>
