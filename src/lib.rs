@@ -80,6 +80,7 @@ use std::iter::FromIterator;
 use std::{
 	collections::{hash_map::RandomState, HashMap},
 	hash::{BuildHasher, Hash, Hasher},
+	borrow::Cow,
 	iter, marker,
 	num::NonZeroU32,
 	slice, u32, vec,
@@ -313,13 +314,14 @@ where
 	/// This either copies the contents of the string (e.g. for str)
 	/// or moves them into this interner (e.g. for String).
 	#[inline]
-	pub fn get_or_intern<T>(&mut self, val: T) -> S
+	pub fn get_or_intern<'a, T>(&mut self, val: T) -> S
 	where
-		T: Into<String> + AsRef<str>,
+		T: Into<Cow<'a, str>>
 	{
+		let val = val.into();
 		match self.map.get(&val.as_ref().into()) {
 			Some(&sym) => sym,
-			None => self.intern(val),
+			None => self.intern(val)
 		}
 	}
 
@@ -328,9 +330,9 @@ where
 	/// Returns a symbol to access it within this interner.
 	fn intern<T>(&mut self, new_val: T) -> S
 	where
-		T: Into<String> + AsRef<str>,
+		T: Into<String>
 	{
-		let new_id: S = self.make_symbol();
+		let new_id = self.make_symbol();
 		let new_boxed_val = new_val.into().into_boxed_str();
 		let new_ref: InternalStrRef = new_boxed_val.as_ref().into();
 		self.values.push(new_boxed_val);
@@ -409,10 +411,10 @@ where
 	}
 }
 
-impl<T, S> FromIterator<T> for StringInterner<S>
+impl<'a, T, S> FromIterator<T> for StringInterner<S>
 where
 	S: Symbol,
-	T: Into<String> + AsRef<str>,
+	T: Into<Cow<'a, str>>
 {
 	fn from_iter<I>(iter: I) -> Self
 	where
