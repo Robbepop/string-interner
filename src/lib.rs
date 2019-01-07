@@ -2,6 +2,8 @@
 #![doc(html_root_url = "https://docs.rs/crate/string-interner/0.7.0")]
 #![deny(missing_docs)]
 
+#![feature(pin)]
+
 //! Caches strings efficiently, with minimal memory footprint and associates them with unique symbols.
 //! These symbols allow constant time comparisons and look-ups to the underlying interned strings.
 //!
@@ -76,8 +78,9 @@ mod benches;
 #[cfg(feature = "serde_support")]
 mod serde_impl;
 
-use std::iter::FromIterator;
 use std::{
+	pin::Pin,
+	iter::FromIterator,
 	collections::{hash_map::RandomState, HashMap},
 	hash::{BuildHasher, Hash, Hasher},
 	iter, marker,
@@ -199,7 +202,7 @@ where
 	H: BuildHasher,
 {
 	map: HashMap<InternalStrRef, S, H>,
-	values: Vec<Box<str>>,
+	values: Vec<Pin<Box<str>>>,
 }
 
 impl<S, H> PartialEq for StringInterner<S, H>
@@ -331,8 +334,8 @@ where
 		T: Into<String> + AsRef<str>,
 	{
 		let new_id: S = self.make_symbol();
-		let new_boxed_val = new_val.into().into_boxed_str();
-		let new_ref: InternalStrRef = new_boxed_val.as_ref().into();
+		let new_boxed_val = Pin::new(new_val.into().into_boxed_str());
+		let new_ref: InternalStrRef = Pin::get_ref(new_boxed_val.as_ref()).into();
 		self.values.push(new_boxed_val);
 		self.map.insert(new_ref, new_id);
 		new_id
@@ -349,7 +352,7 @@ where
 	pub fn resolve(&self, symbol: S) -> Option<&str> {
 		self.values
 			.get(symbol.to_usize())
-			.map(|boxed_str| boxed_str.as_ref())
+			.map(|boxed_str| Pin::get_ref(boxed_str.as_ref()))
 	}
 
 	/// Returns the string associated with the given symbol.
@@ -365,7 +368,7 @@ where
 	/// had no associated string for this interner instance.
 	#[inline]
 	pub unsafe fn resolve_unchecked(&self, symbol: S) -> &str {
-		self.values.get_unchecked(symbol.to_usize()).as_ref()
+		Pin::get_ref(self.values.get_unchecked(symbol.to_usize()).as_ref())
 	}
 
 	/// Returns the symbol associated with the given string for this interner
@@ -428,7 +431,7 @@ where
 
 /// Iterator over the pairs of associated symbols and interned strings for a `StringInterner`.
 pub struct Iter<'a, S> {
-	iter: iter::Enumerate<slice::Iter<'a, Box<str>>>,
+	iter: iter::Enumerate<slice::Iter<'a, Pin<Box<str>>>>,
 	mark: marker::PhantomData<S>,
 }
 
@@ -460,7 +463,9 @@ where
 	fn next(&mut self) -> Option<Self::Item> {
 		self.iter
 			.next()
-			.map(|(num, boxed_str)| (S::from_usize(num), boxed_str.as_ref()))
+			.map(|(num, boxed_str)| {
+				(S::from_usize(num), Pin::get_ref(boxed_str.as_ref()))
+			})
 	}
 
 	#[inline]
@@ -474,7 +479,7 @@ pub struct Values<'a, S>
 where
 	S: Symbol + 'a,
 {
-	iter: slice::Iter<'a, Box<str>>,
+	iter: slice::Iter<'a, Pin<Box<str>>>,
 	mark: marker::PhantomData<S>,
 }
 
@@ -503,7 +508,7 @@ where
 
 	#[inline]
 	fn next(&mut self) -> Option<Self::Item> {
-		self.iter.next().map(|boxed_str| boxed_str.as_ref())
+		self.iter.next().map(|boxed_str| Pin::get_ref(boxed_str.as_ref()).into())
 	}
 
 	#[inline]
@@ -535,7 +540,7 @@ pub struct IntoIter<S>
 where
 	S: Symbol,
 {
-	iter: iter::Enumerate<vec::IntoIter<Box<str>>>,
+	iter: iter::Enumerate<vec::IntoIter<Pin<Box<str>>>>,
 	mark: marker::PhantomData<S>,
 }
 
@@ -548,7 +553,9 @@ where
 	fn next(&mut self) -> Option<Self::Item> {
 		self.iter
 			.next()
-			.map(|(num, boxed_str)| (S::from_usize(num), boxed_str.into_string()))
+			.map(|(num, boxed_str)| {
+				(S::from_usize(num), Pin::get_ref(boxed_str.as_ref()).to_string())
+			})
 	}
 
 	#[inline]
