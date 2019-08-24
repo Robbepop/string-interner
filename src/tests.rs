@@ -398,4 +398,18 @@ mod clone_and_drop {
 			"`foo` should represent the string \"foo\" so they should be equal"
 		);
 	}
+
+	#[test]
+	// Test for new (non-`derive`) `Clone` impl.
+	fn clone() {
+		let mut old = DefaultStringInterner::new();
+		let strings = &["foo", "bar", "baz", "qux", "quux", "corge"];
+		let syms = strings.iter().map(|&s| old.get_or_intern(s)).collect::<Vec<_>>();
+
+		let mut new = old.clone();
+		for (&s, &sym) in strings.iter().zip(&syms) {
+			assert_eq!(new.resolve(sym), Some(s));
+			assert_eq!(new.get_or_intern(s), sym);
+		}
+	}
 }
