@@ -373,3 +373,43 @@ mod from_iterator {
 		);
 	}
 }
+
+// See <https://github.com/Robbepop/string-interner/issues/9>.
+mod clone_and_drop {
+	use super::*;
+
+	fn clone_and_drop() -> (DefaultStringInterner, Sym) {
+		let mut old = DefaultStringInterner::new();
+		let foo = old.get_or_intern("foo");
+
+		// Return newly created (cloned) interner, and drop the original `old` itself.
+		(old.clone(), foo)
+	}
+
+	#[test]
+	fn no_use_after_free() {
+		let (mut new, foo) = clone_and_drop();
+
+		// This assert may fail if there are use after free bug.
+		// See <https://github.com/Robbepop/string-interner/issues/9> for detail.
+		assert_eq!(
+			new.get_or_intern("foo"),
+			foo,
+			"`foo` should represent the string \"foo\" so they should be equal"
+		);
+	}
+
+	#[test]
+	// Test for new (non-`derive`) `Clone` impl.
+	fn clone() {
+		let mut old = DefaultStringInterner::new();
+		let strings = &["foo", "bar", "baz", "qux", "quux", "corge"];
+		let syms = strings.iter().map(|&s| old.get_or_intern(s)).collect::<Vec<_>>();
+
+		let mut new = old.clone();
+		for (&s, &sym) in strings.iter().zip(&syms) {
+			assert_eq!(new.resolve(sym), Some(s));
+			assert_eq!(new.get_or_intern(s), sym);
+		}
+	}
+}

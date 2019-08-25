@@ -192,7 +192,7 @@ pub type DefaultStringInterner = StringInterner<Sym>;
 
 /// Caches strings efficiently, with minimal memory footprint and associates them with unique symbols.
 /// These symbols allow constant time comparisons and look-ups to the underlying interned strings.
-#[derive(Debug, Clone, Eq)]
+#[derive(Debug, Eq)]
 pub struct StringInterner<S, H = RandomState>
 where
 	S: Symbol,
@@ -216,6 +216,28 @@ impl Default for StringInterner<Sym, RandomState> {
 	#[inline]
 	fn default() -> Self {
 		StringInterner::new()
+	}
+}
+
+// Should be manually cloned.
+// See <https://github.com/Robbepop/string-interner/issues/9>.
+impl<S, H> Clone for StringInterner<S, H>
+where
+	S: Symbol,
+	H: Clone + BuildHasher,
+{
+	fn clone(&self) -> Self {
+		let values = self.values.clone();
+		let mut map = HashMap::with_capacity_and_hasher(values.len(), self.map.hasher().clone());
+		// Recreate `InternalStrRef` from the newly cloned `Box<str>`s.
+		// Use `extend()` to avoid `H: Default` trait bound required by `FromIterator for HashMap`.
+		map.extend(
+			values
+			.iter()
+			.enumerate()
+			.map(|(i, s)| (InternalStrRef::from_str(s), S::from_usize(i))),
+		);
+		Self { values, map }
 	}
 }
 
