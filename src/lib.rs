@@ -442,9 +442,7 @@ where
 	{
 		let iter = iter.into_iter();
 		let mut interner = StringInterner::with_capacity(iter.size_hint().0);
-		for s in iter {
-			interner.get_or_intern(s);
-		}
+		interner.extend(iter);
 		interner
 	}
 }
