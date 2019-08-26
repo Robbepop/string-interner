@@ -374,6 +374,51 @@ mod from_iterator {
 	}
 }
 
+mod extend {
+	use super::*;
+
+	#[test]
+	fn empty() {
+		let mut interner = DefaultStringInterner::new();
+		interner.extend(Vec::<&str>::new());
+		assert_eq!(interner, DefaultStringInterner::new(),);
+	}
+
+	#[test]
+	fn simple() {
+		assert_eq!(
+			{
+				let mut interner = DefaultStringInterner::new();
+				interner.extend(vec!["foo", "bar"]);
+				interner
+			},
+			{
+				let mut interner = DefaultStringInterner::new();
+				interner.get_or_intern("foo");
+				interner.get_or_intern("bar");
+				interner
+			}
+		);
+	}
+
+	#[test]
+	fn multiple_same() {
+		assert_eq!(
+			{
+				let mut interner = DefaultStringInterner::new();
+				interner.extend(vec!["foo", "foo"]);
+				interner
+			},
+			{
+				let mut interner = DefaultStringInterner::new();
+				interner.get_or_intern("foo");
+				interner.get_or_intern("foo");
+				interner
+			}
+		);
+	}
+}
+
 // See <https://github.com/Robbepop/string-interner/issues/9>.
 mod clone_and_drop {
 	use super::*;

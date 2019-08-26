@@ -442,10 +442,23 @@ where
 	{
 		let iter = iter.into_iter();
 		let mut interner = StringInterner::with_capacity(iter.size_hint().0);
-		for s in iter {
-			interner.get_or_intern(s);
-		}
+		interner.extend(iter);
 		interner
+	}
+}
+
+impl<T, S> std::iter::Extend<T> for StringInterner<S>
+where
+	S: Symbol,
+	T: Into<String> + AsRef<str>,
+{
+	fn extend<I>(&mut self, iter: I)
+	where
+		I: IntoIterator<Item = T>,
+	{
+		for s in iter {
+			self.get_or_intern(s);
+		}
 	}
 }
 
