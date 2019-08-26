@@ -198,6 +198,68 @@ pub type DefaultStringInterner = StringInterner<Sym>;
 
 /// Caches strings efficiently, with minimal memory footprint and associates them with unique symbols.
 /// These symbols allow constant time comparisons and look-ups to the underlying interned strings.
+// # About the safety of `InternalStrRef`
+//
+// A string interner has `InternalStrRef`s and dereferences them, and the interner implements
+// `Sync` and `Send` traits manually.
+//
+// These are safe when:
+//
+// * 1: whenever `InternalStrRef`s are dereferenced, referred strings should be alive, and
+// * 2: strings referred by each `InternalStrRef` are not mutated from more than two threads at the
+//   same time, and are not mutated when another read can happen.
+//
+// These conditions are satisfied, because:
+//
+// * 1-1: `InternalStrRef`s refer only the strings owned by the same interner, and are not being
+//   taken outside,
+// * 1-2: strings referred by `InternalStrRef`s are not moved to other place,
+// * 1-3: once strings referred by `InternalStrRef`s are created, they would not be dropped until
+//   the interner itself is dropped, and
+// * 2-1: both `InternalStrRef`s and the strings they refer are read-only.
+//
+// ## 1-1: `InternalStrRef`s refer only the strings owned by the same interner, and are not being taken outside
+//
+// When an `InternalStrRef` is created at `StringInterner::intern()`, it refers also newly created
+// string. The `InternalStrRef` is inserted to `self.map` and the string is `push()`ed to
+// `self.values`, so they are owned by the same interner.
+//
+// `InternalStrRef`s are used as keys of the hashmap `self.map`, and they are not copied or moved
+// outside of the owning interner.
+// Map keys are used to look up symbols, but are not used outside the `HashMap` type once they are
+// inserted to the hashmap.
+//
+// When the interner is cloned, the hashmap is not directly cloned but is newly created using newly
+// cloned strings, so `InternalStrRef`s are not copied outside of the old interner to be cloned, and
+// the `InternalStrRef`s of newly cloned interner refers the strings owned by the new intreners.
+//
+// Therefore, `InternalStrRef`s always refer the strings owned by the same interner as
+// `InternalStrRef`s, and are not taken outside of the owning interner.
+//
+// ## 1-2: Strings referred by `InternalStrRef`s are not moved to other place
+//
+// Strings referred by `InternalStrRef`s are stored in `self.values`, that is `Vec<Box<str>>`.
+// An `InternalStrRef` has a pointer to the string directly owned by `Box<str>`.
+// `Box<str>` does not reallocate the string by any operation.
+// Additionally, the `Box<str>` won't be dropped until the owning interner is dropped (condition
+// 1-3).
+// Therefore, the addresses of the strings referred by `InternalStrRef`s are not changed (until the
+// owning interner is dropped).
+//
+// ## 1-3: Strings referred by `InternalStrRef`s would not be dropped until the interner is dropped
+//
+// Strings are stored in `self.values`, and once a string is added, the string will never be
+// removed from the vector until the vector itself is dropped.
+// Therefore, by condition 1-1 to 1-3, all `InternalStrRef`s remain valid while the owning interner
+// exists.
+//
+// ## 2-1: Both `InternalStrRef`s and the strings they refer are read-only
+//
+// Once an `InternalStrRef` is inserted to `self.map` as a key, it is immutable (because the keys
+// of the map would not be modified).
+// The strings contained by `Box<str>` are also immutable because the interner mutates neither the
+// box nor the strings.
+// Therefore, `InternalStrRef`s and the strings they refer are read-only.
 #[derive(Debug, Eq)]
 pub struct StringInterner<S, H = RandomState>
 where
