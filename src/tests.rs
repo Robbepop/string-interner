@@ -458,3 +458,52 @@ mod clone_and_drop {
 		}
 	}
 }
+
+/// Tests safety invariants of `StringInterner`.
+mod internal_str_refs_validity {
+	use super::*;
+
+	/// Tests for interning, reallocation, and cloning.
+	#[test]
+	fn intern_reallocate_clone() {
+		let mut old = DefaultStringInterner::new();
+		old.assert_internal_str_refs_validity();
+		let mut syms_old = Vec::new();
+
+		// Cause allocation to `old`.
+		syms_old.push(old.get_or_intern("0"));
+		old.assert_internal_str_refs_validity();
+		// Fill storage with some elements.
+		for i in 1..old.capacity() {
+			syms_old.push(old.get_or_intern(i.to_string()));
+			old.assert_internal_str_refs_validity();
+		}
+		// Lookup all values.
+		for (i, sym) in syms_old.iter().enumerate() {
+			assert_eq!(old.resolve(*sym), Some(i.to_string().as_str()));
+		}
+
+		// Clone the interner.
+		let mut new = old.clone();
+		let mut syms_new = syms_old.clone();
+
+		// Cause reallocation to `old`.
+		for i in old.len()..=old.max_capacity() {
+			syms_old.push(old.get_or_intern(i.to_string()));
+			old.assert_internal_str_refs_validity();
+		}
+		// Cause reallocation to `new`.
+		for i in new.len()..=new.max_capacity() {
+			syms_new.push(new.get_or_intern(i.to_string()));
+			new.assert_internal_str_refs_validity();
+		}
+
+		// Lookup all values.
+		for (i, sym) in syms_old.iter().enumerate() {
+			assert_eq!(old.resolve(*sym), Some(i.to_string().as_str()));
+		}
+		for (i, sym) in syms_new.iter().enumerate() {
+			assert_eq!(new.resolve(*sym), Some(i.to_string().as_str()));
+		}
+	}
+}
