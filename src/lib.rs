@@ -449,6 +449,21 @@ where
 	}
 }
 
+impl<T, S> std::iter::Extend<T> for StringInterner<S>
+where
+	S: Symbol,
+	T: Into<String> + AsRef<str>,
+{
+	fn extend<I>(&mut self, iter: I)
+	where
+		I: IntoIterator<Item = T>,
+	{
+		for s in iter {
+			self.get_or_intern(s);
+		}
+	}
+}
+
 /// Iterator over the pairs of associated symbols and interned strings for a `StringInterner`.
 pub struct Iter<'a, S> {
 	iter: iter::Enumerate<slice::Iter<'a, Box<str>>>,
