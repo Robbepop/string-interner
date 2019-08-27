@@ -121,8 +121,14 @@ impl Symbol for Sym {
 	///
 	/// If the given `usize` is greater than `u32::MAX - 1`.
 	fn from_usize(val: usize) -> Self {
-		assert!(val < u32::MAX as usize);
-		Sym(unsafe { NonZeroU32::new_unchecked((val + 1) as u32) })
+		assert!(
+			val < u32::MAX as usize,
+			"Symbol value {} is too large and not supported by `string_interner::Sym` type",
+			val
+		);
+		Sym(NonZeroU32::new((val + 1) as u32).unwrap_or_else(|| {
+			unreachable!("Should never fail because `val + 1` is nonzero and `<= u32::MAX`")
+		}))
 	}
 
 	fn to_usize(self) -> usize {
