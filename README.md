@@ -47,6 +47,7 @@ additional terms or conditions.
     - implement `std::iter::Extend` for `StringInterner`
     - `Sym::from_usize` now avoids using `unsafe` code
     - optimize `FromIterator` impl of `StringInterner`
+    - move to Rust 2018 edition
 
     Thanks [YOSHIOKA Takuma](https://github.com/lo48576) for implementing this release.
 
