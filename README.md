@@ -41,6 +41,15 @@ additional terms or conditions.
 
 ## Changelog
 
+- 0.7.1
+
+    - **CRITICAL** fix use after free bug in `StringInterner::clone()`
+    - implement `std::iter::Extend` for `StringInterner`
+    - `Sym::from_usize` now avoids using `unsafe` code
+    - optimize `FromIterator` impl of `StringInterner`
+
+    Thanks [YOSHIOKA Takuma](https://github.com/lo48576) for implementing this release.
+
 - 0.7.0
 
 	- changed license from MIT to MIT/APACHE2.0
