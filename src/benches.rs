@@ -1,8 +1,8 @@
 use super::*;
 
 use test::{black_box, Bencher};
-
-use fnv::FnvHasher;
+use lazy_static::lazy_static;
+use ::fnv::FnvHasher;
 use std::hash::BuildHasherDefault;
 
 fn read_file_to_string(path: &str) -> String {

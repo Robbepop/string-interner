@@ -54,19 +54,6 @@
 #[cfg(all(feature = "bench", test))]
 extern crate test;
 
-#[cfg(all(feature = "bench", test))]
-#[macro_use]
-extern crate lazy_static;
-
-#[cfg(all(feature = "bench", test))]
-extern crate fnv;
-
-#[cfg(feature = "serde_support")]
-extern crate serde;
-
-#[cfg(all(feature = "serde_support", test))]
-extern crate serde_json;
-
 #[cfg(test)]
 mod tests;
 

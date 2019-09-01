@@ -1,4 +1,4 @@
-use {DefaultStringInterner, InternalStrRef, StringInterner, Sym, Symbol};
+use crate::{DefaultStringInterner, InternalStrRef, StringInterner, Sym, Symbol};
 
 mod sym {
 	use super::*;
