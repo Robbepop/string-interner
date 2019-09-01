@@ -2,8 +2,6 @@
 #![doc(html_root_url = "https://docs.rs/crate/string-interner/0.7.0")]
 #![deny(missing_docs)]
 
-#![feature(pin)]
-
 //! Caches strings efficiently, with minimal memory footprint and associates them with unique symbols.
 //! These symbols allow constant time comparisons and look-ups to the underlying interned strings.
 //!
