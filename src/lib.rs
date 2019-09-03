@@ -148,7 +148,7 @@ pub type DefaultStringInterner = StringInterner<usize>;
 /// 
 /// The main goal of this `StringInterner` is to store String
 /// with as low memory overhead as possible.
-#[derive(Debug, Clone, Eq)]
+#[derive(Debug, Eq)]
 pub struct StringInterner<Sym, H = RandomState>
 	where Sym: Symbol,
 	      H  : BuildHasher
@@ -171,6 +171,20 @@ impl Default for StringInterner<usize, RandomState> {
 	fn default() -> Self {
 		StringInterner::new()
 	}
+}
+
+impl<Sym, H> Clone for StringInterner<Sym, H>
+	where Sym: Symbol,
+	      H  : Clone + BuildHasher
+{
+    fn clone(&self) -> Self {
+        let values = self.values.clone();
+        let mut map: HashMap<InternalStrRef, _, H> = HashMap::with_capacity_and_hasher(values.len(), self.map.hasher().clone());
+        map.extend(
+            values.iter().enumerate().map(|(i,s)| (InternalStrRef::from_str(s), Sym::from_usize(i)))
+        );
+        Self { values, map }
+    }
 }
 
 // About `Send` and `Sync` impls for `StringInterner`
