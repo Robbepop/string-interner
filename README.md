@@ -30,6 +30,10 @@ while the hashmap has internal references into the internal vector to avoid dupl
 
 ## Changelog
 
+- 0.6.4
+
+    - **CRITICAL** fix use after free bug in `StringInterner::clone()`
+
 - 0.6.3
 
 	- fixed a bug that `StringInterner`'s `Send` impl didn't respect its generic `HashBuilder` parameter. Fixes GitHub [issue #4](https://github.com/Robbepop/string-interner/issues/4).
