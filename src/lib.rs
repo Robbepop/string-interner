@@ -148,7 +148,7 @@ pub type DefaultStringInterner = StringInterner<usize>;
 /// 
 /// The main goal of this `StringInterner` is to store String
 /// with as low memory overhead as possible.
-#[derive(Debug, Clone, Eq)]
+#[derive(Debug, Eq)]
 pub struct StringInterner<Sym, H = RandomState>
 	where Sym: Symbol,
 	      H  : BuildHasher
@@ -171,6 +171,20 @@ impl Default for StringInterner<usize, RandomState> {
 	fn default() -> Self {
 		StringInterner::new()
 	}
+}
+
+impl<Sym, H> Clone for StringInterner<Sym, H>
+	where Sym: Symbol,
+	      H  : Clone + BuildHasher
+{
+    fn clone(&self) -> Self {
+        let values = self.values.clone();
+        let mut map: HashMap<InternalStrRef, _, H> = HashMap::with_capacity_and_hasher(values.len(), self.map.hasher().clone());
+        map.extend(
+            values.iter().enumerate().map(|(i,s)| (InternalStrRef::from_str(s), Sym::from_usize(i)))
+        );
+        Self { values, map }
+    }
 }
 
 // About `Send` and `Sync` impls for `StringInterner`
@@ -330,6 +344,66 @@ impl<Sym, H> StringInterner<Sym, H>
 	pub fn shrink_to_fit(&mut self) {
 		self.map.shrink_to_fit();
 		self.values.shrink_to_fit();
+	}
+
+
+	/// Checks whether the all `InternalStrRef`s refer the strigs owned by `self`.
+	///
+	/// For testing purpose only.
+	///
+	/// # Panics
+	///
+	/// Panics if the interner has wrong state. That is:
+	///
+	/// * when `InternalStrRef` refers the address which is not owned by the interner, or
+	/// * when there are `Box<str>` not referred by any `InternalStrRef` owned by the interner.
+	#[cfg(test)]
+	pub(crate) fn assert_internal_str_refs_validity(&self)
+	where
+		Sym: std::fmt::Debug,
+		H: std::fmt::Debug,
+	{
+		// Collect `InternalStrRef` pointers.
+		let mut referred_ptrs = self
+			.map
+			.keys()
+			.map(|s| s.0)
+			.collect::<std::collections::HashSet<_>>();
+		// Remove owned pointers.
+		for (owned_str, owned_ptr) in self.values.iter().map(|v| (&**v, (&**v) as *const str)) {
+			if !referred_ptrs.remove(&owned_ptr) {
+				// `owned` is not in `referred_ptrs`.
+				// It means the `Box<str>` is not found by `get()` and `get_or_intern()`.
+				panic!(
+					"String {:?} at {:?} is not registered to `map`: self={:#?}",
+					owned_str, owned_ptr, self
+				);
+			}
+		}
+		if !referred_ptrs.is_empty() {
+			// `self.map` has some dangling pointers.
+			let values_ptrs = self
+				.values
+				.iter()
+				.map(|v| (&**v, (&**v) as *const str))
+				.collect::<Vec<_>>();
+			panic!(
+				"Dangling pointers found: pointers {:?} are not stored in `values`: \
+				self={:#?}, values_ptrs = {:?}",
+				referred_ptrs, self, values_ptrs
+			);
+		}
+	}
+
+	/// Returns the maximum capacity of the internal storages.
+	///
+	/// Storing `self.max_capacity() + 1` elements in total will cause all storages to be
+	/// reallocated at least once.
+	///
+	/// For testing purpose only.
+	#[cfg(test)]
+	pub(crate) fn max_capacity(&self) -> usize {
+		std::cmp::max(self.map.capacity(), self.values.capacity())
 	}
 }
 
