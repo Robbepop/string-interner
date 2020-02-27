@@ -1,5 +1,5 @@
 #![cfg_attr(all(feature = "bench", test), feature(test))]
-#![doc(html_root_url = "https://docs.rs/crate/string-interner/0.7.1")]
+#![doc(html_root_url = "https://docs.rs/crate/string-interner/0.8.0")]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![deny(missing_docs)]
 
