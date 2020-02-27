@@ -1,4 +1,3 @@
-#![cfg_attr(all(feature = "bench", test), feature(test))]
 #![doc(html_root_url = "https://docs.rs/crate/string-interner/0.8.0")]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![deny(missing_docs)]
@@ -52,21 +51,15 @@
 //! }
 //! ```
 
-#[cfg(all(feature = "bench", test))]
-extern crate test;
-
 #[cfg(test)]
 mod tests;
-
-#[cfg(all(feature = "bench", test))]
-mod benches;
 
 #[cfg(feature = "serde-1")]
 mod serde_impl;
 
 mod symbol;
 
-use crate::symbol::{
+pub use crate::symbol::{
     DefaultSymbol,
     Symbol,
 };
