@@ -64,31 +64,24 @@ mod benches;
 #[cfg(feature = "serde_support")]
 mod serde_impl;
 
-use std::iter::FromIterator;
-use std::{
-    collections::{hash_map::RandomState, HashMap},
-    hash::{BuildHasher, Hash, Hasher},
-    iter, marker,
-    num::NonZeroU32,
-    slice, u32, vec,
-};
+mod symbol;
 
-/// Types implementing this trait are able to act as symbols for string interners.
-///
-/// Symbols are returned by `StringInterner::get_or_intern` and allow look-ups of the
-/// original string contents with `StringInterner::resolve`.
-///
-/// # Note
-///
-/// Optimal symbols allow for efficient comparisons and have a small memory footprint.
-pub trait Symbol: Copy + Ord + Eq {
-    /// Creates a symbol from a `usize`.
-    ///
-    /// # Note
-    ///
-    /// Implementations panic if the operation cannot succeed.
-    fn from_usize(val: usize) -> Self;
+use crate::symbol::{
+    DefaultSymbol,
+    Symbol,
+};
 use cfg_if::cfg_if;
+use core::{
+    hash::{
+        BuildHasher,
+        Hash,
+        Hasher,
+    },
+    iter,
+    iter::FromIterator,
+    marker,
+    slice,
+};
 
 cfg_if! {
     if #[cfg(feature = "std")] {
@@ -108,53 +101,17 @@ cfg_if! {
             vec,
         };
     }
-    /// Returns the `usize` representation of `self`.
-    fn to_usize(self) -> usize;
 }
 
-/// Symbol type used by the `DefaultStringInterner`.
+/// Internal reference to an interned `str`.
+///
+/// This is a self-referential from the interners string map
+/// into the interner's actual vector of strings.
 ///
 /// # Note
 ///
-/// This special symbol type has a memory footprint of 32 bits
-/// and allows for certain space optimizations such as using it within an option: `Option<Sym>`
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Sym(NonZeroU32);
-
-impl Symbol for Sym {
-    /// Creates a `Sym` from the given `usize`.
-    ///
-    /// # Panics
-    ///
-    /// If the given `usize` is greater than `u32::MAX - 1`.
-    fn from_usize(val: usize) -> Self {
-        assert!(
-            val < u32::MAX as usize,
-            "Symbol value {} is too large and not supported by `string_interner::Sym` type",
-            val
-        );
-        Sym(NonZeroU32::new((val + 1) as u32).unwrap_or_else(|| {
-            unreachable!("Should never fail because `val + 1` is nonzero and `<= u32::MAX`")
-        }))
-    }
-
-    fn to_usize(self) -> usize {
-        (self.0.get() as usize) - 1
-    }
-}
-
-impl Symbol for usize {
-    fn from_usize(val: usize) -> Self {
-        val
-    }
-
-    fn to_usize(self) -> usize {
-        self
-    }
-}
-
-/// Internal reference to `str` used only within the `StringInterner` itself
-/// to encapsulate the unsafe behaviour of interior references.
+/// We have to opt-into a raw pointer in order to satisfy the
+/// borrow-checkers lifetime constraints.
 #[derive(Debug, Copy, Clone, Eq)]
 struct InternalStrRef(*const str);
 
@@ -201,7 +158,7 @@ impl PartialEq for InternalStrRef {
 }
 
 /// `StringInterner` that uses `Sym` as its underlying symbol type.
-pub type DefaultStringInterner = StringInterner<Sym>;
+pub type DefaultStringInterner = StringInterner<DefaultSymbol>;
 
 /// Caches strings efficiently, with minimal memory footprint and associates them with unique symbols.
 /// These symbols allow constant time comparisons and look-ups to the underlying interned strings.
@@ -225,7 +182,7 @@ where
     }
 }
 
-impl Default for StringInterner<Sym, RandomState> {
+impl Default for StringInterner<DefaultSymbol, RandomState> {
     #[inline]
     fn default() -> Self {
         StringInterner::new()
