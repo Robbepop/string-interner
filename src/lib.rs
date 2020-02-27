@@ -72,6 +72,7 @@ use crate::symbol::{
 };
 use cfg_if::cfg_if;
 use core::{
+    ptr::NonNull,
     hash::{
         BuildHasher,
         Hash,
@@ -107,52 +108,32 @@ cfg_if! {
 ///
 /// This is a self-referential from the interners string map
 /// into the interner's actual vector of strings.
-///
-/// # Note
-///
-/// We have to opt-into a raw pointer in order to satisfy the
-/// borrow-checkers lifetime constraints.
 #[derive(Debug, Copy, Clone, Eq)]
-struct InternalStrRef(*const str);
+struct PinnedStr(NonNull<str>);
 
-impl InternalStrRef {
-    /// Creates an InternalStrRef from a str.
-    ///
-    /// This just wraps the str internally.
+impl PinnedStr {
+    /// Creates a new `PinnedStr` from the given `str`.
     fn from_str(val: &str) -> Self {
-        InternalStrRef(val as *const str)
+        PinnedStr(NonNull::from(val))
     }
 
-    /// Reinterprets this InternalStrRef as a str.
-    ///
-    /// This is "safe" as long as this InternalStrRef only
-    /// refers to strs that outlive this instance or
-    /// the instance that owns this InternalStrRef.
-    /// This should hold true for `StringInterner`.
-    ///
-    /// Does not allocate memory!
+    /// Returns a shared reference to the underlying `str`.
     fn as_str(&self) -> &str {
-        unsafe { &*self.0 }
+        // SAFETY: This is safe since we only ever operate on interned `str`
+        //         that are never moved around in memory to avoid danling
+        //         references.
+        unsafe { self.0.as_ref() }
     }
 }
 
-impl<T> From<T> for InternalStrRef
-where
-    T: AsRef<str>,
-{
-    fn from(val: T) -> Self {
-        InternalStrRef::from_str(val.as_ref())
-    }
-}
-
-impl Hash for InternalStrRef {
+impl Hash for PinnedStr {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.as_str().hash(state)
     }
 }
 
-impl PartialEq for InternalStrRef {
-    fn eq(&self, other: &InternalStrRef) -> bool {
+impl PartialEq for PinnedStr {
+    fn eq(&self, other: &Self) -> bool {
         self.as_str() == other.as_str()
     }
 }
@@ -168,7 +149,7 @@ where
     S: Symbol,
     H: BuildHasher,
 {
-    map: HashMap<InternalStrRef, S, H>,
+    map: HashMap<PinnedStr, S, H>,
     values: Vec<Box<str>>,
 }
 
@@ -206,7 +187,7 @@ where
             values
                 .iter()
                 .enumerate()
-                .map(|(i, s)| (InternalStrRef::from_str(s), S::from_usize(i))),
+                .map(|(i, s)| (PinnedStr::from_str(s), S::from_usize(i))),
         );
         Self { values, map }
     }
@@ -310,7 +291,7 @@ where
     where
         T: Into<String> + AsRef<str>,
     {
-        match self.map.get(&val.as_ref().into()) {
+        match self.map.get(&PinnedStr::from_str(val.as_ref())) {
             Some(&sym) => sym,
             None => self.intern(val),
         }
@@ -325,7 +306,7 @@ where
     {
         let new_id: S = self.make_symbol();
         let new_boxed_val = new_val.into().into_boxed_str();
-        let new_ref: InternalStrRef = new_boxed_val.as_ref().into();
+        let new_ref = PinnedStr::from_str(new_boxed_val.as_ref());
         self.values.push(new_boxed_val);
         self.map.insert(new_ref, new_id);
         new_id
@@ -368,7 +349,7 @@ where
     where
         T: AsRef<str>,
     {
-        self.map.get(&val.as_ref().into()).cloned()
+        self.map.get(&PinnedStr::from_str(val.as_ref())).cloned()
     }
 
     /// Returns the number of uniquely interned strings within this interner.
