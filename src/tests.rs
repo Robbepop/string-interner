@@ -1,4 +1,10 @@
-use crate::{DefaultStringInterner, InternalStrRef, StringInterner, Sym, Symbol};
+use crate::{
+    DefaultStringInterner,
+    InternalStrRef,
+    StringInterner,
+    DefaultSymbol,
+    Symbol,
+};
 
 mod sym {
     use super::*;
@@ -6,7 +12,7 @@ mod sym {
     #[test]
     fn same_size_as_optional() {
         use std::mem;
-        assert_eq!(mem::size_of::<Sym>(), mem::size_of::<Option<Sym>>());
+        assert_eq!(mem::size_of::<DefaultSymbol>(), mem::size_of::<Option<DefaultSymbol>>());
     }
 }
 
@@ -105,7 +111,7 @@ mod get_or_intern {
     fn simple() {
         assert_eq!(
             DefaultStringInterner::new().get_or_intern("foo"),
-            Sym::from_usize(0)
+            DefaultSymbol::from_usize(0)
         )
     }
 
@@ -113,7 +119,7 @@ mod get_or_intern {
     fn empty_string() {
         assert_eq!(
             DefaultStringInterner::new().get_or_intern(""),
-            Sym::from_usize(0)
+            DefaultSymbol::from_usize(0)
         )
     }
 
@@ -146,7 +152,7 @@ mod get_or_intern {
     fn intern_string() {
         assert_eq!(
             DefaultStringInterner::new().get_or_intern(String::from("foo")),
-            Sym::from_usize(0)
+            DefaultSymbol::from_usize(0)
         )
     }
 }
@@ -236,7 +242,7 @@ mod resolve {
     #[test]
     fn not_found() {
         let interner = DefaultStringInterner::new();
-        assert_eq!(interner.resolve(Sym::from_usize(0)), None);
+        assert_eq!(interner.resolve(DefaultSymbol::from_usize(0)), None);
     }
 
     #[test]
@@ -284,9 +290,9 @@ mod iter {
         let interner: DefaultStringInterner =
             vec!["foo", "bar", "baz", "foo"].into_iter().collect();
         let mut iter = interner.iter();
-        assert_eq!(iter.next(), Some((Sym::from_usize(0), "foo")));
-        assert_eq!(iter.next(), Some((Sym::from_usize(1), "bar")));
-        assert_eq!(iter.next(), Some((Sym::from_usize(2), "baz")));
+        assert_eq!(iter.next(), Some((DefaultSymbol::from_usize(0), "foo")));
+        assert_eq!(iter.next(), Some((DefaultSymbol::from_usize(1), "bar")));
+        assert_eq!(iter.next(), Some((DefaultSymbol::from_usize(2), "baz")));
         assert_eq!(iter.next(), None);
     }
 }
@@ -324,9 +330,9 @@ mod into_iter {
         let interner: DefaultStringInterner =
             vec!["foo", "bar", "baz", "foo"].into_iter().collect();
         let mut iter = interner.into_iter();
-        assert_eq!(iter.next(), Some((Sym::from_usize(0), String::from("foo"))));
-        assert_eq!(iter.next(), Some((Sym::from_usize(1), String::from("bar"))));
-        assert_eq!(iter.next(), Some((Sym::from_usize(2), String::from("baz"))));
+        assert_eq!(iter.next(), Some((DefaultSymbol::from_usize(0), String::from("foo"))));
+        assert_eq!(iter.next(), Some((DefaultSymbol::from_usize(1), String::from("bar"))));
+        assert_eq!(iter.next(), Some((DefaultSymbol::from_usize(2), String::from("baz"))));
         assert_eq!(iter.next(), None);
     }
 }
@@ -423,7 +429,7 @@ mod extend {
 mod clone_and_drop {
     use super::*;
 
-    fn clone_and_drop() -> (DefaultStringInterner, Sym) {
+    fn clone_and_drop() -> (DefaultStringInterner, DefaultSymbol) {
         let mut old = DefaultStringInterner::new();
         let foo = old.get_or_intern("foo");
 
