@@ -88,7 +88,26 @@ pub trait Symbol: Copy + Ord + Eq {
     ///
     /// Implementations panic if the operation cannot succeed.
     fn from_usize(val: usize) -> Self;
+use cfg_if::cfg_if;
 
+cfg_if! {
+    if #[cfg(feature = "std")] {
+        use std::{
+            collections::{
+                hash_map::RandomState,
+                HashMap,
+            },
+            vec,
+        };
+    } else {
+        extern crate alloc;
+        use alloc::{
+            collections::{
+                btree_map::BTreeMap,
+            },
+            vec,
+        };
+    }
     /// Returns the `usize` representation of `self`.
     fn to_usize(self) -> usize;
 }
