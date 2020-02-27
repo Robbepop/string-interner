@@ -4,8 +4,19 @@ use std::default::Default;
 
 use std::fmt;
 
-use serde::de::{Deserialize, Deserializer, SeqAccess, Visitor};
-use serde::ser::{Serialize, SerializeSeq, Serializer};
+use serde::{
+    de::{
+        Deserialize,
+        Deserializer,
+        SeqAccess,
+        Visitor,
+    },
+    ser::{
+        Serialize,
+        SerializeSeq,
+        Serializer,
+    },
+};
 
 impl<Sym, H> Serialize for StringInterner<Sym, H>
 where
@@ -73,7 +84,10 @@ where
         A: SeqAccess<'de>,
     {
         let mut interner: StringInterner<Sym, H> =
-            StringInterner::with_capacity_and_hasher(seq.size_hint().unwrap_or(0), H::default());
+            StringInterner::with_capacity_and_hasher(
+                seq.size_hint().unwrap_or(0),
+                H::default(),
+            );
         while let Some(s) = seq.next_element::<Box<str>>()? {
             interner.get_or_intern(s);
         }

@@ -61,7 +61,7 @@ mod tests;
 #[cfg(all(feature = "bench", test))]
 mod benches;
 
-#[cfg(feature = "serde_support")]
+#[cfg(feature = "serde-1")]
 mod serde_impl;
 
 mod symbol;
@@ -198,7 +198,8 @@ where
 {
     fn clone(&self) -> Self {
         let values = self.values.clone();
-        let mut map = HashMap::with_capacity_and_hasher(values.len(), self.map.hasher().clone());
+        let mut map =
+            HashMap::with_capacity_and_hasher(values.len(), self.map.hasher().clone());
         // Recreate `InternalStrRef` from the newly cloned `Box<str>`s.
         // Use `extend()` to avoid `H: Default` trait bound required by `FromIterator for HashMap`.
         map.extend(
