@@ -47,7 +47,10 @@ mod internal_str_ref {
 
     #[test]
     fn hash_same_as_str() {
-        use std::{collections::hash_map::DefaultHasher, hash::Hash};
+        use std::{
+            collections::hash_map::DefaultHasher,
+            hash::Hash,
+        };
         let (s0, s1) = ("foo", "bar");
         let (r0, r1) = (InternalStrRef::from_str(s0), InternalStrRef::from_str(s1));
         let mut sip = DefaultHasher::new();

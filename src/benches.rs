@@ -3,10 +3,16 @@ use super::*;
 use ::fnv::FnvHasher;
 use lazy_static::lazy_static;
 use std::hash::BuildHasherDefault;
-use test::{black_box, Bencher};
+use test::{
+    black_box,
+    Bencher,
+};
 
 fn read_file_to_string(path: &str) -> String {
-    use std::{fs::File, io::prelude::*};
+    use std::{
+        fs::File,
+        io::prelude::*,
+    };
     let mut f = File::open(path).expect("bench file not found");
     let mut s = String::new();
     f.read_to_string(&mut s)
@@ -71,7 +77,10 @@ where
     H: BuildHasher + Clone,
 {
     pub fn empty_interner(&self) -> StringInterner<Sym, H> {
-        StringInterner::with_capacity_and_hasher(self.lines.len(), self.build_hasher.clone())
+        StringInterner::with_capacity_and_hasher(
+            self.lines.len(),
+            self.build_hasher.clone(),
+        )
     }
 }
 
@@ -111,7 +120,8 @@ where
     pub fn new_with_hasher() -> Self {
         let lines = bench_lines();
         let build_hasher = BuildHasherDefault::<S>::default();
-        let mut interner = StringInterner::with_capacity_and_hasher(lines.len(), build_hasher);
+        let mut interner =
+            StringInterner::with_capacity_and_hasher(lines.len(), build_hasher);
         let symbols = lines
             .into_iter()
             .map(|&line| interner.get_or_intern(line))
