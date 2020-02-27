@@ -1,6 +1,6 @@
 use crate::{
     DefaultStringInterner,
-    InternalStrRef,
+    PinnedStr,
     StringInterner,
     DefaultSymbol,
     Symbol,
@@ -22,26 +22,26 @@ mod internal_str_ref {
     #[test]
     fn size_of() {
         use std::mem;
-        assert_eq!(mem::size_of::<InternalStrRef>(), mem::size_of::<&str>());
+        assert_eq!(mem::size_of::<PinnedStr>(), mem::size_of::<&str>());
     }
 
     #[test]
     fn eq() {
         // same origin (aka pointer to str)
         let s = "bar";
-        assert_eq!(InternalStrRef::from_str(s), InternalStrRef::from_str(s));
+        assert_eq!(PinnedStr::from_str(s), PinnedStr::from_str(s));
         // different origins (aka pointers)
         assert_eq!(
-            InternalStrRef::from_str("foo"),
-            InternalStrRef::from_str("foo")
+            PinnedStr::from_str("foo"),
+            PinnedStr::from_str("foo")
         );
     }
 
     #[test]
     fn ne() {
         assert_ne!(
-            InternalStrRef::from_str("foo"),
-            InternalStrRef::from_str("bar")
+            PinnedStr::from_str("foo"),
+            PinnedStr::from_str("bar")
         )
     }
 
@@ -52,7 +52,7 @@ mod internal_str_ref {
             hash::Hash,
         };
         let (s0, s1) = ("foo", "bar");
-        let (r0, r1) = (InternalStrRef::from_str(s0), InternalStrRef::from_str(s1));
+        let (r0, r1) = (PinnedStr::from_str(s0), PinnedStr::from_str(s1));
         let mut sip = DefaultHasher::new();
         assert_eq!(r0.hash(&mut sip), s0.hash(&mut sip));
         assert_eq!(r1.hash(&mut sip), s1.hash(&mut sip));
