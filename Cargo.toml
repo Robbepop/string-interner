@@ -7,8 +7,8 @@ readme = "README.md"
 repository = "https://github.com/robbepop/string-interner"
 documentation = "https://docs.rs/string-interner"
 keywords = ["interner", "intern", "string", "str", "symbol"]
-description = """An efficient string interning data structure with minimal memory-footprint
-and fast access to the underlying contents.
+description = """An efficient string interning data structure with minimal memory footprint
+and fast access to the underlying strings.
 """
 categories = ["data-structures"]
 edition = "2018"
