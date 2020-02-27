@@ -72,7 +72,6 @@ use crate::symbol::{
 };
 use cfg_if::cfg_if;
 use core::{
-    ptr::NonNull,
     hash::{
         BuildHasher,
         Hash,
@@ -81,6 +80,8 @@ use core::{
     iter,
     iter::FromIterator,
     marker,
+    pin::Pin,
+    ptr::NonNull,
     slice,
 };
 
@@ -117,6 +118,11 @@ impl PinnedStr {
         PinnedStr(NonNull::from(val))
     }
 
+    /// Creates a new `PinnedStr` from the given pinned `str`.
+    fn from_pin(pinned: Pin<&str>) -> Self {
+        PinnedStr(NonNull::from(&*pinned))
+    }
+
     /// Returns a shared reference to the underlying `str`.
     fn as_str(&self) -> &str {
         // SAFETY: This is safe since we only ever operate on interned `str`
@@ -150,7 +156,7 @@ where
     H: BuildHasher,
 {
     map: HashMap<PinnedStr, S, H>,
-    values: Vec<Box<str>>,
+    values: Vec<Pin<Box<str>>>,
 }
 
 impl<S, H> PartialEq for StringInterner<S, H>
@@ -305,8 +311,8 @@ where
         T: Into<String> + AsRef<str>,
     {
         let new_id: S = self.make_symbol();
-        let new_boxed_val = new_val.into().into_boxed_str();
-        let new_ref = PinnedStr::from_str(new_boxed_val.as_ref());
+        let new_boxed_val = Pin::new(new_val.into().into_boxed_str());
+        let new_ref = PinnedStr::from_pin(new_boxed_val.as_ref());
         self.values.push(new_boxed_val);
         self.map.insert(new_ref, new_id);
         new_id
@@ -323,7 +329,7 @@ where
     pub fn resolve(&self, symbol: S) -> Option<&str> {
         self.values
             .get(symbol.to_usize())
-            .map(|boxed_str| boxed_str.as_ref())
+            .map(|boxed_str| boxed_str.as_ref().get_ref())
     }
 
     /// Returns the string associated with the given symbol.
@@ -339,7 +345,10 @@ where
     /// had no associated string for this interner instance.
     #[inline]
     pub unsafe fn resolve_unchecked(&self, symbol: S) -> &str {
-        self.values.get_unchecked(symbol.to_usize()).as_ref()
+        self.values
+            .get_unchecked(symbol.to_usize())
+            .as_ref()
+            .get_ref()
     }
 
     /// Returns the symbol associated with the given string for this interner
@@ -416,7 +425,7 @@ where
 
 /// Iterator over the pairs of associated symbols and interned strings for a `StringInterner`.
 pub struct Iter<'a, S> {
-    iter: iter::Enumerate<slice::Iter<'a, Box<str>>>,
+    iter: iter::Enumerate<slice::Iter<'a, Pin<Box<str>>>>,
     mark: marker::PhantomData<S>,
 }
 
@@ -448,7 +457,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         self.iter
             .next()
-            .map(|(num, boxed_str)| (S::from_usize(num), boxed_str.as_ref()))
+            .map(|(num, boxed_str)| (S::from_usize(num), boxed_str.as_ref().get_ref()))
     }
 
     #[inline]
@@ -462,7 +471,7 @@ pub struct Values<'a, S>
 where
     S: Symbol + 'a,
 {
-    iter: slice::Iter<'a, Box<str>>,
+    iter: slice::Iter<'a, Pin<Box<str>>>,
     mark: marker::PhantomData<S>,
 }
 
@@ -491,7 +500,9 @@ where
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().map(|boxed_str| boxed_str.as_ref())
+        self.iter
+            .next()
+            .map(|boxed_str| boxed_str.as_ref().get_ref())
     }
 
     #[inline]
@@ -523,7 +534,7 @@ pub struct IntoIter<S>
 where
     S: Symbol,
 {
-    iter: iter::Enumerate<vec::IntoIter<Box<str>>>,
+    iter: iter::Enumerate<vec::IntoIter<Pin<Box<str>>>>,
     mark: marker::PhantomData<S>,
 }
 
@@ -534,9 +545,9 @@ where
     type Item = (S, String);
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter
-            .next()
-            .map(|(num, boxed_str)| (S::from_usize(num), boxed_str.into_string()))
+        self.iter.next().map(|(num, boxed_str)| {
+            (S::from_usize(num), Pin::into_inner(boxed_str).into_string())
+        })
     }
 
     #[inline]
