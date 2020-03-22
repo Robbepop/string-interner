@@ -187,9 +187,8 @@ mod utils {
     }
 }
 
-const BENCH_SIZES: [usize; 19] = [
-    0, 1, 5, 10, 25, 50, 100, 250, 500, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000,
-    9000, 10_000,
+const BENCH_SIZES: [usize; 5] = [
+    10, 50, 250, 1000, 10_000
 ];
 
 fn bench_get_or_intern_empty(c: &mut Criterion) {
