@@ -335,7 +335,7 @@ where
     /// # Safety
     ///
     /// This will result in undefined behaviour if the given symbol
-    /// had no associated string for this interner instance.
+    /// has no associated string for this interner instance.
     #[inline]
     pub unsafe fn resolve_unchecked(&self, symbol: S) -> &str {
         self.values
