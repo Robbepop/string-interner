@@ -12,107 +12,76 @@ use lazy_static::lazy_static;
 use std::hash::BuildHasherDefault;
 use string_interner::StringInterner;
 
-mod utils {
-    use lazy_static::lazy_static;
-    use std::{
-        collections::hash_map::RandomState,
-        hash::{
-            BuildHasher,
-            BuildHasherDefault,
-            Hasher,
-        },
-    };
-    use string_interner::{
-        DefaultSymbol,
-        StringInterner,
-    };
+const ALPHABET: [u8; 64] = [
+    b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j',
+    b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't',
+    b'u', b'v', b'w', b'x', b'y', b'z',
+    b'A', b'B', b'C', b'D', b'E', b'F', b'G', b'H', b'I', b'J',
+    b'K', b'L', b'M', b'N', b'O', b'P', b'Q', b'R', b'S', b'T',
+    b'U', b'V', b'W', b'X', b'Y', b'Z',
+    b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9',
+    b'_', b'-',
+];
 
-    fn read_file_to_string(path: &str) -> String {
-        use std::{
-            fs::File,
-            io::prelude::*,
-        };
-        let mut f = File::open(path).expect("bench file not found");
-        let mut s = String::new();
-        f.read_to_string(&mut s)
-            .expect("encountered problems writing bench file to string");
-        s
+struct WordBuilder {
+    fragments: Vec<u8>,
+}
+
+impl WordBuilder {
+    pub fn new(word_len: usize) -> Self {
+        Self { fragments: Vec::with_capacity(word_len) }
     }
 
-    fn read_bench_file_to_string() -> String {
-        read_file_to_string("benches/input/dict.txt")
+    fn word_len(&self) -> usize {
+        self.fragments.len()
     }
 
-    lazy_static! {
-        static ref BENCH_INPUT: String = read_bench_file_to_string();
-        static ref BENCH_LINES: Vec<&'static str> =
-            { BENCH_INPUT.split_whitespace().collect::<Vec<&str>>() };
-    }
-
-    /// Returns the benchmark lines from the input file.
-    fn bench_lines() -> &'static [&'static str] {
-        &BENCH_LINES
-    }
-
-    /// An empty setup featuring an empty string interner.
-    pub struct EmptySetup<H> {
-        lines: &'static [&'static str],
-        build_hasher: H,
-    }
-
-    impl EmptySetup<RandomState> {
-        /// Creates a new empty setup with default hasher.
-        pub fn new() -> Self {
-            let lines = bench_lines();
-            EmptySetup {
-                lines,
-                build_hasher: RandomState::new(),
+    fn next_fragments(&mut self) -> &[u8] {
+        for (n, frag) in self.fragments.iter_mut().enumerate() {
+            if *frag == (64 - 1) {
+                *frag = 0;
+                continue;
+            } else {
+                *frag += 1;
+                break;
             }
         }
+        &self.fragments[..]
     }
 
-    impl<S> EmptySetup<BuildHasherDefault<S>>
-    where
-        S: Hasher,
-    {
-        /// Creates a new empty setup with a specific hasher.
-        pub fn new_with_hasher() -> Self {
-            let lines = bench_lines();
-            let build_hasher = BuildHasherDefault::<S>::default();
-            EmptySetup {
-                lines,
-                build_hasher,
-            }
+    fn next_word(&mut self) -> String {
+        let mut word = String::with_capacity(self.word_len());
+        let fragment = self.next_fragments();
+        for n in &self.fragments {
+            word.push(ALPHABET[*n as usize] as char);
         }
+        word
     }
+}
 
-    impl<H> EmptySetup<H>
-    where
-        H: BuildHasher,
-    {
-        /// Returns an iterator over the benchmark lines.
-        pub fn lines(&self) -> impl Iterator<Item = &'static str> {
-            self.lines.iter().copied()
-        }
+fn generate_test_strings(len: usize, word_len: usize) -> Vec<String> {
+    let mut builder = WordBuilder::new(word_len);
+    let mut words = Vec::with_capacity(len);
+    for _ in 0..len {
+        words.push(builder.next_word());
     }
+    words
+}
 
-    impl<H> EmptySetup<H>
-    where
-        H: BuildHasher + Clone,
-    {
-        /// Returns a new empty string interner.
-        pub fn empty_interner(&self) -> StringInterner<DefaultSymbol, H> {
-            StringInterner::with_capacity_and_hasher(
-                self.lines.len(),
-                self.build_hasher.clone(),
-            )
-        }
-    }
+#[test]
+fn test_unique_string_iter() {
+    assert_eq!(
+        generate_test_strings(5, 5),
+        vec![
+            "aaaaa".to_owned(),
+            "baaaa".to_owned(),
+            "caaaa".to_owned(),
+            "daaaa".to_owned(),
+            "eaaaa".to_owned(),
+        ]
+    );
+}
 
-    /// Returns a setup for an empty interner.
-    pub fn empty_setup() -> EmptySetup<RandomState> {
-        EmptySetup::new()
-    }
 
     pub struct FilledSetup<H>
     where
