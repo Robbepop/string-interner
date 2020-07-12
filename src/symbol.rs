@@ -14,7 +14,7 @@ pub trait Symbol: Copy + Ord + Eq {
     /// # Note
     ///
     /// Implementations panic if the operation cannot succeed.
-    fn from_usize(val: usize) -> Self;
+    fn from_usize(index: usize) -> Self;
 
     /// Returns the `usize` representation of `self`.
     fn to_usize(self) -> usize;
@@ -36,19 +36,21 @@ impl Symbol for DefaultSymbol {
     /// # Panics
     ///
     /// If the given `usize` is greater than `u32::MAX - 1`.
-    fn from_usize(val: usize) -> Self {
+    #[inline]
+    fn from_usize(index: usize) -> Self {
         assert!(
-            val < core::u32::MAX as usize,
+            index < core::u32::MAX as usize,
             "{} is out of bounds for the default symbol",
-            val
+            index
         );
         Self(
-            NonZeroU32::new((val + 1) as u32)
+            NonZeroU32::new((index as u32) + 1)
                 // Due to the assert above we can assume that this always succeeds.
-                .unwrap_or_else(|| unsafe { core::hint::unreachable_unchecked() }),
+                .unwrap_or_else(|| unsafe { ::core::hint::unreachable_unchecked() }),
         )
     }
 
+    #[inline]
     fn to_usize(self) -> usize {
         (self.0.get() as usize) - 1
     }
