@@ -13,7 +13,8 @@ use crate::{
     },
     symbol::expect_valid_symbol,
     DefaultSymbol,
-    PinnedStr,
+    InternalStr,
+    InternedStr,
     Symbol,
 };
 use core::{
@@ -46,7 +47,7 @@ where
     S: Symbol,
     H: BuildHasher,
 {
-    map: HashMap<PinnedStr, S, H>,
+    map: HashMap<InternalStr, S, H>,
     pub(crate) values: Vec<Pin<Box<str>>>,
 }
 
@@ -83,12 +84,9 @@ where
             HashMap::with_capacity_and_hasher(values.len(), self.map.hasher().clone());
         // Recreate `InternalStrRef` from the newly cloned `Box<str>`s.
         // Use `extend()` to avoid `H: Default` trait bound required by `FromIterator for HashMap`.
-        map.extend(
-            values
-                .iter()
-                .enumerate()
-                .map(|(i, s)| (PinnedStr::from_str(s), expect_valid_symbol::<S>(i))),
-        );
+        map.extend(values.iter().enumerate().map(|(i, s)| {
+            (InternedStr::new(s).into(), expect_valid_symbol::<S>(i))
+        }));
         Self { values, map }
     }
 }
@@ -110,6 +108,7 @@ where
     H: BuildHasher,
 {
 }
+
 unsafe impl<S, H> Sync for StringInterner<S, H>
 where
     S: Symbol + Sync,
@@ -206,9 +205,9 @@ where
     {
         let new_id: S = self.next_symbol();
         let new_boxed_val = Pin::new(new_val.into().into_boxed_str());
-        let new_ref = PinnedStr::from_pin(new_boxed_val.as_ref());
+        let new_ref = InternedStr::new(&*new_boxed_val.as_ref());
         self.values.push(new_boxed_val);
-        self.map.insert(new_ref, new_id);
+        self.map.insert(new_ref.into(), new_id);
         new_id
     }
 

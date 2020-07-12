@@ -59,10 +59,13 @@ mod serde_impl;
 
 pub mod backend;
 mod compat;
+mod internal_str;
 mod interner;
 pub mod iter;
 mod pinned_str;
 pub mod symbol;
+
+use self::internal_str::InternalStr;
 
 use crate::pinned_str::PinnedStr;
 #[doc(inline)]
