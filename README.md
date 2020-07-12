@@ -44,6 +44,7 @@ additional terms or conditions.
 - 0.8.0
 
     - Make it possible to use this crate in `no_std` environments
+        - Use the new `hashbrown` crate feature together with `no_std`
     - Rename `Sym` to `DefaultSymbol`
     - Add `IntoIterator` impl for `&StringInterner`
     - Add some `#[inline]` annotations which improve performance for queries
