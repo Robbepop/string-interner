@@ -1,8 +1,8 @@
 # String Interner
 
-|         CI          |       Coverage       |       Docs       |       Crates.io      |
-|:-------------------:|:--------------------:|:----------------:|:--------------------:|
-| [![travisCI][1]][2] | [![codecov][5]][6]   | [![docs][9]][10] | [![crates][11]][12]  |
+| Continuous Integration |     Test Coverage    |  Documentation   |       Crates.io      |
+|:----------------------:|:--------------------:|:----------------:|:--------------------:|
+| [![travisCI][1]][2]    | [![codecov][5]][6]   | [![docs][9]][10] | [![crates][11]][12]  |
 
 A data structure to cache strings efficiently, with minimal memory footprint and the ability to assicate
 the interned strings with unique symbols.
@@ -107,13 +107,10 @@ additional terms or conditions.
 
 	- added `Send` and `Sync` to `InternalStrRef` to make `StringInterner` itself `Send` and `Sync`
 
-
-[1]:  https://travis-ci.org/Robbepop/string-interner.svg?branch=master
-[2]:  https://travis-ci.org/Robbepop/string-interner
+[1]: https://github.com/Robbepop/string-interner/workflows/Rust%20-%20Continuous%20Integration/badge.svg?branch=master
+[2]: https://github.com/Robbepop/string-interner/workflows/Rust%20-%20Continuous%20Integration
 [5]:  https://codecov.io/gh/robbepop/string-interner/branch/master/graph/badge.svg
 [6]:  https://codecov.io/gh/Robbepop/string-interner/branch/master
-[7]:  https://coveralls.io/repos/github/Robbepop/string-interner/badge.svg?branch=master
-[8]:  https://coveralls.io/github/Robbepop/string-interner?branch=master
 [9]:  https://docs.rs/string-interner/badge.svg
 [10]: https://docs.rs/string-interner
 [11]: https://img.shields.io/crates/v/string-interner.svg
