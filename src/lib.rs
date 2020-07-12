@@ -57,6 +57,7 @@ mod tests;
 #[cfg(feature = "serde-1")]
 mod serde_impl;
 
+pub mod backend;
 mod compat;
 mod interner;
 pub mod iter;
@@ -65,7 +66,11 @@ pub mod symbol;
 
 use crate::pinned_str::PinnedStr;
 #[doc(inline)]
-pub use crate::{
+pub use self::{
+    backend::{
+        DefaultBackend,
+        InternedStr,
+    },
     interner::{
         DefaultStringInterner,
         StringInterner,
