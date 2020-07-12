@@ -142,6 +142,7 @@ where
 {
     type Item = (S, String);
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|(num, boxed_str)| {
             (S::from_usize(num), Pin::into_inner(boxed_str).into_string())

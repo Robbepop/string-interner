@@ -1,7 +1,6 @@
 #![doc(html_root_url = "https://docs.rs/crate/string-interner/0.8.0")]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![deny(missing_docs)]
-#![allow(unused_attributes)] // TODO: remove
 
 //! Caches strings efficiently, with minimal memory footprint and associates them with unique symbols.
 //! These symbols allow constant time comparisons and look-ups to the underlying interned strings.
@@ -123,12 +122,14 @@ impl PinnedStr {
 }
 
 impl Hash for PinnedStr {
+    #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.as_str().hash(state)
     }
 }
 
 impl PartialEq for PinnedStr {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.as_str() == other.as_str()
     }
@@ -401,7 +402,7 @@ where
     }
 }
 
-impl<T, S> core::iter::Extend<T> for StringInterner<S>
+impl<T, S> Extend<T> for StringInterner<S>
 where
     S: Symbol,
     T: Into<String> + AsRef<str>,
