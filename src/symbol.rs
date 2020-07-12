@@ -1,57 +1,66 @@
-use core::num::NonZeroU32;
+//! Interfaces and types to be used as symbols for the
+//! [`StringInterner`](`crate::StringInterner`).
+//!
+//! The [`StringInterner::get_or_intern`](`crate::StringInterner::get_or_intern`)
+//! method returns `Symbol` types that allow to look-up the original string
+//! using [`StringInterner::resolve`](`crate::StringInterner::resolve`).
 
-/// Types implementing this trait are able to act as symbols for string interners.
+use core::num::{
+    NonZeroU16,
+    NonZeroU32,
+    NonZeroUsize,
+};
+
+/// Types implementing this trait can be used as symbols for string interners.
 ///
-/// Symbols are returned by `StringInterner::get_or_intern` and allow look-ups of the
-/// original string contents with `StringInterner::resolve`.
+/// The [`StringInterner::get_or_intern`](`crate::StringInterner::get_or_intern`)
+/// method returns `Symbol` types that allow to look-up the original string
+/// using [`StringInterner::resolve`](`crate::StringInterner::resolve`).
 ///
 /// # Note
 ///
 /// Optimal symbols allow for efficient comparisons and have a small memory footprint.
-pub trait Symbol: Copy + Ord + Eq {
+pub trait Symbol: Copy + Eq {
     /// Creates a symbol from a `usize`.
     ///
-    /// # Note
-    ///
-    /// Implementations panic if the operation cannot succeed.
-    fn from_usize(index: usize) -> Self;
+    /// Returns `None` if `index` is out of bounds for the symbol.
+    fn try_from_usize(index: usize) -> Option<Self>;
 
     /// Returns the `usize` representation of `self`.
     fn to_usize(self) -> usize;
 }
 
-/// Fast and space efficient symbol type.
-///
-/// # Note
-///
-/// - Has a memory footprint of 32 bit.
-/// - Allow for space optimizations, i.e.
-///   `size_of<Option<DefaultSymbol>() == size_of<DefaultSymbol>()`.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct DefaultSymbol(NonZeroU32);
+/// The symbol type that is used by default.
+pub type DefaultSymbol = SymbolUsize;
 
-impl Symbol for DefaultSymbol {
-    /// Creates a `Sym` from the given `usize`.
-    ///
-    /// # Panics
-    ///
-    /// If the given `usize` is greater than `u32::MAX - 1`.
-    #[inline]
-    fn from_usize(index: usize) -> Self {
-        assert!(
-            index < core::u32::MAX as usize,
-            "{} is out of bounds for the default symbol",
-            index
-        );
-        Self(
-            NonZeroU32::new((index as u32) + 1)
-                // Due to the assert above we can assume that this always succeeds.
-                .unwrap_or_else(|| unsafe { ::core::hint::unreachable_unchecked() }),
-        )
-    }
+macro_rules! gen_symbol_for {
+    ( $name:ident, $non_zero:ty, $base_ty:ty ) => {
+        /// Symbol that is the same size as a pointer (`usize`).
+        ///
+        /// Is space-optimized for used in `Option`.
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+        pub struct $name {
+            value: $non_zero,
+        }
 
-    #[inline]
-    fn to_usize(self) -> usize {
-        (self.0.get() as usize) - 1
-    }
+        impl Symbol for $name {
+            #[inline]
+            fn try_from_usize(index: usize) -> Option<Self> {
+                if index < usize::MAX {
+                    return Some(Self {
+                        value: unsafe { <$non_zero>::new_unchecked(index as $base_ty + 1) },
+                    })
+                }
+                None
+            }
+
+            #[inline]
+            fn to_usize(self) -> usize {
+                self.value.get() as usize - 1
+            }
+        }
+    };
 }
+gen_symbol_for!(SymbolU16, NonZeroU16, u16);
+gen_symbol_for!(SymbolU32, NonZeroU32, u32);
+gen_symbol_for!(SymbolUsize, NonZeroUsize, usize);
