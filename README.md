@@ -108,7 +108,7 @@ additional terms or conditions.
 	- added `Send` and `Sync` to `InternalStrRef` to make `StringInterner` itself `Send` and `Sync`
 
 [1]: https://github.com/Robbepop/string-interner/workflows/Rust%20-%20Continuous%20Integration/badge.svg?branch=master
-[2]: https://github.com/Robbepop/string-interner/workflows/Rust%20-%20Continuous%20Integration
+[2]: https://github.com/Robbepop/string-interner/actions?query=workflow%3A%22Rust+-+Continuous+Integration%22+branch%3Amaster
 [5]:  https://codecov.io/gh/robbepop/string-interner/branch/master/graph/badge.svg
 [6]:  https://codecov.io/gh/Robbepop/string-interner/branch/master
 [9]:  https://docs.rs/string-interner/badge.svg
