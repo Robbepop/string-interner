@@ -358,7 +358,7 @@ where
     where
         T: AsRef<str>,
     {
-        self.map.get(val.as_ref()).cloned()
+        self.map.get(val.as_ref()).copied()
     }
 
     /// Returns the number of uniquely interned strings within this interner.
