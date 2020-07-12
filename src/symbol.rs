@@ -43,7 +43,7 @@ where
 }
 
 /// The symbol type that is used by default.
-pub type DefaultSymbol = SymbolUsize;
+pub type DefaultSymbol = SymbolU32;
 
 macro_rules! gen_symbol_for {
     (
