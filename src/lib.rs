@@ -26,8 +26,8 @@
 //! ```
 //! # use string_interner::DefaultStringInterner;
 //! let interner = vec!["Elephant", "Tiger", "Horse", "Tiger"]
-//! 	.into_iter()
-//! 	.collect::<DefaultStringInterner>();
+//!     .into_iter()
+//!     .collect::<DefaultStringInterner>();
 //! ```
 //!
 //! ### Example: Look-up
@@ -44,10 +44,10 @@
 //! ```
 //! # use string_interner::DefaultStringInterner;
 //! let interner = vec!["Earth", "Water", "Fire", "Air"]
-//! 	.into_iter()
-//! 	.collect::<DefaultStringInterner>();
+//!     .into_iter()
+//!     .collect::<DefaultStringInterner>();
 //! for (sym, str) in interner {
-//! 	// iteration code here!
+//!     // iteration code here!
 //! }
 //! ```
 
