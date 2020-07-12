@@ -11,6 +11,7 @@ use crate::{
         Iter,
         Values,
     },
+    symbol::expect_valid_symbol,
     DefaultSymbol,
     PinnedStr,
     Symbol,
@@ -85,7 +86,7 @@ where
         map.extend(values.iter().enumerate().map(|(i, s)| {
             (
                 PinnedStr::from_str(s),
-                S::try_from_usize(i).expect("encountered invalid symbol"),
+                expect_valid_symbol::<S>(i),
             )
         }));
         Self { values, map }
@@ -213,7 +214,7 @@ where
 
     /// Creates a new symbol for the current state of the interner.
     fn next_symbol(&self) -> S {
-        S::try_from_usize(self.len()).expect("encountered invalid symbol")
+        expect_valid_symbol::<S>(self.len())
     }
 
     /// Returns the string slice associated with the given symbol if available,

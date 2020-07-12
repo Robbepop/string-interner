@@ -5,6 +5,7 @@ use crate::{
         Box,
         String,
     },
+    symbol::expect_valid_symbol,
     StringInterner,
     Symbol,
 };
@@ -53,10 +54,7 @@ where
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|(num, boxed_str)| {
-            (
-                S::try_from_usize(num).expect("encountered invalid symbol"),
-                boxed_str.as_ref().get_ref(),
-            )
+            (expect_valid_symbol::<S>(num), boxed_str.as_ref().get_ref())
         })
     }
 
@@ -149,7 +147,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|(num, boxed_str)| {
             (
-                S::try_from_usize(num).expect("encountered invalid symbol"),
+                expect_valid_symbol::<S>(num),
                 Pin::into_inner(boxed_str).into_string(),
             )
         })

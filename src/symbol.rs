@@ -30,6 +30,18 @@ pub trait Symbol: Copy + Eq {
     fn to_usize(self) -> usize;
 }
 
+/// Creates the symbol `S` from the given `usize`.
+///
+/// # Panics
+///
+/// Panics if the conversion is invalid.
+pub(crate) fn expect_valid_symbol<S>(index: usize) -> S
+where
+    S: Symbol,
+{
+    S::try_from_usize(index).expect("encountered invalid symbol")
+}
+
 /// The symbol type that is used by default.
 pub type DefaultSymbol = SymbolUsize;
 
