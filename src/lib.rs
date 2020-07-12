@@ -61,6 +61,7 @@ pub mod backend;
 mod compat;
 mod internal_str;
 mod interner;
+mod interner2;
 pub mod iter;
 pub mod symbol;
 
@@ -76,6 +77,7 @@ pub use self::{
         DefaultStringInterner,
         StringInterner,
     },
+    interner2::StringInterner as StringInterner2,
     symbol::{
         DefaultSymbol,
         Symbol,
