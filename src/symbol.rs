@@ -34,10 +34,11 @@ pub trait Symbol: Copy + Eq {
 pub type DefaultSymbol = SymbolUsize;
 
 macro_rules! gen_symbol_for {
-    ( $name:ident, $non_zero:ty, $base_ty:ty ) => {
-        /// Symbol that is the same size as a pointer (`usize`).
-        ///
-        /// Is space-optimized for used in `Option`.
+    (
+        $( #[$doc:meta] )*
+        struct $name:ident($non_zero:ty; $base_ty:ty);
+    ) => {
+        $( #[$doc] )*
         #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
         pub struct $name {
             value: $non_zero,
@@ -61,6 +62,21 @@ macro_rules! gen_symbol_for {
         }
     };
 }
-gen_symbol_for!(SymbolU16, NonZeroU16, u16);
-gen_symbol_for!(SymbolU32, NonZeroU32, u32);
-gen_symbol_for!(SymbolUsize, NonZeroUsize, usize);
+gen_symbol_for!(
+    /// Symbol that is 16-bit in size.
+    ///
+    /// Is space-optimized for used in `Option`.
+    struct SymbolU16(NonZeroU16; u16);
+);
+gen_symbol_for!(
+    /// Symbol that is 32-bit in size.
+    ///
+    /// Is space-optimized for used in `Option`.
+    struct SymbolU32(NonZeroU32; u32);
+);
+gen_symbol_for!(
+    /// Symbol that is the same size as a pointer (`usize`).
+    ///
+    /// Is space-optimized for used in `Option`.
+    struct SymbolUsize(NonZeroUsize; usize);
+);
