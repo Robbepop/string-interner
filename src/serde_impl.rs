@@ -3,6 +3,7 @@ use super::*;
 use core::{
     default::Default,
     fmt,
+    hash::BuildHasher,
     marker,
 };
 use serde::{

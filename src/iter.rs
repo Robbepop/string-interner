@@ -52,9 +52,12 @@ where
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter
-            .next()
-            .map(|(num, boxed_str)| (S::from_usize(num), boxed_str.as_ref().get_ref()))
+        self.iter.next().map(|(num, boxed_str)| {
+            (
+                S::try_from_usize(num).expect("encountered invalid symbol"),
+                boxed_str.as_ref().get_ref(),
+            )
+        })
     }
 
     #[inline]
@@ -145,7 +148,10 @@ where
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|(num, boxed_str)| {
-            (S::from_usize(num), Pin::into_inner(boxed_str).into_string())
+            (
+                S::try_from_usize(num).expect("encountered invalid symbol"),
+                Pin::into_inner(boxed_str).into_string(),
+            )
         })
     }
 
