@@ -78,13 +78,13 @@ fn generate_test_strings(len: usize, word_len: usize) -> Vec<String> {
 
 criterion_group!(bench_resolve, bench_resolve_already_filled,);
 criterion_group!(bench_get, bench_get_already_filled,);
-criterion_group!(bench_iter, bench_iter_already_filled,);
+// criterion_group!(bench_iter, bench_iter_already_filled,);
 criterion_group!(
     bench_get_or_intern,
     bench_get_or_intern_fill,
     bench_get_or_intern_already_filled,
 );
-criterion_main!(bench_get_or_intern, bench_resolve, bench_get, bench_iter);
+criterion_main!(bench_get_or_intern, bench_resolve, bench_get);
 
 const BENCH_LEN_WORDS: usize = 100_000;
 const BENCH_WORD_LEN: usize = 5;
