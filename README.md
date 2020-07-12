@@ -41,6 +41,14 @@ additional terms or conditions.
 
 ## Changelog
 
+- 0.8.0
+
+    - Make it possible to use this crate in `no_std` environments
+    - Rename `Sym` to `DefaultSymbol`
+    - Add `IntoIterator` impl for `&StringInterner`
+    - Add some `#[inline]` annotations which improve performance for queries
+    - Various internal improvements (uses `Pin` self-referentials now)
+
 - 0.7.1
 
     - **CRITICAL** fix use after free bug in `StringInterner::clone()`
