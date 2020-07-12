@@ -7,30 +7,29 @@ readme = "README.md"
 repository = "https://github.com/robbepop/string-interner"
 documentation = "https://docs.rs/string-interner"
 keywords = ["interner", "intern", "string", "str", "symbol"]
-description = """An efficient string interning data structure with minimal memory footprint
+description = """Efficient string interner with minimal memory footprint
 and fast access to the underlying strings.
 """
 categories = ["data-structures"]
 edition = "2018"
 
 [dependencies]
-cfg-if = "0.1.10"
+cfg-if = "0.1"
 serde = { version = "1.0", optional = true }
+hashbrown = { version = "0.8", optional = true }
 
 [dev-dependencies]
-fnv = "1.0"         # Required bench tests.
-serde_json = "1.0"  # Required for testing the serde implementation.
-lazy_static = "1.0" # Required for benches.
-criterion = "0.3.1" # Required for benches.
+serde_json = "1.0"
+criterion = "0.3"
 
 [[bench]]
 name = "bench"
 harness = false
 
 [features]
-default       = ["std", "serde-1"]
-std           = []
-bench         = ["std"]
+default = ["std", "serde-1"]
+std = []
+bench = ["std"]
 serde-1 = ["serde"]
 
 [badges]
