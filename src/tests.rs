@@ -1,8 +1,8 @@
 use crate::{
     DefaultStringInterner,
+    DefaultSymbol,
     PinnedStr,
     StringInterner,
-    DefaultSymbol,
     Symbol,
 };
 
@@ -12,7 +12,10 @@ mod sym {
     #[test]
     fn same_size_as_optional() {
         use std::mem;
-        assert_eq!(mem::size_of::<DefaultSymbol>(), mem::size_of::<Option<DefaultSymbol>>());
+        assert_eq!(
+            mem::size_of::<DefaultSymbol>(),
+            mem::size_of::<Option<DefaultSymbol>>()
+        );
     }
 }
 
@@ -31,18 +34,12 @@ mod internal_str_ref {
         let s = "bar";
         assert_eq!(PinnedStr::from_str(s), PinnedStr::from_str(s));
         // different origins (aka pointers)
-        assert_eq!(
-            PinnedStr::from_str("foo"),
-            PinnedStr::from_str("foo")
-        );
+        assert_eq!(PinnedStr::from_str("foo"), PinnedStr::from_str("foo"));
     }
 
     #[test]
     fn ne() {
-        assert_ne!(
-            PinnedStr::from_str("foo"),
-            PinnedStr::from_str("bar")
-        )
+        assert_ne!(PinnedStr::from_str("foo"), PinnedStr::from_str("bar"))
     }
 
     #[test]
@@ -333,9 +330,18 @@ mod into_iter {
         let interner: DefaultStringInterner =
             vec!["foo", "bar", "baz", "foo"].into_iter().collect();
         let mut iter = interner.into_iter();
-        assert_eq!(iter.next(), Some((DefaultSymbol::from_usize(0), String::from("foo"))));
-        assert_eq!(iter.next(), Some((DefaultSymbol::from_usize(1), String::from("bar"))));
-        assert_eq!(iter.next(), Some((DefaultSymbol::from_usize(2), String::from("baz"))));
+        assert_eq!(
+            iter.next(),
+            Some((DefaultSymbol::from_usize(0), String::from("foo")))
+        );
+        assert_eq!(
+            iter.next(),
+            Some((DefaultSymbol::from_usize(1), String::from("bar")))
+        );
+        assert_eq!(
+            iter.next(),
+            Some((DefaultSymbol::from_usize(2), String::from("baz")))
+        );
         assert_eq!(iter.next(), None);
     }
 }
