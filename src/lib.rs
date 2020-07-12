@@ -94,53 +94,6 @@ use core::{
     ptr::NonNull,
 };
 
-/// Internal reference to an interned `str`.
-///
-/// This is a self-referential from the interners string map
-/// into the interner's actual vector of strings.
-#[derive(Debug, Copy, Clone, Eq)]
-struct PinnedStr(NonNull<str>);
-
-impl PinnedStr {
-    /// Creates a new `PinnedStr` from the given `str`.
-    fn from_str(val: &str) -> Self {
-        PinnedStr(NonNull::from(val))
-    }
-
-    /// Creates a new `PinnedStr` from the given pinned `str`.
-    fn from_pin(pinned: Pin<&str>) -> Self {
-        PinnedStr(NonNull::from(&*pinned))
-    }
-
-    /// Returns a shared reference to the underlying `str`.
-    fn as_str(&self) -> &str {
-        // SAFETY: This is safe since we only ever operate on interned `str`
-        //         that are never moved around in memory to avoid danling
-        //         references.
-        unsafe { self.0.as_ref() }
-    }
-}
-
-impl Hash for PinnedStr {
-    #[inline]
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.as_str().hash(state)
-    }
-}
-
-impl PartialEq for PinnedStr {
-    #[inline]
-    fn eq(&self, other: &Self) -> bool {
-        self.as_str() == other.as_str()
-    }
-}
-
-impl core::borrow::Borrow<str> for PinnedStr {
-    fn borrow(&self) -> &str {
-        self.as_str()
-    }
-}
-
 /// `StringInterner` that uses `Sym` as its underlying symbol type.
 pub type DefaultStringInterner = StringInterner<DefaultSymbol>;
 
