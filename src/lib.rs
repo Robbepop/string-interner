@@ -297,10 +297,10 @@ where
     where
         T: Into<String> + AsRef<str>,
     {
-        match self.map.get(val.as_ref()) {
-            Some(&sym) => sym,
-            None => self.intern(val),
-        }
+        self.map
+            .get(val.as_ref())
+            .copied()
+            .unwrap_or_else(|| self.intern(val))
     }
 
     /// Interns the given value and ignores collissions.
