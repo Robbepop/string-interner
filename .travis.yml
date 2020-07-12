@@ -5,8 +5,6 @@ sudo: true
 
 rust:
   - stable
-  - beta
-  - nightly
 
 matrix:
   allow_failures:
@@ -38,8 +36,5 @@ before_script:
 
 script:
 - |
-  cargo check &&
-  cargo test &&
-  cargo test --release &&
   cargo kcov --verbose --coveralls &&
   bash <(curl -s https://codecov.io/bash)
