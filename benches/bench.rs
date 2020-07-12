@@ -86,11 +86,14 @@ criterion_group!(
 );
 criterion_main!(bench_get_or_intern, bench_resolve, bench_get, bench_iter);
 
+const BENCH_LEN_WORDS: usize = 100_000;
+const BENCH_WORD_LEN: usize = 5;
+
 fn bench_get_or_intern_fill(c: &mut Criterion) {
     let mut g = c.benchmark_group("get_or_intern");
     g.bench_with_input(
         "fill empty",
-        &(5_000, 5),
+        &(BENCH_LEN_WORDS, BENCH_WORD_LEN),
         |bencher, &(len_words, word_len)| {
             let words = generate_test_strings(len_words, word_len);
             bencher.iter_batched_ref(
@@ -110,7 +113,7 @@ fn bench_get_or_intern_already_filled(c: &mut Criterion) {
     let mut g = c.benchmark_group("get_or_intern");
     g.bench_with_input(
         "already filled",
-        &(5_000, 5),
+        &(BENCH_LEN_WORDS, BENCH_WORD_LEN),
         |bencher, &(len_words, word_len)| {
             let words = generate_test_strings(len_words, word_len);
             bencher.iter_batched_ref(
@@ -130,7 +133,7 @@ fn bench_resolve_already_filled(c: &mut Criterion) {
     let mut g = c.benchmark_group("resolve");
     g.bench_with_input(
         "already filled",
-        &(5000, 5),
+        &(BENCH_LEN_WORDS, BENCH_WORD_LEN),
         |bencher, &(len_words, word_len)| {
             let words = generate_test_strings(len_words, word_len);
             bencher.iter_batched_ref(
@@ -158,7 +161,7 @@ fn bench_get_already_filled(c: &mut Criterion) {
     let mut g = c.benchmark_group("get");
     g.bench_with_input(
         "already filled",
-        &(5_000, 5),
+        &(BENCH_LEN_WORDS, BENCH_WORD_LEN),
         |bencher, &(len_words, word_len)| {
             let words = generate_test_strings(len_words, word_len);
             bencher.iter_batched_ref(
@@ -178,7 +181,7 @@ fn bench_iter_already_filled(c: &mut Criterion) {
     let mut g = c.benchmark_group("iter");
     g.bench_with_input(
         "already filled",
-        &(5_000, 5),
+        &(BENCH_LEN_WORDS, BENCH_WORD_LEN),
         |bencher, &(len_words, word_len)| {
             let words = generate_test_strings(len_words, word_len);
             bencher.iter_batched_ref(
