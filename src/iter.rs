@@ -37,10 +37,11 @@ where
     where
         H: BuildHasher,
     {
-        Self {
-            iter: interner.values.iter().enumerate(),
-            mark: marker::PhantomData,
-        }
+        todo!()
+        // Self {
+        //     iter: interner.full.iter().enumerate(),
+        //     mark: marker::PhantomData,
+        // }
     }
 }
 
@@ -81,10 +82,11 @@ where
     where
         H: BuildHasher,
     {
-        Self {
-            iter: interner.values.iter(),
-            mark: marker::PhantomData,
-        }
+        todo!()
+        // Self {
+        //     iter: interner.full.iter(),
+        //     mark: marker::PhantomData,
+        // }
     }
 }
 
@@ -129,10 +131,11 @@ where
     where
         H: BuildHasher,
     {
-        Self {
-            iter: interner.values.into_iter().enumerate(),
-            mark: marker::PhantomData,
-        }
+        todo!()
+        // Self {
+        //     iter: interner.full.into_iter().enumerate(),
+        //     mark: marker::PhantomData,
+        // }
     }
 }
 

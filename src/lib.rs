@@ -152,8 +152,14 @@ where
     S: Symbol,
     H: BuildHasher,
 {
+    /// Mapping from the interned string spans to their symbols.
     map: HashMap<PinnedStr, S, H>,
-    values: Vec<Pin<Box<str>>>,
+    /// Spans for all the interned string pointing to either `buf` of `full`.
+    spans: Vec<PinnedStr>,
+    /// The accumulating buffer that is appended to `full` when ... full.
+    buf: String,
+    /// All filled string buffers.
+    full: Vec<String>,
 }
 
 impl<S, H> PartialEq for StringInterner<S, H>
@@ -162,7 +168,7 @@ where
     H: BuildHasher,
 {
     fn eq(&self, rhs: &Self) -> bool {
-        self.len() == rhs.len() && self.values == rhs.values
+        self.len() == rhs.len() && self.spans == rhs.spans
     }
 }
 
@@ -173,31 +179,31 @@ impl Default for StringInterner<DefaultSymbol, DefaultHashBuilder> {
     }
 }
 
-impl<S, H> Clone for StringInterner<S, H>
-where
-    S: Symbol,
-    H: Clone + BuildHasher,
-{
-    fn clone(&self) -> Self {
-        // We implement `Clone` manually for `StringInterner` to go around the
-        // issue of shallow closing the self-referential pinned strs.
-        // This was an issue with former implementations. Visit the following
-        // link for more information:
-        // https://github.com/Robbepop/string-interner/issues/9
-        let values = self.values.clone();
-        let mut map =
-            HashMap::with_capacity_and_hasher(values.len(), self.map.hasher().clone());
-        // Recreate `InternalStrRef` from the newly cloned `Box<str>`s.
-        // Use `extend()` to avoid `H: Default` trait bound required by `FromIterator for HashMap`.
-        map.extend(
-            values
-                .iter()
-                .enumerate()
-                .map(|(i, s)| (PinnedStr::from_str(s), S::from_usize(i))),
-        );
-        Self { values, map }
-    }
-}
+// impl<S, H> Clone for StringInterner<S, H>
+// where
+//     S: Symbol,
+//     H: Clone + BuildHasher,
+// {
+//     fn clone(&self) -> Self {
+//         // We implement `Clone` manually for `StringInterner` to go around the
+//         // issue of shallow closing the self-referential pinned strs.
+//         // This was an issue with former implementations. Visit the following
+//         // link for more information:
+//         // https://github.com/Robbepop/string-interner/issues/9
+//         let values = self.full.clone();
+//         let mut map =
+//             HashMap::with_capacity_and_hasher(values.len(), self.map.hasher().clone());
+//         // Recreate `InternalStrRef` from the newly cloned `Box<str>`s.
+//         // Use `extend()` to avoid `H: Default` trait bound required by `FromIterator for HashMap`.
+//         map.extend(
+//             values
+//                 .iter()
+//                 .enumerate()
+//                 .map(|(i, s)| (PinnedStr::from_str(s), S::from_usize(i))),
+//         );
+//         Self { full: values, map }
+//     }
+// }
 
 // About `Send` and `Sync` impls for `StringInterner`
 // --------------------------------------------------
@@ -230,37 +236,43 @@ where
     /// Creates a new empty `StringInterner`.
     #[inline]
     pub fn new() -> StringInterner<S, DefaultHashBuilder> {
-        StringInterner {
+        Self {
             map: HashMap::new(),
-            values: Vec::new(),
+            spans: Vec::new(),
+            buf: String::new(),
+            full: Vec::new(),
         }
     }
 
     /// Creates a new `StringInterner` with the given initial capacity.
     #[inline]
     pub fn with_capacity(cap: usize) -> Self {
-        StringInterner {
+        let cap = cap.next_power_of_two();
+        Self {
             map: HashMap::with_capacity(cap),
-            values: Vec::with_capacity(cap),
+            spans: Vec::with_capacity(cap),
+            buf: String::with_capacity(cap),
+            full: Vec::new(),
         }
     }
 
-    /// Returns the number of elements the `StringInterner` can hold without reallocating.
-    #[inline]
-    pub fn capacity(&self) -> usize {
-        core::cmp::min(self.map.capacity(), self.values.capacity())
-    }
+    // /// Returns the number of strings the `StringInterner` can additionally hold without reallocating.
+    // #[inline]
+    // pub fn capacity(&self) -> usize {
 
-    /// Reserves capacity for at least `additional` more elements to be interned into `self`.
-    ///
-    /// The collection may reserve more space to avoid frequent allocations.
-    /// After calling `reserve`, capacity will be greater than or equal to `self.len() + additional`.
-    /// Does nothing if capacity is already sufficient.
-    #[inline]
-    pub fn reserve(&mut self, additional: usize) {
-        self.map.reserve(additional);
-        self.values.reserve(additional);
-    }
+    //     core::cmp::min(self.map.capacity(), self.full.capacity())
+    // }
+
+    // /// Reserves capacity for at least `additional` more elements to be interned into `self`.
+    // ///
+    // /// The collection may reserve more space to avoid frequent allocations.
+    // /// After calling `reserve`, capacity will be greater than or equal to `self.len() + additional`.
+    // /// Does nothing if capacity is already sufficient.
+    // #[inline]
+    // pub fn reserve(&mut self, additional: usize) {
+    //     self.map.reserve(additional);
+    //     self.full.reserve(additional);
+    // }
 }
 
 impl<S, H> StringInterner<S, H>
@@ -271,18 +283,23 @@ where
     /// Creates a new empty `StringInterner` with the given hasher.
     #[inline]
     pub fn with_hasher(hash_builder: H) -> StringInterner<S, H> {
-        StringInterner {
+        Self {
             map: HashMap::with_hasher(hash_builder),
-            values: Vec::new(),
+            spans: Vec::new(),
+            buf: String::new(),
+            full: Vec::new(),
         }
     }
 
     /// Creates a new empty `StringInterner` with the given initial capacity and the given hasher.
     #[inline]
     pub fn with_capacity_and_hasher(cap: usize, hash_builder: H) -> StringInterner<S, H> {
-        StringInterner {
+        let cap = cap.next_power_of_two();
+        Self {
             map: HashMap::with_hasher(hash_builder),
-            values: Vec::with_capacity(cap),
+            spans: Vec::with_capacity(cap),
+            buf: String::with_capacity(cap),
+            full: Vec::new(),
         }
     }
 
@@ -297,10 +314,10 @@ where
     where
         T: Into<String> + AsRef<str>,
     {
-        match self.map.get(val.as_ref()) {
-            Some(&sym) => sym,
-            None => self.intern(val),
-        }
+        self.map
+            .get(val.as_ref())
+            .copied()
+            .unwrap_or_else(|| self.intern(val))
     }
 
     /// Interns the given value and ignores collissions.
@@ -310,12 +327,36 @@ where
     where
         T: Into<String> + AsRef<str>,
     {
-        let new_id: S = self.next_symbol();
-        let new_boxed_val = Pin::new(new_val.into().into_boxed_str());
-        let new_ref = PinnedStr::from_pin(new_boxed_val.as_ref());
-        self.values.push(new_boxed_val);
-        self.map.insert(new_ref, new_id);
-        new_id
+        let new_str = new_val.as_ref();
+        let pinned = self.alloc(new_str);
+        let id = self.next_symbol();
+        self.map.insert(pinned, id);
+        self.spans.push(pinned);
+
+        // debug_assert_eq!(self.get_or_intern(new_val), id);
+        debug_assert_eq!(self.resolve(id), Some(new_str));
+
+        id
+    }
+
+    fn alloc<T>(&mut self, new_val: T) -> PinnedStr
+    where
+        T: Into<String> + AsRef<str>,
+    {
+        let new_str = new_val.as_ref();
+        let cap = self.buf.capacity();
+        if cap < self.buf.len() + new_str.len() {
+            let new_cap = (usize::max(cap, new_str.len()) + 1).next_power_of_two();
+            let new_buf = String::with_capacity(new_cap);
+            let old_buf = ::core::mem::replace(&mut self.buf, new_buf);
+            self.full.push(old_buf);
+        }
+        let interned = {
+            let start = self.buf.len();
+            self.buf.push_str(new_str);
+            &self.buf[start..]
+        };
+        PinnedStr::from_str(unsafe { &*(interned as *const str) })
     }
 
     /// Creates a new symbol for the current state of the interner.
@@ -327,9 +368,9 @@ where
     /// otherwise returns `None`.
     #[inline]
     pub fn resolve(&self, symbol: S) -> Option<&str> {
-        self.values
+        self.spans
             .get(symbol.to_usize())
-            .map(|boxed_str| boxed_str.as_ref().get_ref())
+            .map(|pinned| pinned.as_str())
     }
 
     /// Returns the string associated with the given symbol.
@@ -345,10 +386,9 @@ where
     /// has no associated string for this interner instance.
     #[inline]
     pub unsafe fn resolve_unchecked(&self, symbol: S) -> &str {
-        self.values
+        self.spans
             .get_unchecked(symbol.to_usize())
-            .as_ref()
-            .get_ref()
+            .as_str()
     }
 
     /// Returns the symbol associated with the given string for this interner
@@ -364,7 +404,7 @@ where
     /// Returns the number of uniquely interned strings within this interner.
     #[inline]
     pub fn len(&self) -> usize {
-        self.values.len()
+        self.full.len()
     }
 
     /// Returns true if the string interner holds no elements.
@@ -388,7 +428,7 @@ where
     /// Shrinks the capacity of the interner as much as possible.
     pub fn shrink_to_fit(&mut self) {
         self.map.shrink_to_fit();
-        self.values.shrink_to_fit();
+        self.full.shrink_to_fit();
     }
 }
 
