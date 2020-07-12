@@ -43,22 +43,22 @@ additional terms or conditions.
 
 - 0.8.0
 
-    - Make it possible to use this crate in `no_std` environments
-        - Use the new `hashbrown` crate feature together with `no_std`
-    - Rename `Sym` to `DefaultSymbol`
-    - Add `IntoIterator` impl for `&StringInterner`
-    - Add some `#[inline]` annotations which improve performance for queries
-    - Various internal improvements (uses `Pin` self-referentials now)
+	- Make it possible to use this crate in `no_std` environments
+		- Use the new `hashbrown` crate feature together with `no_std`
+	- Rename `Sym` to `DefaultSymbol`
+	- Add `IntoIterator` impl for `&StringInterner`
+	- Add some `#[inline]` annotations which improve performance for queries
+	- Various internal improvements (uses `Pin` self-referentials now)
 
 - 0.7.1
 
-    - **CRITICAL** fix use after free bug in `StringInterner::clone()`
-    - implement `std::iter::Extend` for `StringInterner`
-    - `Sym::from_usize` now avoids using `unsafe` code
-    - optimize `FromIterator` impl of `StringInterner`
-    - move to Rust 2018 edition
+	- **CRITICAL** fix use after free bug in `StringInterner::clone()`
+	- implement `std::iter::Extend` for `StringInterner`
+	- `Sym::from_usize` now avoids using `unsafe` code
+	- optimize `FromIterator` impl of `StringInterner`
+	- move to Rust 2018 edition
 
-    Thanks [YOSHIOKA Takuma](https://github.com/lo48576) for implementing this release.
+	Thanks [YOSHIOKA Takuma](https://github.com/lo48576) for implementing this release.
 
 - 0.7.0
 
