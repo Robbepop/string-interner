@@ -135,6 +135,12 @@ impl PartialEq for PinnedStr {
     }
 }
 
+impl core::borrow::Borrow<str> for PinnedStr {
+    fn borrow(&self) -> &str {
+        self.as_str()
+    }
+}
+
 /// `StringInterner` that uses `Sym` as its underlying symbol type.
 pub type DefaultStringInterner = StringInterner<DefaultSymbol>;
 
@@ -291,7 +297,7 @@ where
     where
         T: Into<String> + AsRef<str>,
     {
-        match self.map.get(&PinnedStr::from_str(val.as_ref())) {
+        match self.map.get(val.as_ref()) {
             Some(&sym) => sym,
             None => self.intern(val),
         }
@@ -352,7 +358,7 @@ where
     where
         T: AsRef<str>,
     {
-        self.map.get(&PinnedStr::from_str(val.as_ref())).cloned()
+        self.map.get(val.as_ref()).cloned()
     }
 
     /// Returns the number of uniquely interned strings within this interner.
