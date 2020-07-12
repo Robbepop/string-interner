@@ -1,6 +1,7 @@
 #![doc(html_root_url = "https://docs.rs/crate/string-interner/0.8.0")]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![deny(missing_docs)]
+#![allow(unused_attributes)] // TODO: remove
 
 //! Caches strings efficiently, with minimal memory footprint and associates them with unique symbols.
 //! These symbols allow constant time comparisons and look-ups to the underlying interned strings.
@@ -57,46 +58,42 @@ mod tests;
 #[cfg(feature = "serde-1")]
 mod serde_impl;
 
+mod compat;
+mod iter;
 mod symbol;
 
-pub use crate::symbol::{
-    DefaultSymbol,
-    Symbol,
+use crate::compat::{
+    Box,
+    DefaultHashBuilder,
+    HashMap,
+    String,
+    Vec,
 };
-use cfg_if::cfg_if;
+pub use crate::{
+    iter::{
+        IntoIter,
+        Iter,
+        Values,
+    },
+    symbol::{
+        DefaultSymbol,
+        Symbol,
+    },
+};
 use core::{
     hash::{
         BuildHasher,
         Hash,
         Hasher,
     },
-    iter,
-    iter::FromIterator,
-    marker,
+    iter::{
+        FromIterator,
+        IntoIterator,
+        Iterator,
+    },
     pin::Pin,
     ptr::NonNull,
-    slice,
 };
-
-cfg_if! {
-    if #[cfg(feature = "std")] {
-        use std::{
-            collections::{
-                hash_map::RandomState,
-                HashMap,
-            },
-            vec,
-        };
-    } else {
-        extern crate alloc;
-        use alloc::{
-            collections::{
-                btree_map::BTreeMap,
-            },
-            vec,
-        };
-    }
-}
 
 /// Internal reference to an interned `str`.
 ///
@@ -143,7 +140,7 @@ pub type DefaultStringInterner = StringInterner<DefaultSymbol>;
 /// Caches strings efficiently, with minimal memory footprint and associates them with unique symbols.
 /// These symbols allow constant time comparisons and look-ups to the underlying interned strings.
 #[derive(Debug, Eq)]
-pub struct StringInterner<S, H = RandomState>
+pub struct StringInterner<S, H = DefaultHashBuilder>
 where
     S: Symbol,
     H: BuildHasher,
@@ -162,21 +159,24 @@ where
     }
 }
 
-impl Default for StringInterner<DefaultSymbol, RandomState> {
+impl Default for StringInterner<DefaultSymbol, DefaultHashBuilder> {
     #[inline]
     fn default() -> Self {
         StringInterner::new()
     }
 }
 
-// Should be manually cloned.
-// See <https://github.com/Robbepop/string-interner/issues/9>.
 impl<S, H> Clone for StringInterner<S, H>
 where
     S: Symbol,
     H: Clone + BuildHasher,
 {
     fn clone(&self) -> Self {
+        // We implement `Clone` manually for `StringInterner` to go around the
+        // issue of shallow closing the self-referential pinned strs.
+        // This was an issue with former implementations. Visit the following
+        // link for more information:
+        // https://github.com/Robbepop/string-interner/issues/9
         let values = self.values.clone();
         let mut map =
             HashMap::with_capacity_and_hasher(values.len(), self.map.hasher().clone());
@@ -222,7 +222,7 @@ where
 {
     /// Creates a new empty `StringInterner`.
     #[inline]
-    pub fn new() -> StringInterner<S, RandomState> {
+    pub fn new() -> StringInterner<S, DefaultHashBuilder> {
         StringInterner {
             map: HashMap::new(),
             values: Vec::new(),
@@ -241,7 +241,7 @@ where
     /// Returns the number of elements the `StringInterner` can hold without reallocating.
     #[inline]
     pub fn capacity(&self) -> usize {
-        std::cmp::min(self.map.capacity(), self.values.capacity())
+        core::cmp::min(self.map.capacity(), self.values.capacity())
     }
 
     /// Reserves capacity for at least `additional` more elements to be interned into `self`.
@@ -303,7 +303,7 @@ where
     where
         T: Into<String> + AsRef<str>,
     {
-        let new_id: S = self.make_symbol();
+        let new_id: S = self.next_symbol();
         let new_boxed_val = Pin::new(new_val.into().into_boxed_str());
         let new_ref = PinnedStr::from_pin(new_boxed_val.as_ref());
         self.values.push(new_boxed_val);
@@ -312,7 +312,7 @@ where
     }
 
     /// Creates a new symbol for the current state of the interner.
-    fn make_symbol(&self) -> S {
+    fn next_symbol(&self) -> S {
         S::from_usize(self.len())
     }
 
@@ -401,7 +401,7 @@ where
     }
 }
 
-impl<T, S> std::iter::Extend<T> for StringInterner<S>
+impl<T, S> core::iter::Extend<T> for StringInterner<S>
 where
     S: Symbol,
     T: Into<String> + AsRef<str>,
@@ -416,95 +416,7 @@ where
     }
 }
 
-/// Iterator over the pairs of associated symbols and interned strings for a `StringInterner`.
-pub struct Iter<'a, S> {
-    iter: iter::Enumerate<slice::Iter<'a, Pin<Box<str>>>>,
-    mark: marker::PhantomData<S>,
-}
-
-impl<'a, S> Iter<'a, S>
-where
-    S: Symbol + 'a,
-{
-    /// Creates a new iterator for the given StringIterator over pairs of
-    /// symbols and their associated interned string.
-    #[inline]
-    fn new<H>(interner: &'a StringInterner<S, H>) -> Self
-    where
-        H: BuildHasher,
-    {
-        Iter {
-            iter: interner.values.iter().enumerate(),
-            mark: marker::PhantomData,
-        }
-    }
-}
-
-impl<'a, S> Iterator for Iter<'a, S>
-where
-    S: Symbol + 'a,
-{
-    type Item = (S, &'a str);
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter
-            .next()
-            .map(|(num, boxed_str)| (S::from_usize(num), boxed_str.as_ref().get_ref()))
-    }
-
-    #[inline]
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        self.iter.size_hint()
-    }
-}
-
-/// Iterator over the interned strings of a `StringInterner`.
-pub struct Values<'a, S>
-where
-    S: Symbol + 'a,
-{
-    iter: slice::Iter<'a, Pin<Box<str>>>,
-    mark: marker::PhantomData<S>,
-}
-
-impl<'a, S> Values<'a, S>
-where
-    S: Symbol + 'a,
-{
-    /// Creates a new iterator for the given StringIterator over its interned strings.
-    #[inline]
-    fn new<H>(interner: &'a StringInterner<S, H>) -> Self
-    where
-        H: BuildHasher,
-    {
-        Values {
-            iter: interner.values.iter(),
-            mark: marker::PhantomData,
-        }
-    }
-}
-
-impl<'a, S> Iterator for Values<'a, S>
-where
-    S: Symbol + 'a,
-{
-    type Item = &'a str;
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter
-            .next()
-            .map(|boxed_str| boxed_str.as_ref().get_ref())
-    }
-
-    #[inline]
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        self.iter.size_hint()
-    }
-}
-
-impl<S, H> iter::IntoIterator for StringInterner<S, H>
+impl<S, H> IntoIterator for StringInterner<S, H>
 where
     S: Symbol,
     H: BuildHasher,
@@ -512,15 +424,13 @@ where
     type Item = (S, String);
     type IntoIter = IntoIter<S>;
 
+    #[inline]
     fn into_iter(self) -> Self::IntoIter {
-        IntoIter {
-            iter: self.values.into_iter().enumerate(),
-            mark: marker::PhantomData,
-        }
+        IntoIter::new(self)
     }
 }
 
-impl<'a, S, H> iter::IntoIterator for &'a StringInterner<S, H>
+impl<'a, S, H> IntoIterator for &'a StringInterner<S, H>
 where
     S: Symbol,
     H: BuildHasher,
@@ -528,36 +438,8 @@ where
     type Item = (S, &'a str);
     type IntoIter = Iter<'a, S>;
 
+    #[inline]
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
-    }
-}
-
-/// Iterator over the pairs of associated symbol and strings.
-///
-/// Consumes the `StringInterner` upon usage.
-pub struct IntoIter<S>
-where
-    S: Symbol,
-{
-    iter: iter::Enumerate<vec::IntoIter<Pin<Box<str>>>>,
-    mark: marker::PhantomData<S>,
-}
-
-impl<S> Iterator for IntoIter<S>
-where
-    S: Symbol,
-{
-    type Item = (S, String);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().map(|(num, boxed_str)| {
-            (S::from_usize(num), Pin::into_inner(boxed_str).into_string())
-        })
-    }
-
-    #[inline]
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        self.iter.size_hint()
     }
 }
