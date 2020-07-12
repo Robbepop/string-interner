@@ -1,9 +1,10 @@
 use super::*;
 
-use std::default::Default;
-
-use std::fmt;
-
+use core::{
+    default::Default,
+    fmt,
+    marker,
+};
 use serde::{
     de::{
         Deserialize,
