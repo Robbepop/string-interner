@@ -1,8 +1,8 @@
 # String Interner
 
-|        Linux        |       Windows       |       Codecov        |       Coveralls      |       Docs       |       Crates.io      |
-|:-------------------:|:-------------------:|:--------------------:|:--------------------:|:----------------:|:--------------------:|
-| [![travisCI][1]][2] | [![appveyor][3]][4] | [![codecov][5]][6] | [![coveralls][7]][8] | [![docs][9]][10]   | [![crates][11]][12] |
+|         CI          |       Coverage       |       Docs       |       Crates.io      |
+|:-------------------:|:--------------------:|:----------------:|:--------------------:|
+| [![travisCI][1]][2] | [![codecov][5]][6]   | [![docs][9]][10] | [![crates][11]][12]  |
 
 A data structure to cache strings efficiently, with minimal memory footprint and the ability to assicate
 the interned strings with unique symbols.
@@ -110,8 +110,6 @@ additional terms or conditions.
 
 [1]:  https://travis-ci.org/Robbepop/string-interner.svg?branch=master
 [2]:  https://travis-ci.org/Robbepop/string-interner
-[3]:  https://ci.appveyor.com/api/projects/status/16fc9l6rtroo4xqd?svg=true
-[4]:  https://ci.appveyor.com/project/Robbepop/string-interner/branch/master
 [5]:  https://codecov.io/gh/robbepop/string-interner/branch/master/graph/badge.svg
 [6]:  https://codecov.io/gh/Robbepop/string-interner/branch/master
 [7]:  https://coveralls.io/repos/github/Robbepop/string-interner/badge.svg?branch=master
