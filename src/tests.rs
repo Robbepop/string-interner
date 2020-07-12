@@ -204,7 +204,10 @@ mod resolve {
     #[test]
     fn not_found() {
         let interner = DefaultStringInterner::new();
-        assert_eq!(interner.resolve(DefaultSymbol::try_from_usize(0).unwrap()), None);
+        assert_eq!(
+            interner.resolve(DefaultSymbol::try_from_usize(0).unwrap()),
+            None
+        );
     }
 
     #[test]
@@ -252,9 +255,18 @@ mod iter {
         let interner: DefaultStringInterner =
             vec!["foo", "bar", "baz", "foo"].into_iter().collect();
         let mut iter = interner.iter();
-        assert_eq!(iter.next(), Some((DefaultSymbol::try_from_usize(0).unwrap(), "foo")));
-        assert_eq!(iter.next(), Some((DefaultSymbol::try_from_usize(1).unwrap(), "bar")));
-        assert_eq!(iter.next(), Some((DefaultSymbol::try_from_usize(2).unwrap(), "baz")));
+        assert_eq!(
+            iter.next(),
+            Some((DefaultSymbol::try_from_usize(0).unwrap(), "foo"))
+        );
+        assert_eq!(
+            iter.next(),
+            Some((DefaultSymbol::try_from_usize(1).unwrap(), "bar"))
+        );
+        assert_eq!(
+            iter.next(),
+            Some((DefaultSymbol::try_from_usize(2).unwrap(), "baz"))
+        );
         assert_eq!(iter.next(), None);
     }
 }
@@ -294,15 +306,24 @@ mod into_iter {
         let mut iter = interner.into_iter();
         assert_eq!(
             iter.next(),
-            Some((DefaultSymbol::try_from_usize(0).unwrap(), String::from("foo")))
+            Some((
+                DefaultSymbol::try_from_usize(0).unwrap(),
+                String::from("foo")
+            ))
         );
         assert_eq!(
             iter.next(),
-            Some((DefaultSymbol::try_from_usize(1).unwrap(), String::from("bar")))
+            Some((
+                DefaultSymbol::try_from_usize(1).unwrap(),
+                String::from("bar")
+            ))
         );
         assert_eq!(
             iter.next(),
-            Some((DefaultSymbol::try_from_usize(2).unwrap(), String::from("baz")))
+            Some((
+                DefaultSymbol::try_from_usize(2).unwrap(),
+                String::from("baz")
+            ))
         );
         assert_eq!(iter.next(), None);
     }
