@@ -520,6 +520,19 @@ where
     }
 }
 
+impl<'a, S, H> iter::IntoIterator for &'a StringInterner<S, H>
+where
+    S: Symbol,
+    H: BuildHasher,
+{
+    type Item = (S, &'a str);
+    type IntoIter = Iter<'a, S>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
 /// Iterator over the pairs of associated symbol and strings.
 ///
 /// Consumes the `StringInterner` upon usage.
