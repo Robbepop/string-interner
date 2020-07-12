@@ -41,6 +41,15 @@ additional terms or conditions.
 
 ## Changelog
 
+- 0.9.0
+
+	- Remove `Ord` trait bound from `Symbol` trait
+		- Also change `Symbol::from_usize(usize) -> Self` to `Symbol::try_from_usize(usize) -> Option<Self>`
+	- Minor performance improvements for `DefaultSymbol::try_from_usize`
+	- Put all iterator types into the `iter` sub module
+	- Put all symbol types into the `symbol` sub module
+	- Various internal improvements and reorganizations
+
 - 0.8.0
 
 	- Make it possible to use this crate in `no_std` environments
