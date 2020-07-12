@@ -84,9 +84,12 @@ where
             HashMap::with_capacity_and_hasher(values.len(), self.map.hasher().clone());
         // Recreate `InternalStrRef` from the newly cloned `Box<str>`s.
         // Use `extend()` to avoid `H: Default` trait bound required by `FromIterator for HashMap`.
-        map.extend(values.iter().enumerate().map(|(i, s)| {
-            (InternedStr::new(s).into(), expect_valid_symbol::<S>(i))
-        }));
+        map.extend(
+            values
+                .iter()
+                .enumerate()
+                .map(|(i, s)| (InternedStr::new(s).into(), expect_valid_symbol::<S>(i))),
+        );
         Self { values, map }
     }
 }
