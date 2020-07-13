@@ -11,10 +11,13 @@ pub use self::{
     interned_str::InternedStr,
     simple::SimpleBackend,
 };
-use crate::Symbol;
+use crate::{
+    DefaultSymbol,
+    Symbol,
+};
 
 /// TODO: Docs
-pub type DefaultBackend = SimpleBackend;
+pub type DefaultBackend = SimpleBackend<DefaultSymbol>;
 
 /// TODO: Docs
 pub trait Backend<S>: Default
