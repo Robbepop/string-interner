@@ -22,9 +22,25 @@ use core::{
 #[repr(transparent)]
 pub struct InternalStr(InternedStr);
 
+impl InternalStr {
+    /// Returns the underlying string for the internal str.
+    ///
+    /// # Note
+    ///
+    /// This is an inherently unsafe API that is just exposed as safe because
+    /// we keep it as a crate private abstraction.
+    pub fn as_str(&self) -> &str {
+        // SAFETY: This is safe since we only ever operate on interned `str`
+        //         that are never moved around in memory to avoid danling
+        //         references. This type is private to this crate and the crate
+        //         has to maintain proper usage.
+        unsafe { self.0.as_str() }
+    }
+}
+
 impl Debug for InternalStr {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "InternalStr({:?})", unsafe { self.0.as_str() })
+        write!(f, "InternalStr({:?})", self.as_str())
     }
 }
 
@@ -38,7 +54,7 @@ impl From<InternedStr> for InternalStr {
 impl Hash for InternalStr {
     #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
-        unsafe { self.0.as_str().hash(state) }
+        self.as_str().hash(state)
     }
 }
 
@@ -47,14 +63,14 @@ impl Eq for InternalStr {}
 impl PartialEq for InternalStr {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
-        unsafe { self.0.as_str() == other.0.as_str() }
+        self.as_str() == other.as_str()
     }
 }
 
 impl Borrow<str> for InternalStr {
     #[inline]
     fn borrow(&self) -> &str {
-        unsafe { self.0.as_str() }
+        self.as_str()
     }
 }
 
