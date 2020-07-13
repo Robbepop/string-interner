@@ -7,6 +7,7 @@ use crate::{
     DefaultBackend,
     DefaultSymbol,
     InternalStr,
+    InternedStr,
     Symbol,
 };
 use core::hash::BuildHasher;
@@ -37,6 +38,28 @@ impl Default for StringInterner<DefaultSymbol, DefaultBackend, DefaultHashBuilde
     #[inline]
     fn default() -> Self {
         StringInterner::new()
+    }
+}
+
+impl<S, B, H> Clone for StringInterner<S, B, H>
+where
+    S: Symbol,
+    B: Backend<S> + Clone,
+    for<'a> &'a B: IntoIterator<Item = (S, &'a str)>,
+    H: BuildHasher + Default,
+{
+    fn clone(&self) -> Self {
+        // We implement `Clone` manually for `StringInterner` to go around the
+        // issue of shallow closing the self-referential pinned strs.
+        // This was an issue with former implementations. Visit the following
+        // link for more information:
+        // https://github.com/Robbepop/string-interner/issues/9
+        let backend = self.backend.clone();
+        let map = backend
+            .into_iter()
+            .map(|(id, str)| (InternedStr::new(str).into(), id.into()))
+            .collect::<HashMap<_, S, H>>();
+        Self { map, backend }
     }
 }
 
