@@ -150,17 +150,24 @@ where
     ///
     /// Can be used to query if a string has already been interned without interning.
     #[inline]
-    pub fn get(&self, string: &str) -> Option<S> {
-        self.map.get(string).copied()
+    pub fn get<T>(&self, string: T) -> Option<S>
+    where
+        T: AsRef<str>,
+    {
+        self.map.get(string.as_ref()).copied()
     }
 
     /// Interns the given string.
     ///
     /// Returns a symbol for resolution into the original string.
     #[inline]
-    pub fn get_or_intern(&mut self, string: &str) -> S {
-        self.map.get(string).copied().unwrap_or_else(|| unsafe {
-            let (interned_str, symbol) = self.backend.intern(string);
+    pub fn get_or_intern<T>(&mut self, string: T) -> S
+    where
+        T: AsRef<str>,
+    {
+        let str = string.as_ref();
+        self.map.get(str).copied().unwrap_or_else(|| unsafe {
+            let (interned_str, symbol) = self.backend.intern(str);
             self.map.insert(interned_str.into(), symbol);
             symbol
         })
@@ -189,15 +196,16 @@ where
 {
 }
 
-impl<'a, S, B, H> FromIterator<&'a str> for StringInterner<S, B, H>
+impl<'a, S, B, H, T> FromIterator<T> for StringInterner<S, B, H>
 where
     S: Symbol,
     B: Backend<S>,
     H: BuildHasher + Default,
+    T: AsRef<str>,
 {
     fn from_iter<I>(iter: I) -> Self
     where
-        I: IntoIterator<Item = &'a str>,
+        I: IntoIterator<Item = T>,
     {
         let iter = iter.into_iter();
         let (capacity, _) = iter.size_hint();
@@ -207,18 +215,19 @@ where
     }
 }
 
-impl<'a, S, B, H> Extend<&'a str> for StringInterner<S, B, H>
+impl<'a, S, B, H, T> Extend<T> for StringInterner<S, B, H>
 where
     S: Symbol,
     B: Backend<S>,
     H: BuildHasher,
+    T: AsRef<str>,
 {
     fn extend<I>(&mut self, iter: I)
     where
-        I: IntoIterator<Item = &'a str>,
+        I: IntoIterator<Item = T>,
     {
         for s in iter {
-            self.get_or_intern(s);
+            self.get_or_intern(s.as_ref());
         }
     }
 }
