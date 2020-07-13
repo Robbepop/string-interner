@@ -111,6 +111,18 @@ where
         }
     }
 
+    /// Returns the number of strings interned by the interner.
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.map.len()
+    }
+
+    /// Returns `true` if the string interner has no interned strings.
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Interns the given string.
     ///
     /// Returns a symbol for resolution into the original string.
