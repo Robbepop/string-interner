@@ -182,6 +182,7 @@ impl BackendBenchmark for BenchSimple {
 fn bench_get_or_intern_static(c: &mut Criterion) {
     let mut g = c.benchmark_group("get_or_intern_static");
     fn bench_for_backend<BB: BackendBenchmark>(g: &mut BenchmarkGroup<WallTime>) {
+        #[rustfmt::skip]
         let static_strings = &[
             "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
             "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z",
