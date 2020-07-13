@@ -92,3 +92,22 @@ gen_symbol_for!(
     /// Is space-optimized for used in `Option`.
     struct SymbolUsize(NonZeroUsize; usize);
 );
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use core::mem::size_of;
+
+    #[test]
+    fn same_size_as_u32() {
+        assert_eq!(size_of::<DefaultSymbol>(), size_of::<u32>());
+    }
+
+    #[test]
+    fn same_size_as_optional() {
+        assert_eq!(
+            size_of::<DefaultSymbol>(),
+            size_of::<Option<DefaultSymbol>>()
+        );
+    }
+}
