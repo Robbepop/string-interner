@@ -2,8 +2,8 @@ use super::Backend;
 use crate::{
     compat::{
         Box,
-        Vec,
         ToString,
+        Vec,
     },
     symbol::expect_valid_symbol,
     InternedStr,
