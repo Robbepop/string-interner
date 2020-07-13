@@ -123,6 +123,17 @@ where
         self.len() == 0
     }
 
+    /// Returns the symbol for the given string if any.
+    ///
+    /// Can be used to query if a string has already been interned without interning.
+    #[inline]
+    pub fn get<T>(&self, val: T) -> Option<S>
+    where
+        T: AsRef<str>,
+    {
+        self.map.get(val.as_ref()).copied()
+    }
+
     /// Interns the given string.
     ///
     /// Returns a symbol for resolution into the original string.
