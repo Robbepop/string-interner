@@ -1,5 +1,10 @@
 use super::Backend;
 use crate::{
+    compat::{
+        Box,
+        Vec,
+        ToString,
+    },
     symbol::expect_valid_symbol,
     InternedStr,
     Symbol,

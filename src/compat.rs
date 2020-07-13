@@ -29,7 +29,7 @@ cfg_if! {
             },
             vec,
             vec::Vec,
-            string::String,
+            string::{String, ToString},
             boxed::Box,
         };
     } else {
@@ -37,7 +37,7 @@ cfg_if! {
         pub use self::alloc::{
             vec,
             vec::Vec,
-            string::String,
+            string::{String, ToString},
             boxed::Box,
         };
     }
