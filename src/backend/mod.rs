@@ -4,14 +4,14 @@
 //! There are trade-offs for the different kinds of backends. A user should
 //! find the backend that suits their use case best.
 
+mod bucket;
 mod interned_str;
 mod simple;
-mod bucket;
 
 pub use self::{
+    bucket::BucketBackend,
     interned_str::InternedStr,
     simple::SimpleBackend,
-    bucket::BucketBackend,
 };
 use crate::{
     DefaultSymbol,
