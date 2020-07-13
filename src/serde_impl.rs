@@ -1,6 +1,6 @@
 use crate::{
     backend::Backend,
-    StringInterner2 as StringInterner,
+    StringInterner,
     Symbol,
 };
 use core::{
