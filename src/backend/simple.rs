@@ -78,6 +78,27 @@ where
     }
 }
 
+impl<S> Clone for SimpleBackend<S>
+where
+    S: Symbol,
+{
+    fn clone(&self) -> Self {
+        Self {
+            strings: self.strings.clone(),
+            symbol_marker: Default::default(),
+        }
+    }
+}
+
+impl<S> PartialEq for SimpleBackend<S>
+where
+    S: Symbol,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.strings == other.strings
+    }
+}
+
 impl<'a, S> IntoIterator for &'a SimpleBackend<S>
 where
     S: Symbol,
