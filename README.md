@@ -41,6 +41,30 @@ additional terms or conditions.
 
 ## Changelog
 
+- 0.10.0
+
+	- Implement pluggable backends for `StringInterner`.
+	  Uses the new `BucketBackend` by default which results in significant
+	  performance boosts and lower memory consumption as well as fewer overall
+	  memory allocations.
+
+	  This makes it possible for dependencies to alter the behavior of internment.
+	  The `string-interner` crate comes with 2 predefined backends:
+		1. `SimpleBackend`: Which is how the `StringInterner` of previous versions
+		   worked by default. It performs one allocation per interned string.
+		2. `BucketBackend`: Tries to minimize memory allocations and packs
+		   interned strings densely. This is the new default behavior for this crate.
+	- Due to the above introduction of backends some APIs have been removed:
+		- `reserve`
+		- `capacity`
+		- the entire `iter` module
+			- Note: Simple iteration through the `StringInterer`'s interned strings
+			        and their symbols is still possible if the used backend supports
+			        iteration.
+		- `resolve_unchecked`: Has no replacement, yet but might be reintroduced
+		                       in future versions again.
+		- `shrink_to_fit`: The API design was never really a good fit for interners.
+
 - 0.9.0
 
 	- Remove `Ord` trait bound from `Symbol` trait
