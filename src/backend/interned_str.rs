@@ -12,6 +12,7 @@ pub struct InternedStr {
 
 impl InternedStr {
     /// Creates a new interned string from the given `str`.
+    #[inline]
     pub fn new(val: &str) -> Self {
         InternedStr {
             ptr: NonNull::from(val),
@@ -23,6 +24,7 @@ impl InternedStr {
     /// # Safety
     ///
     /// The user has to make sure that no lifetime guarantees are invalidated.
+    #[inline]
     pub(crate) unsafe fn as_str(&self) -> &str {
         // SAFETY: This is safe since we only ever operate on interned `str`
         //         that are never moved around in memory to avoid danling

@@ -222,6 +222,7 @@ where
     H: BuildHasher,
     T: AsRef<str>,
 {
+    #[inline]
     fn extend<I>(&mut self, iter: I)
     where
         I: IntoIterator<Item = T>,
@@ -242,6 +243,7 @@ where
     type Item = (S, &'a str);
     type IntoIter = <&'a B as IntoIterator>::IntoIter;
 
+    #[inline]
     fn into_iter(self) -> Self::IntoIter {
         self.backend.into_iter()
     }
