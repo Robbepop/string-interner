@@ -91,6 +91,8 @@ where
     }
 }
 
+impl<S> Eq for SimpleBackend<S> where S: Symbol {}
+
 impl<S> PartialEq for SimpleBackend<S>
 where
     S: Symbol,
