@@ -6,10 +6,12 @@
 
 mod interned_str;
 mod simple;
+mod bucket;
 
 pub use self::{
     interned_str::InternedStr,
     simple::SimpleBackend,
+    bucket::BucketBackend,
 };
 use crate::{
     DefaultSymbol,
@@ -17,7 +19,7 @@ use crate::{
 };
 
 /// The default backend recommended for general use.
-pub type DefaultBackend = SimpleBackend<DefaultSymbol>;
+pub type DefaultBackend = BucketBackend<DefaultSymbol>;
 
 /// Types implementing this trait may act as backends for the string interner.
 ///
