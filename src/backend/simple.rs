@@ -16,7 +16,25 @@ use core::{
     slice,
 };
 
-/// The simple interner that stores a single [`String`] for every interned string.
+/// The simple interner that stores a single string instance for every interned string.
+///
+/// Use this if you can afford many small allocations and if you want to have
+/// especially decent performance for look-ups when the string interner is
+/// already filled to some extend.
+///
+/// # Usage
+///
+/// - **Fill:** Efficiency of filling an empty string interner.
+/// - **Query:** Efficiency of interned string look-up given a symbol.
+/// - **Memory:** The number of allocations and overall memory consumption.
+///
+/// Rating varies between **bad**, **ok** and **good**.
+///
+/// | Scenario | Rating |
+/// |:---------|:------:|
+/// | Fill     | **bad** |
+/// | Query    | **good** |
+/// | Memory   | **bad:** many small allocations |
 #[derive(Debug)]
 pub struct SimpleBackend<S> {
     strings: Vec<Pin<Box<str>>>,
