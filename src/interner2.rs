@@ -152,3 +152,19 @@ where
         self.backend.resolve(symbol)
     }
 }
+
+unsafe impl<S, B, H> Send for StringInterner<S, B, H>
+where
+    S: Symbol + Send,
+    B: Backend<S> + Send,
+    H: BuildHasher,
+{
+}
+
+unsafe impl<S, B, H> Sync for StringInterner<S, B, H>
+where
+    S: Symbol + Sync,
+    B: Backend<S> + Sync,
+    H: BuildHasher,
+{
+}
