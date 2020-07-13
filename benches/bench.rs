@@ -2,10 +2,21 @@ use criterion::{
     black_box,
     criterion_group,
     criterion_main,
+    measurement::WallTime,
     BatchSize,
+    BenchmarkGroup,
     Criterion,
 };
-use string_interner::StringInterner;
+use string_interner::{
+    backend::{
+        Backend,
+        BucketBackend,
+        SimpleBackend,
+    },
+    DefaultHashBuilder,
+    DefaultSymbol,
+    StringInterner,
+};
 
 /// Alphabet containing all characters that may be put into a benchmark string.
 const ALPHABET: [u8; 64] = [
@@ -93,130 +104,224 @@ criterion_group!(
 );
 criterion_main!(bench_get_or_intern, bench_resolve, bench_get, bench_iter);
 
+type StringInternerWith<B> = StringInterner<DefaultSymbol, B, DefaultHashBuilder>;
+
+trait BackendBenchmark {
+    const NAME: &'static str;
+    type Backend: Backend<DefaultSymbol>;
+
+    fn setup() -> StringInternerWith<Self::Backend>;
+    fn setup_with_capacity(cap: usize) -> StringInternerWith<Self::Backend>;
+    fn setup_filled(words: &[String]) -> StringInternerWith<Self::Backend>;
+    fn setup_filled_with_ids(
+        words: &[String],
+    ) -> (StringInternerWith<Self::Backend>, Vec<DefaultSymbol>);
+}
+
+struct BenchBucket;
+impl BackendBenchmark for BenchBucket {
+    const NAME: &'static str = "BucketBackend";
+    type Backend = BucketBackend<DefaultSymbol>;
+
+    fn setup() -> StringInternerWith<Self::Backend> {
+        <StringInternerWith<Self::Backend>>::new()
+    }
+
+    fn setup_with_capacity(cap: usize) -> StringInternerWith<Self::Backend> {
+        <StringInternerWith<Self::Backend>>::with_capacity(cap)
+    }
+
+    fn setup_filled(words: &[String]) -> StringInternerWith<Self::Backend> {
+        words.iter().collect::<StringInternerWith<Self::Backend>>()
+    }
+
+    fn setup_filled_with_ids(
+        words: &[String],
+    ) -> (StringInternerWith<Self::Backend>, Vec<DefaultSymbol>) {
+        let mut interner = <StringInternerWith<Self::Backend>>::new();
+        let mut word_ids = Vec::new();
+        for word in words {
+            let word_id = interner.get_or_intern(word);
+            word_ids.push(word_id);
+        }
+        (interner, word_ids)
+    }
+}
+
+struct BenchSimple;
+impl BackendBenchmark for BenchSimple {
+    const NAME: &'static str = "SimpleBackend";
+    type Backend = SimpleBackend<DefaultSymbol>;
+
+    fn setup() -> StringInternerWith<Self::Backend> {
+        <StringInternerWith<Self::Backend>>::new()
+    }
+
+    fn setup_with_capacity(cap: usize) -> StringInternerWith<Self::Backend> {
+        <StringInternerWith<Self::Backend>>::with_capacity(cap)
+    }
+
+    fn setup_filled(words: &[String]) -> StringInternerWith<Self::Backend> {
+        words.iter().collect::<StringInternerWith<Self::Backend>>()
+    }
+
+    fn setup_filled_with_ids(
+        words: &[String],
+    ) -> (StringInternerWith<Self::Backend>, Vec<DefaultSymbol>) {
+        let mut interner = <StringInternerWith<Self::Backend>>::new();
+        let mut word_ids = Vec::new();
+        for word in words {
+            let word_id = interner.get_or_intern(word);
+            word_ids.push(word_id);
+        }
+        (interner, word_ids)
+    }
+}
+
 fn bench_get_or_intern_fill_with_capacity(c: &mut Criterion) {
-    let mut g = c.benchmark_group("get_or_intern");
-    g.bench_with_input(
-        "fill empty using with_capacity",
-        &(BENCH_LEN_STRINGS, BENCH_STRING_LEN),
-        |bencher, &(len_words, word_len)| {
-            let words = generate_test_strings(len_words, word_len);
-            bencher.iter_batched_ref(
-                || <StringInterner>::with_capacity(BENCH_LEN_STRINGS),
-                |interner| {
-                    for word in &words {
-                        black_box(interner.get_or_intern(word));
-                    }
-                },
-                BatchSize::SmallInput,
-            )
-        },
-    );
+    let mut g = c.benchmark_group("get_or_intern/fill-empty/with_capacity");
+    fn bench_for_backend<BB: BackendBenchmark>(g: &mut BenchmarkGroup<WallTime>) {
+        g.bench_with_input(
+            BB::NAME,
+            &(BENCH_LEN_STRINGS, BENCH_STRING_LEN),
+            |bencher, &(len_words, word_len)| {
+                let words = generate_test_strings(len_words, word_len);
+                bencher.iter_batched_ref(
+                    || BB::setup_with_capacity(BENCH_LEN_STRINGS),
+                    |interner| {
+                        for word in &words {
+                            black_box(interner.get_or_intern(word));
+                        }
+                    },
+                    BatchSize::SmallInput,
+                )
+            },
+        );
+    }
+    bench_for_backend::<BenchSimple>(&mut g);
+    bench_for_backend::<BenchBucket>(&mut g);
 }
 
 fn bench_get_or_intern_fill(c: &mut Criterion) {
-    let mut g = c.benchmark_group("get_or_intern");
-    g.bench_with_input(
-        "fill empty",
-        &(BENCH_LEN_STRINGS, BENCH_STRING_LEN),
-        |bencher, &(len_words, word_len)| {
-            let words = generate_test_strings(len_words, word_len);
-            bencher.iter_batched_ref(
-                || StringInterner::default(),
-                |interner| {
-                    for word in &words {
-                        black_box(interner.get_or_intern(word));
-                    }
-                },
-                BatchSize::SmallInput,
-            )
-        },
-    );
+    let mut g = c.benchmark_group("get_or_intern/fill-empty/new");
+    fn bench_for_backend<BB: BackendBenchmark>(g: &mut BenchmarkGroup<WallTime>) {
+        g.bench_with_input(
+            BB::NAME,
+            &(BENCH_LEN_STRINGS, BENCH_STRING_LEN),
+            |bencher, &(len_words, word_len)| {
+                let words = generate_test_strings(len_words, word_len);
+                bencher.iter_batched_ref(
+                    || BB::setup(),
+                    |interner| {
+                        for word in &words {
+                            black_box(interner.get_or_intern(word));
+                        }
+                    },
+                    BatchSize::SmallInput,
+                )
+            },
+        );
+    }
+    bench_for_backend::<BenchSimple>(&mut g);
+    bench_for_backend::<BenchBucket>(&mut g);
 }
 
 fn bench_get_or_intern_already_filled(c: &mut Criterion) {
-    let mut g = c.benchmark_group("get_or_intern");
-    g.bench_with_input(
-        "already filled",
-        &(BENCH_LEN_STRINGS, BENCH_STRING_LEN),
-        |bencher, &(len_words, word_len)| {
-            let words = generate_test_strings(len_words, word_len);
-            bencher.iter_batched_ref(
-                || words.iter().collect::<StringInterner>(),
-                |interner| {
-                    for word in &words {
-                        black_box(interner.get_or_intern(word));
-                    }
-                },
-                BatchSize::SmallInput,
-            )
-        },
-    );
+    let mut g = c.benchmark_group("get_or_intern/already-filled");
+    fn bench_for_backend<BB: BackendBenchmark>(g: &mut BenchmarkGroup<WallTime>) {
+        g.bench_with_input(
+            BB::NAME,
+            &(BENCH_LEN_STRINGS, BENCH_STRING_LEN),
+            |bencher, &(len_words, word_len)| {
+                let words = generate_test_strings(len_words, word_len);
+                bencher.iter_batched_ref(
+                    || BB::setup_filled(&words),
+                    |interner| {
+                        for word in &words {
+                            black_box(interner.get_or_intern(word));
+                        }
+                    },
+                    BatchSize::SmallInput,
+                )
+            },
+        );
+    }
+    bench_for_backend::<BenchSimple>(&mut g);
+    bench_for_backend::<BenchBucket>(&mut g);
 }
 
 fn bench_resolve_already_filled(c: &mut Criterion) {
-    let mut g = c.benchmark_group("resolve");
-    g.bench_with_input(
-        "already filled",
-        &(BENCH_LEN_STRINGS, BENCH_STRING_LEN),
-        |bencher, &(len_words, word_len)| {
-            let words = generate_test_strings(len_words, word_len);
-            bencher.iter_batched_ref(
-                || {
-                    let mut interner = StringInterner::default();
-                    let mut word_ids = Vec::new();
-                    for word in words.clone() {
-                        let word_id = interner.get_or_intern(word);
-                        word_ids.push(word_id);
-                    }
-                    (interner, word_ids)
-                },
-                |(interner, word_ids)| {
-                    for &word_id in &*word_ids {
-                        black_box(interner.resolve(word_id));
-                    }
-                },
-                BatchSize::SmallInput,
-            )
-        },
-    );
+    let mut g = c.benchmark_group("resolve/already-filled");
+    fn bench_for_backend<BB: BackendBenchmark>(g: &mut BenchmarkGroup<WallTime>) {
+        g.bench_with_input(
+            BB::NAME,
+            &(BENCH_LEN_STRINGS, BENCH_STRING_LEN),
+            |bencher, &(len_words, word_len)| {
+                let words = generate_test_strings(len_words, word_len);
+                bencher.iter_batched_ref(
+                    || BB::setup_filled_with_ids(&words),
+                    |(interner, word_ids)| {
+                        for &word_id in &*word_ids {
+                            black_box(interner.resolve(word_id));
+                        }
+                    },
+                    BatchSize::SmallInput,
+                )
+            },
+        );
+    }
+    bench_for_backend::<BenchSimple>(&mut g);
+    bench_for_backend::<BenchBucket>(&mut g);
 }
 
 fn bench_get_already_filled(c: &mut Criterion) {
-    let mut g = c.benchmark_group("get");
-    g.bench_with_input(
-        "already filled",
-        &(BENCH_LEN_STRINGS, BENCH_STRING_LEN),
-        |bencher, &(len_words, word_len)| {
-            let words = generate_test_strings(len_words, word_len);
-            bencher.iter_batched_ref(
-                || words.iter().collect::<StringInterner>(),
-                |interner| {
-                    for word in &words {
-                        black_box(interner.get(word));
-                    }
-                },
-                BatchSize::SmallInput,
-            )
-        },
-    );
+    let mut g = c.benchmark_group("get/already-filled");
+    fn bench_for_backend<BB: BackendBenchmark>(g: &mut BenchmarkGroup<WallTime>) {
+        g.bench_with_input(
+            BB::NAME,
+            &(BENCH_LEN_STRINGS, BENCH_STRING_LEN),
+            |bencher, &(len_words, word_len)| {
+                let words = generate_test_strings(len_words, word_len);
+                bencher.iter_batched_ref(
+                    || BB::setup_filled(&words),
+                    |interner| {
+                        for word in &words {
+                            black_box(interner.get(word));
+                        }
+                    },
+                    BatchSize::SmallInput,
+                )
+            },
+        );
+    }
+    bench_for_backend::<BenchSimple>(&mut g);
+    bench_for_backend::<BenchBucket>(&mut g);
 }
 
 fn bench_iter_already_filled(c: &mut Criterion) {
-    let mut g = c.benchmark_group("iter");
-    g.bench_with_input(
-        "already filled",
-        &(BENCH_LEN_STRINGS, BENCH_STRING_LEN),
-        |bencher, &(len_words, word_len)| {
-            let words = generate_test_strings(len_words, word_len);
-            bencher.iter_batched_ref(
-                || words.iter().collect::<StringInterner>(),
-                |interner| {
-                    for word in &*interner {
-                        black_box(word);
-                    }
-                },
-                BatchSize::SmallInput,
-            )
-        },
-    );
+    let mut g = c.benchmark_group("iter/already-filled");
+    fn bench_for_backend<BB: BackendBenchmark>(g: &mut BenchmarkGroup<WallTime>)
+    where
+        for<'a> &'a <BB as BackendBenchmark>::Backend:
+            IntoIterator<Item = (DefaultSymbol, &'a str)>,
+    {
+        g.bench_with_input(
+            BB::NAME,
+            &(BENCH_LEN_STRINGS, BENCH_STRING_LEN),
+            |bencher, &(len_words, word_len)| {
+                let words = generate_test_strings(len_words, word_len);
+                bencher.iter_batched_ref(
+                    || BB::setup_filled(&words),
+                    |interner| {
+                        for word in &*interner {
+                            black_box(word);
+                        }
+                    },
+                    BatchSize::SmallInput,
+                )
+            },
+        );
+    }
+    bench_for_backend::<BenchSimple>(&mut g);
+    bench_for_backend::<BenchBucket>(&mut g);
 }
