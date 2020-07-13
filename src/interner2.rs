@@ -63,6 +63,25 @@ where
     }
 }
 
+impl<S, B, H> PartialEq for StringInterner<S, B, H>
+where
+    S: Symbol,
+    B: Backend<S> + PartialEq,
+    H: BuildHasher,
+{
+    fn eq(&self, rhs: &Self) -> bool {
+        self.len() == rhs.len() && self.backend == rhs.backend
+    }
+}
+
+impl<S, B, H> Eq for StringInterner<S, B, H>
+where
+    S: Symbol,
+    B: Backend<S> + Eq,
+    H: BuildHasher,
+{
+}
+
 impl<S, B> StringInterner<S, B>
 where
     S: Symbol,
