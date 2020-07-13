@@ -1,5 +1,8 @@
-use super::*;
-
+use crate::{
+    backend::Backend,
+    StringInterner2 as StringInterner,
+    Symbol,
+};
 use core::{
     default::Default,
     fmt,
@@ -20,29 +23,32 @@ use serde::{
     },
 };
 
-impl<Sym, H> Serialize for StringInterner<Sym, H>
+impl<S, B, H> Serialize for StringInterner<S, B, H>
 where
-    Sym: Symbol,
+    S: Symbol,
+    B: Backend<S>,
+    for<'a> &'a B: IntoIterator<Item = (S, &'a str)>,
     H: BuildHasher,
 {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize<T>(&self, serializer: T) -> Result<T::Ok, T::Error>
     where
-        S: Serializer,
+        T: Serializer,
     {
         let mut seq = serializer.serialize_seq(Some(self.len()))?;
-        for s in self.iter_values() {
-            seq.serialize_element(s)?
+        for (_symbol, string) in self {
+            seq.serialize_element(string)?
         }
         seq.end()
     }
 }
 
-impl<'de, Sym, H> Deserialize<'de> for StringInterner<Sym, H>
+impl<'de, S, B, H> Deserialize<'de> for StringInterner<S, B, H>
 where
-    Sym: Symbol,
+    S: Symbol,
+    B: Backend<S>,
     H: BuildHasher + Default,
 {
-    fn deserialize<D>(deserializer: D) -> Result<StringInterner<Sym, H>, D::Error>
+    fn deserialize<D>(deserializer: D) -> Result<StringInterner<S, B, H>, D::Error>
     where
         D: Deserializer<'de>,
     {
@@ -50,17 +56,19 @@ where
     }
 }
 
-struct StringInternerVisitor<Sym, H>
+struct StringInternerVisitor<S, B, H>
 where
-    Sym: Symbol,
+    S: Symbol,
+    B: Backend<S>,
     H: BuildHasher,
 {
-    mark: marker::PhantomData<(Sym, H)>,
+    mark: marker::PhantomData<(S, B, H)>,
 }
 
-impl<Sym, H> Default for StringInternerVisitor<Sym, H>
+impl<S, B, H> Default for StringInternerVisitor<S, B, H>
 where
-    Sym: Symbol,
+    S: Symbol,
+    B: Backend<S>,
     H: BuildHasher,
 {
     fn default() -> Self {
@@ -70,12 +78,13 @@ where
     }
 }
 
-impl<'de, Sym, H> Visitor<'de> for StringInternerVisitor<Sym, H>
+impl<'de, S, B, H> Visitor<'de> for StringInternerVisitor<S, B, H>
 where
-    Sym: Symbol,
+    S: Symbol,
+    B: Backend<S>,
     H: BuildHasher + Default,
 {
-    type Value = StringInterner<Sym, H>;
+    type Value = StringInterner<S, B, H>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         formatter.write_str("Expected a contiguous sequence of strings.")
@@ -85,7 +94,7 @@ where
     where
         A: SeqAccess<'de>,
     {
-        let mut interner: StringInterner<Sym, H> =
+        let mut interner: StringInterner<S, B, H> =
             StringInterner::with_capacity_and_hasher(
                 seq.size_hint().unwrap_or(0),
                 H::default(),
