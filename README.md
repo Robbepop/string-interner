@@ -41,6 +41,17 @@ additional terms or conditions.
 
 ## Changelog
 
+- 0.10.1 (not released, yet)
+
+	- Allow to intern `&'static str` using `get_or_intern_static` API.
+		- This is a common use case and more efficient since the interner can
+		  skip some allocations in this special case.
+	- Fix bug in `SymbolU16` and `SymbolU32` that instantiating them with values
+	  greater or equal to `u16::MAX` or `u32::MAX` respectively caused them to
+	  panic instead of returning `None`.
+	  - Special thanks to [Ten0](https://github.com/Ten0) for reporting the issue!
+	- Add a bunch of additional unit tests to further solifidy the implementation.
+
 - 0.10.0
 
 	Special thanks to [CAD97](https://dev.to/cad97) who motivated me to craft this
