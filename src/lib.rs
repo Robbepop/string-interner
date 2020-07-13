@@ -67,6 +67,7 @@ use self::internal_str::InternalStr;
 
 #[doc(inline)]
 pub use self::{
+    compat::DefaultHashBuilder,
     backend::DefaultBackend,
     interner::StringInterner,
     symbol::{
