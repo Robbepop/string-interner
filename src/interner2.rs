@@ -60,7 +60,7 @@ where
         let backend = self.backend.clone();
         let map = backend
             .into_iter()
-            .map(|(id, str)| (InternedStr::new(str).into(), id.into()))
+            .map(|(id, str)| (InternedStr::new(str).into(), id))
             .collect::<HashMap<_, S, H>>();
         Self { map, backend }
     }
