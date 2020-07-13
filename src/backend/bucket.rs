@@ -72,8 +72,13 @@ where
     #[inline]
     unsafe fn intern(&mut self, string: &str) -> (InternedStr, S) {
         let interned = self.alloc(string);
-        let symbol = expect_valid_symbol(self.spans.len());
-        self.spans.push(interned.into());
+        let symbol = self.push_span(interned);
+        (interned, symbol)
+    }
+
+    unsafe fn intern_static(&mut self, string: &'static str) -> (InternedStr, S) {
+        let interned = InternedStr::new(string);
+        let symbol = self.push_span(interned);
         (interned, symbol)
     }
 
@@ -89,6 +94,18 @@ impl<S> BucketBackend<S>
 where
     S: Symbol,
 {
+    /// Returns the next available symbol.
+    fn next_symbol(&self) -> S {
+        expect_valid_symbol(self.spans.len())
+    }
+
+    /// Pushes the given interned string into the spans and returns its symbol.
+    fn push_span(&mut self, interned: InternedStr) -> S {
+        let symbol = self.next_symbol();
+        self.spans.push(interned.into());
+        symbol
+    }
+
     /// Interns a new string into the backend and returns a reference to it.
     unsafe fn alloc(&mut self, string: &str) -> InternedStr {
         let cap = self.head.capacity();
