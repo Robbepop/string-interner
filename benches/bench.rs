@@ -82,12 +82,33 @@ criterion_group!(bench_iter, bench_iter_already_filled,);
 criterion_group!(
     bench_get_or_intern,
     bench_get_or_intern_fill,
+    bench_get_or_intern_fill_with_capacity,
     bench_get_or_intern_already_filled,
 );
 criterion_main!(bench_get_or_intern, bench_resolve, bench_get, bench_iter);
 
 const BENCH_LEN_WORDS: usize = 100_000;
 const BENCH_WORD_LEN: usize = 5;
+
+fn bench_get_or_intern_fill_with_capacity(c: &mut Criterion) {
+    let mut g = c.benchmark_group("get_or_intern");
+    g.bench_with_input(
+        "fill empty using with_capacity",
+        &(BENCH_LEN_WORDS, BENCH_WORD_LEN),
+        |bencher, &(len_words, word_len)| {
+            let words = generate_test_strings(len_words, word_len);
+            bencher.iter_batched_ref(
+                || <StringInterner>::with_capacity(BENCH_LEN_WORDS),
+                |interner| {
+                    for word in &words {
+                        black_box(interner.get_or_intern(word));
+                    }
+                },
+                BatchSize::SmallInput,
+            )
+        },
+    );
+}
 
 fn bench_get_or_intern_fill(c: &mut Criterion) {
     let mut g = c.benchmark_group("get_or_intern");
