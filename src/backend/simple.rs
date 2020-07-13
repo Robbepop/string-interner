@@ -1,12 +1,12 @@
 use super::Backend;
 use crate::{
+    backend::InternedStr,
     compat::{
         Box,
         ToString,
         Vec,
     },
     symbol::expect_valid_symbol,
-    backend::InternedStr,
     Symbol,
 };
 use core::{
