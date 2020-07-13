@@ -6,7 +6,7 @@ use crate::{
         Vec,
     },
     symbol::expect_valid_symbol,
-    InternedStr,
+    backend::InternedStr,
     Symbol,
 };
 use core::{
