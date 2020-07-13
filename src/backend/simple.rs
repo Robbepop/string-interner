@@ -5,7 +5,10 @@ use crate::{
     Symbol,
 };
 use core::{
+    iter::Enumerate,
     marker::PhantomData,
+    pin::Pin,
+    slice,
 };
 
 /// TODO: Docs
@@ -51,5 +54,50 @@ where
         self.strings.get(symbol.to_usize()).map(|pinned| &**pinned)
     }
 }
+
+impl<'a, S> IntoIterator for &'a SimpleBackend<S>
+where
+    S: Symbol,
+{
+    type Item = (S, &'a str);
+    type IntoIter = Iter<'a, S>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        Self::IntoIter::new(self)
+    }
+}
+
+pub struct Iter<'a, S> {
+    iter: Enumerate<slice::Iter<'a, Pin<Box<str>>>>,
+    symbol_marker: PhantomData<fn() -> S>,
+}
+
+impl<'a, S> Iter<'a, S> {
+    #[inline]
+    pub fn new(backend: &'a SimpleBackend<S>) -> Self {
+        Self {
+            iter: backend.strings.iter().enumerate(),
+            symbol_marker: Default::default(),
+        }
+    }
+}
+
+impl<'a, S> Iterator for Iter<'a, S>
+where
+    S: Symbol,
+{
+    type Item = (S, &'a str);
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
+    }
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter
+            .next()
+            .map(|(id, pinned)| (expect_valid_symbol(id), &**pinned))
     }
 }
