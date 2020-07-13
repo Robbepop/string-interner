@@ -5,19 +5,6 @@ use crate::{
     StringInterner,
 };
 
-mod sym {
-    use super::*;
-
-    #[test]
-    fn same_size_as_optional() {
-        use std::mem;
-        assert_eq!(
-            mem::size_of::<DefaultSymbol>(),
-            mem::size_of::<Option<DefaultSymbol>>()
-        );
-    }
-}
-
 mod len {
     use super::*;
 
