@@ -16,7 +16,7 @@ use core::{
     slice,
 };
 
-/// TODO: Docs
+/// The simple interner that stores a single [`String`] for every interned string.
 #[derive(Debug)]
 pub struct SimpleBackend<S> {
     strings: Vec<Pin<Box<str>>>,
