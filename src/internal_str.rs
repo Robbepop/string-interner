@@ -1,4 +1,4 @@
-use crate::InternedStr;
+use crate::backend::InternedStr;
 use core::{
     borrow::Borrow,
     fmt::{

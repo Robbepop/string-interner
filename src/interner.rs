@@ -7,7 +7,7 @@ use crate::{
     DefaultBackend,
     DefaultSymbol,
     InternalStr,
-    InternedStr,
+    backend::InternedStr,
     Symbol,
 };
 use core::{
