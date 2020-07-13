@@ -51,6 +51,21 @@ macro_rules! gen_tests_for_backend {
         }
 
         #[test]
+        fn get_or_intern_static_works() {
+            let mut interner = StringInterner::new();
+            // Insert 3 unique strings:
+            assert_eq!(interner.get_or_intern_static("a").to_usize(), 0);
+            assert_eq!(interner.get_or_intern_static("b").to_usize(), 1);
+            assert_eq!(interner.get_or_intern_static("c").to_usize(), 2);
+            assert_eq!(interner.len(), 3);
+            // Insert the same 3 unique strings, yield the same symbols:
+            assert_eq!(interner.get_or_intern_static("a").to_usize(), 0);
+            assert_eq!(interner.get_or_intern_static("b").to_usize(), 1);
+            assert_eq!(interner.get_or_intern_static("c").to_usize(), 2);
+            assert_eq!(interner.len(), 3);
+        }
+
+        #[test]
         fn resolve_works() {
             let mut interner = StringInterner::new();
             // Insert 3 unique strings:
