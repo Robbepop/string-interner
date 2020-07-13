@@ -10,7 +10,10 @@ use crate::{
     InternedStr,
     Symbol,
 };
-use core::hash::BuildHasher;
+use core::{
+    hash::BuildHasher,
+    iter::FromIterator,
+};
 
 /// Data structure to intern and resolve strings.
 ///
@@ -82,16 +85,17 @@ where
 {
 }
 
-impl<S, B> StringInterner<S, B>
+impl<S, B, H> StringInterner<S, B, H>
 where
     S: Symbol,
     B: Backend<S>,
+    H: BuildHasher + Default,
 {
     /// Creates a new empty `StringInterner`.
     #[inline]
     pub fn new() -> Self {
-        StringInterner {
-            map: HashMap::new(),
+        Self {
+            map: HashMap::default(),
             backend: B::default(),
         }
     }
@@ -99,8 +103,8 @@ where
     /// Creates a new `StringInterner` with the given initial capacity.
     #[inline]
     pub fn with_capacity(cap: usize) -> Self {
-        StringInterner {
-            map: HashMap::new(),
+        Self {
+            map: HashMap::default(),
             backend: B::with_capacity(cap),
         }
     }
@@ -146,18 +150,15 @@ where
     ///
     /// Can be used to query if a string has already been interned without interning.
     #[inline]
-    pub fn get<T>(&self, val: T) -> Option<S>
-    where
-        T: AsRef<str>,
-    {
-        self.map.get(val.as_ref()).copied()
+    pub fn get(&self, string: &str) -> Option<S> {
+        self.map.get(string).copied()
     }
 
     /// Interns the given string.
     ///
     /// Returns a symbol for resolution into the original string.
     #[inline]
-    pub fn get_or_intern<T>(&mut self, string: &str) -> S {
+    pub fn get_or_intern(&mut self, string: &str) -> S {
         self.map.get(string).copied().unwrap_or_else(|| unsafe {
             let (interned_str, symbol) = self.backend.intern(string);
             self.map.insert(interned_str.into(), symbol);
@@ -186,4 +187,38 @@ where
     B: Backend<S> + Sync,
     H: BuildHasher,
 {
+}
+
+impl<'a, S, B, H> FromIterator<&'a str> for StringInterner<S, B, H>
+where
+    S: Symbol,
+    B: Backend<S>,
+    H: BuildHasher + Default,
+{
+    fn from_iter<I>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = &'a str>,
+    {
+        let iter = iter.into_iter();
+        let (capacity, _) = iter.size_hint();
+        let mut interner = Self::with_capacity(capacity);
+        interner.extend(iter);
+        interner
+    }
+}
+
+impl<'a, S, B, H> Extend<&'a str> for StringInterner<S, B, H>
+where
+    S: Symbol,
+    B: Backend<S>,
+    H: BuildHasher,
+{
+    fn extend<I>(&mut self, iter: I)
+    where
+        I: IntoIterator<Item = &'a str>,
+    {
+        for s in iter {
+            self.get_or_intern(s);
+        }
+    }
 }
