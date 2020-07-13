@@ -162,6 +162,11 @@ where
     /// Interns the given string.
     ///
     /// Returns a symbol for resolution into the original string.
+    ///
+    /// # Panics
+    ///
+    /// If the interner already interns the maximum number of strings possible
+    /// by the chosen symbol type.
     #[inline]
     pub fn get_or_intern<T>(&mut self, string: T) -> S
     where
