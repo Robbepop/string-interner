@@ -1,6 +1,6 @@
 use crate::{
     symbol::expect_valid_symbol,
-    StringInterner2 as StringInterner,
+    StringInterner,
     Symbol,
 };
 

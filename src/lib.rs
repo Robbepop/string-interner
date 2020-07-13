@@ -71,7 +71,7 @@ pub use self::{
         DefaultBackend,
         InternedStr,
     },
-    interner2::StringInterner as StringInterner2,
+    interner2::StringInterner,
     symbol::{
         DefaultSymbol,
         Symbol,
