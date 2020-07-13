@@ -82,6 +82,7 @@ impl<S> Clone for SimpleBackend<S>
 where
     S: Symbol,
 {
+    #[inline]
     fn clone(&self) -> Self {
         Self {
             strings: self.strings.clone(),
@@ -94,6 +95,7 @@ impl<S> PartialEq for SimpleBackend<S>
 where
     S: Symbol,
 {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.strings == other.strings
     }
