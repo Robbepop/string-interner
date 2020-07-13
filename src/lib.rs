@@ -54,6 +54,9 @@
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+mod tests2;
+
 #[cfg(feature = "serde-1")]
 mod serde_impl;
 
