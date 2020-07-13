@@ -180,6 +180,28 @@ where
         })
     }
 
+    /// Interns the given `'static` string.
+    ///
+    /// Returns a symbol for resolution into the original string.
+    ///
+    /// # Note
+    ///
+    /// This is more efficient than [`StringInterner::get_or_intern`] since it might
+    /// avoid some memory allocations if the backends supports this.
+    ///
+    /// # Panics
+    ///
+    /// If the interner already interns the maximum number of strings possible
+    /// by the chosen symbol type.
+    #[inline]
+    pub fn get_or_intern_static(&mut self, string: &'static str) -> S {
+        self.map.get(string).copied().unwrap_or_else(|| unsafe {
+            let (interned_str, symbol) = self.backend.intern_static(string);
+            self.map.insert(interned_str.into(), symbol);
+            symbol
+        })
+    }
+
     /// Returns the string for the given symbol if any.
     #[inline]
     pub fn resolve(&self, symbol: S) -> Option<&str> {
@@ -203,7 +225,7 @@ where
 {
 }
 
-impl<'a, S, B, H, T> FromIterator<T> for StringInterner<S, B, H>
+impl<S, B, H, T> FromIterator<T> for StringInterner<S, B, H>
 where
     S: Symbol,
     B: Backend<S>,
@@ -222,7 +244,7 @@ where
     }
 }
 
-impl<'a, S, B, H, T> Extend<T> for StringInterner<S, B, H>
+impl<S, B, H, T> Extend<T> for StringInterner<S, B, H>
 where
     S: Symbol,
     B: Backend<S>,
