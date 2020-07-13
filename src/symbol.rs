@@ -59,7 +59,7 @@ macro_rules! gen_symbol_for {
         impl Symbol for $name {
             #[inline]
             fn try_from_usize(index: usize) -> Option<Self> {
-                if index < usize::MAX {
+                if index < <$base_ty>::MAX as usize {
                     return Some(Self {
                         value: unsafe { <$non_zero>::new_unchecked(index as $base_ty + 1) },
                     })
@@ -110,4 +110,58 @@ mod tests {
             size_of::<Option<DefaultSymbol>>()
         );
     }
+
+    #[test]
+    fn try_from_usize_works() {
+        assert_eq!(
+            SymbolU16::try_from_usize(0),
+            Some(SymbolU16 {
+                value: NonZeroU16::new(1).unwrap()
+            })
+        );
+        assert_eq!(
+            SymbolU16::try_from_usize(u16::MAX as usize - 1),
+            Some(SymbolU16 {
+                value: NonZeroU16::new(u16::MAX).unwrap()
+            })
+        );
+        assert_eq!(SymbolU16::try_from_usize(u16::MAX as usize), None);
+        assert_eq!(SymbolU16::try_from_usize(usize::MAX), None);
+    }
+
+    macro_rules! gen_test_for {
+        ( $test_name:ident: struct $name:ident($non_zero:ty; $base_ty:ty); ) => {
+            #[test]
+            fn $test_name() {
+                for val in 0..10 {
+                    assert_eq!(
+                        <$name>::try_from_usize(val),
+                        Some($name {
+                            value: <$non_zero>::new(val as $base_ty + 1).unwrap()
+                        })
+                    );
+                }
+                assert_eq!(
+                    <$name>::try_from_usize(<$base_ty>::MAX as usize - 1),
+                    Some($name {
+                        value: <$non_zero>::new(<$base_ty>::MAX).unwrap()
+                    })
+                );
+                assert_eq!(<$name>::try_from_usize(<$base_ty>::MAX as usize), None);
+                assert_eq!(<$name>::try_from_usize(<usize>::MAX), None);
+            }
+        };
+    }
+    gen_test_for!(
+        try_from_usize_works_for_u16:
+        struct SymbolU16(NonZeroU16; u16);
+    );
+    gen_test_for!(
+        try_from_usize_works_for_u32:
+        struct SymbolU32(NonZeroU32; u32);
+    );
+    gen_test_for!(
+        try_from_usize_works_for_usize:
+        struct SymbolUsize(NonZeroUsize; usize);
+    );
 }
