@@ -101,6 +101,7 @@ criterion_group!(
     bench_get_or_intern_fill,
     bench_get_or_intern_fill_with_capacity,
     bench_get_or_intern_already_filled,
+    bench_get_or_intern_static,
 );
 criterion_main!(bench_get_or_intern, bench_resolve, bench_get, bench_iter);
 
@@ -176,6 +177,50 @@ impl BackendBenchmark for BenchSimple {
         }
         (interner, word_ids)
     }
+}
+
+fn bench_get_or_intern_static(c: &mut Criterion) {
+    let mut g = c.benchmark_group("get_or_intern_static");
+    fn bench_for_backend<BB: BackendBenchmark>(g: &mut BenchmarkGroup<WallTime>) {
+        let static_strings = &[
+            "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
+            "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z",
+            "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
+            "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+        ];
+        g.bench_with_input(
+            format!("{}/{}", BB::NAME, "get_or_intern"),
+            static_strings,
+            |bencher, words| {
+                bencher.iter_batched_ref(
+                    || BB::setup(),
+                    |interner| {
+                        for word in words.iter().copied() {
+                            black_box(interner.get_or_intern(word));
+                        }
+                    },
+                    BatchSize::SmallInput,
+                )
+            },
+        );
+        g.bench_with_input(
+            format!("{}/{}", BB::NAME, "get_or_intern_static"),
+            static_strings,
+            |bencher, words| {
+                bencher.iter_batched_ref(
+                    || BB::setup(),
+                    |interner| {
+                        for word in words.iter().copied() {
+                            black_box(interner.get_or_intern_static(word));
+                        }
+                    },
+                    BatchSize::SmallInput,
+                )
+            },
+        );
+    }
+    bench_for_backend::<BenchSimple>(&mut g);
+    bench_for_backend::<BenchBucket>(&mut g);
 }
 
 fn bench_get_or_intern_fill_with_capacity(c: &mut Criterion) {
