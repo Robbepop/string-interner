@@ -60,7 +60,7 @@ mod serde_impl;
 pub mod backend;
 mod compat;
 mod internal_str;
-mod interner2;
+mod interner;
 pub mod symbol;
 
 use self::internal_str::InternalStr;
@@ -71,7 +71,7 @@ pub use self::{
         DefaultBackend,
         InternedStr,
     },
-    interner2::StringInterner,
+    interner::StringInterner,
     symbol::{
         DefaultSymbol,
         Symbol,
