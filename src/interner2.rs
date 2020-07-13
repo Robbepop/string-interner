@@ -231,3 +231,18 @@ where
         }
     }
 }
+
+impl<'a, S, B, H> IntoIterator for &'a StringInterner<S, B, H>
+where
+    S: Symbol,
+    B: Backend<S>,
+    &'a B: IntoIterator<Item = (S, &'a str)>,
+    H: BuildHasher,
+{
+    type Item = (S, &'a str);
+    type IntoIter = <&'a B as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.backend.into_iter()
+    }
+}
