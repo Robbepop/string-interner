@@ -48,6 +48,10 @@ additional terms or conditions.
 	- Minor performance improvements for `DefaultSymbol::try_from_usize`
 	- Put all iterator types into the `iter` sub module
 	- Put all symbol types into the `symbol` sub module
+	- Add new symbol types:
+		- `SymbolU16`: 16-bit wide symbol
+		- `SymbolU32`: 32-bit wide symbol (default)
+		- `SymbolUsize`: same size as `usize`
 	- Various internal improvements and reorganizations
 
 - 0.8.0
