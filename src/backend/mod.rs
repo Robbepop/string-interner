@@ -35,7 +35,7 @@ where
 
     /// Interns the given string returns its interned view and its symbol.
     ///
-    /// # Note
+    /// # Safety
     ///
     /// The returned `InternedStr` points to an actually interned string. The
     /// backend must make sure that it never moves its interned string arounds.
