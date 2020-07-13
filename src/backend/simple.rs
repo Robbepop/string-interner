@@ -16,7 +16,7 @@ use core::{
     slice,
 };
 
-/// The simple interner that stores a single string instance for every interned string.
+/// A simple backend that stores a separate allocation for every interned string.
 ///
 /// Use this if you can afford many small allocations and if you want to have
 /// especially decent performance for look-ups when the string interner is
