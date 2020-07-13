@@ -5,10 +5,7 @@ use criterion::{
     BatchSize,
     Criterion,
 };
-use string_interner::{
-    DefaultSymbol,
-    StringInterner2 as StringInterner,
-};
+use string_interner::StringInterner2 as StringInterner;
 
 /// Alphabet containing all characters that may be put into a benchmark string.
 const ALPHABET: [u8; 64] = [
