@@ -16,18 +16,32 @@ use crate::{
     Symbol,
 };
 
-/// TODO: Docs
+/// The default backend recommended for general use.
 pub type DefaultBackend = SimpleBackend<DefaultSymbol>;
 
-/// TODO: Docs
+/// Types implementing this trait may act as backends for the string interner.
+///
+/// The job of a backend is to actually store, manage and organize the interned
+/// strings. Different backends have different trade-offs. Users should pick
+/// their backend with hinsight of their personal use-case.
 pub trait Backend<S>: Default
 where
     S: Symbol,
 {
-    /// TODO: Docs
+    /// Creates a new backend for the given capacity.
+    ///
+    /// The capacity denotes how many strings are expected to be interned.
     fn with_capacity(cap: usize) -> Self;
-    /// TODO: Docs
+
+    /// Interns the given string returns its interned view and its symbol.
+    ///
+    /// # Note
+    ///
+    /// The returned `InternedStr` points to an actually interned string. The
+    /// backend must make sure that it never moves its interned string arounds.
+    /// This is why this method is `unsafe`.
     unsafe fn intern(&mut self, string: &str) -> (InternedStr, S);
-    /// TODO: Docs
+
+    /// Resolves the given symbol to its original string contents.
     fn resolve(&self, symbol: S) -> Option<&str>;
 }
