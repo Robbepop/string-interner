@@ -43,6 +43,10 @@ additional terms or conditions.
 
 - 0.10.0
 
+	Special thanks to [CAD97](https://dev.to/cad97) who motivated me to craft this
+	release through [their blog post](https://dev.to/cad97/string-interners-in-rust-797)
+	"String interners in Rust".
+
 	- Implement pluggable backends for `StringInterner`.
 	  Uses the new `BucketBackend` by default which results in significant
 	  performance boosts and lower memory consumption as well as fewer overall
