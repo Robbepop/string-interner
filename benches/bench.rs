@@ -76,6 +76,12 @@ fn generate_test_strings(len: usize, word_len: usize) -> Vec<String> {
     words
 }
 
+/// The number of strings that are going to be interned in the benchmarks.
+const BENCH_LEN_STRINGS: usize = 100_000;
+
+/// The length of a single interned string.
+const BENCH_STRING_LEN: usize = 5;
+
 criterion_group!(bench_resolve, bench_resolve_already_filled,);
 criterion_group!(bench_get, bench_get_already_filled,);
 criterion_group!(bench_iter, bench_iter_already_filled,);
@@ -87,18 +93,15 @@ criterion_group!(
 );
 criterion_main!(bench_get_or_intern, bench_resolve, bench_get, bench_iter);
 
-const BENCH_LEN_WORDS: usize = 100_000;
-const BENCH_WORD_LEN: usize = 5;
-
 fn bench_get_or_intern_fill_with_capacity(c: &mut Criterion) {
     let mut g = c.benchmark_group("get_or_intern");
     g.bench_with_input(
         "fill empty using with_capacity",
-        &(BENCH_LEN_WORDS, BENCH_WORD_LEN),
+        &(BENCH_LEN_STRINGS, BENCH_STRING_LEN),
         |bencher, &(len_words, word_len)| {
             let words = generate_test_strings(len_words, word_len);
             bencher.iter_batched_ref(
-                || <StringInterner>::with_capacity(BENCH_LEN_WORDS),
+                || <StringInterner>::with_capacity(BENCH_LEN_STRINGS),
                 |interner| {
                     for word in &words {
                         black_box(interner.get_or_intern(word));
@@ -114,7 +117,7 @@ fn bench_get_or_intern_fill(c: &mut Criterion) {
     let mut g = c.benchmark_group("get_or_intern");
     g.bench_with_input(
         "fill empty",
-        &(BENCH_LEN_WORDS, BENCH_WORD_LEN),
+        &(BENCH_LEN_STRINGS, BENCH_STRING_LEN),
         |bencher, &(len_words, word_len)| {
             let words = generate_test_strings(len_words, word_len);
             bencher.iter_batched_ref(
@@ -134,7 +137,7 @@ fn bench_get_or_intern_already_filled(c: &mut Criterion) {
     let mut g = c.benchmark_group("get_or_intern");
     g.bench_with_input(
         "already filled",
-        &(BENCH_LEN_WORDS, BENCH_WORD_LEN),
+        &(BENCH_LEN_STRINGS, BENCH_STRING_LEN),
         |bencher, &(len_words, word_len)| {
             let words = generate_test_strings(len_words, word_len);
             bencher.iter_batched_ref(
@@ -154,7 +157,7 @@ fn bench_resolve_already_filled(c: &mut Criterion) {
     let mut g = c.benchmark_group("resolve");
     g.bench_with_input(
         "already filled",
-        &(BENCH_LEN_WORDS, BENCH_WORD_LEN),
+        &(BENCH_LEN_STRINGS, BENCH_STRING_LEN),
         |bencher, &(len_words, word_len)| {
             let words = generate_test_strings(len_words, word_len);
             bencher.iter_batched_ref(
@@ -182,7 +185,7 @@ fn bench_get_already_filled(c: &mut Criterion) {
     let mut g = c.benchmark_group("get");
     g.bench_with_input(
         "already filled",
-        &(BENCH_LEN_WORDS, BENCH_WORD_LEN),
+        &(BENCH_LEN_STRINGS, BENCH_STRING_LEN),
         |bencher, &(len_words, word_len)| {
             let words = generate_test_strings(len_words, word_len);
             bencher.iter_batched_ref(
@@ -202,7 +205,7 @@ fn bench_iter_already_filled(c: &mut Criterion) {
     let mut g = c.benchmark_group("iter");
     g.bench_with_input(
         "already filled",
-        &(BENCH_LEN_WORDS, BENCH_WORD_LEN),
+        &(BENCH_LEN_STRINGS, BENCH_STRING_LEN),
         |bencher, &(len_words, word_len)| {
             let words = generate_test_strings(len_words, word_len);
             bencher.iter_batched_ref(
