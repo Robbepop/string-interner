@@ -67,9 +67,7 @@ use self::internal_str::InternalStr;
 
 #[doc(inline)]
 pub use self::{
-    backend::{
-        DefaultBackend,
-    },
+    backend::DefaultBackend,
     interner::StringInterner,
     symbol::{
         DefaultSymbol,

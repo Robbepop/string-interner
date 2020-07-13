@@ -1,5 +1,8 @@
 use crate::{
-    backend::Backend,
+    backend::{
+        Backend,
+        InternedStr,
+    },
     compat::{
         DefaultHashBuilder,
         HashMap,
@@ -7,7 +10,6 @@ use crate::{
     DefaultBackend,
     DefaultSymbol,
     InternalStr,
-    backend::InternedStr,
     Symbol,
 };
 use core::{
