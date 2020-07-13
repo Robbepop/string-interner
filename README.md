@@ -41,7 +41,7 @@ additional terms or conditions.
 
 ## Changelog
 
-- 0.10.1 (not released, yet)
+- 0.10.1
 
 	- Allow to intern `&'static str` using `get_or_intern_static` API.
 		- This is a common use case and more efficient since the interner can
