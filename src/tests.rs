@@ -1,8 +1,8 @@
 use crate::{
+    symbol::expect_valid_symbol,
     DefaultStringInterner,
     DefaultSymbol,
     StringInterner,
-    Symbol,
 };
 
 mod sym {
@@ -73,7 +73,7 @@ mod get_or_intern {
     fn simple() {
         assert_eq!(
             DefaultStringInterner::new().get_or_intern("foo"),
-            DefaultSymbol::try_from_usize(0).unwrap()
+            expect_valid_symbol(0),
         )
     }
 
@@ -81,7 +81,7 @@ mod get_or_intern {
     fn empty_string() {
         assert_eq!(
             DefaultStringInterner::new().get_or_intern(""),
-            DefaultSymbol::try_from_usize(0).unwrap()
+            expect_valid_symbol(0),
         )
     }
 
@@ -114,7 +114,7 @@ mod get_or_intern {
     fn intern_string() {
         assert_eq!(
             DefaultStringInterner::new().get_or_intern(String::from("foo")),
-            DefaultSymbol::try_from_usize(0).unwrap()
+            expect_valid_symbol(0),
         )
     }
 }
@@ -204,10 +204,7 @@ mod resolve {
     #[test]
     fn not_found() {
         let interner = DefaultStringInterner::new();
-        assert_eq!(
-            interner.resolve(DefaultSymbol::try_from_usize(0).unwrap()),
-            None
-        );
+        assert_eq!(interner.resolve(expect_valid_symbol(0)), None);
     }
 
     #[test]
@@ -255,18 +252,9 @@ mod iter {
         let interner: DefaultStringInterner =
             vec!["foo", "bar", "baz", "foo"].into_iter().collect();
         let mut iter = interner.iter();
-        assert_eq!(
-            iter.next(),
-            Some((DefaultSymbol::try_from_usize(0).unwrap(), "foo"))
-        );
-        assert_eq!(
-            iter.next(),
-            Some((DefaultSymbol::try_from_usize(1).unwrap(), "bar"))
-        );
-        assert_eq!(
-            iter.next(),
-            Some((DefaultSymbol::try_from_usize(2).unwrap(), "baz"))
-        );
+        assert_eq!(iter.next(), Some((expect_valid_symbol(0), "foo")));
+        assert_eq!(iter.next(), Some((expect_valid_symbol(1), "bar")));
+        assert_eq!(iter.next(), Some((expect_valid_symbol(2), "baz")));
         assert_eq!(iter.next(), None);
     }
 }
@@ -306,24 +294,15 @@ mod into_iter {
         let mut iter = interner.into_iter();
         assert_eq!(
             iter.next(),
-            Some((
-                DefaultSymbol::try_from_usize(0).unwrap(),
-                String::from("foo")
-            ))
+            Some((expect_valid_symbol(0), String::from("foo")))
         );
         assert_eq!(
             iter.next(),
-            Some((
-                DefaultSymbol::try_from_usize(1).unwrap(),
-                String::from("bar")
-            ))
+            Some((expect_valid_symbol(1), String::from("bar")))
         );
         assert_eq!(
             iter.next(),
-            Some((
-                DefaultSymbol::try_from_usize(2).unwrap(),
-                String::from("baz")
-            ))
+            Some((expect_valid_symbol(2), String::from("baz")))
         );
         assert_eq!(iter.next(), None);
     }
