@@ -26,6 +26,10 @@ criterion = "0.3"
 name = "bench"
 harness = false
 
+[[bench]]
+name = "bench_2"
+harness = false
+
 [features]
 default = ["std", "serde-1"]
 std = []
