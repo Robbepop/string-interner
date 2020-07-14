@@ -1,13 +1,25 @@
 # Release Notes
 
-## 0.11 - 2020/07/??
+## 0.11 - 2020/07/14
 
+	Thanks a lot (again) to [CAD97](https://dev.to/cad97) who is the vanguard
+	of the technical improvements in this release with their
+	[blog post](https://dev.to/cad97/string-interners-in-rust-797).
+
+	- Significantly improved `StringInterner`'s memory consumption independend
+	  from the used internment backend.
+	- Significantly improved `StringInterner`'s throughput for interning strings.
+	- Change the `Backend` trait:
+		- `intern` is no longer `unsafe`
+		- `intern` returns `S` (symbol type) instead of `(InternedStr, S)`
+		- same as above for `intern_static`
+		- add `unsafe fn resolve_unchecked` which does the same as `resolve`
+		  but explicitely without bounds checking
 	- Make `hashbrown` a mandatory dependency.
-	  We depend on it for the moment for its `raw_entry` API that has not yet been
+	  **Note:** We depend on it for the moment for its `raw_entry` API that has not yet been
 	  stabilized for Rust. Also benchmarks show that it is 20-30% faster than Rust's
 	  hashmap implementation.
-	- Benchmarks now use `FxBuildHasher` by default which results in another
-	  20% performance increase.
+	- Benchmarks now show performance when using `FxBuildHasher` as build hasher.
 
 ## 0.10.1 - 2020/07/14
 
