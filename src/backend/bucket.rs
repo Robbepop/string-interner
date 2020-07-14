@@ -77,6 +77,7 @@ where
         (interned, symbol)
     }
 
+    #[inline]
     unsafe fn intern_static(&mut self, string: &'static str) -> (InternedStr, S) {
         let interned = InternedStr::new(string);
         let symbol = self.push_span(interned);
