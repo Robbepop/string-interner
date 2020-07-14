@@ -79,15 +79,9 @@ impl<S, B, H> Clone for StringInterner<S, B, H>
 where
     S: Symbol,
     B: Backend<S> + Clone,
-    for<'a> &'a B: IntoIterator<Item = (S, &'a str)>,
     H: BuildHasher + Default,
 {
     fn clone(&self) -> Self {
-        // We implement `Clone` manually for `StringInterner` to go around the
-        // issue of shallow closing the self-referential pinned strs.
-        // This was an issue with former implementations. Visit the following
-        // link for more information:
-        // https://github.com/Robbepop/string-interner/issues/9
         Self {
             dedup: self.dedup.clone(),
             hasher: Default::default(),
