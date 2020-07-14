@@ -6,10 +6,56 @@ use crate::{
     Symbol,
 };
 
+// We use jemalloc mainly to get heap usage of the different string interner
+// backends while they are interning a bunch of strings.
+#[global_allocator]
+static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+
 macro_rules! gen_tests_for_backend {
     ( $backend:ty ) => {
         type StringInterner =
             crate::StringInterner<DefaultSymbol, $backend, DefaultHashBuilder>;
+
+        #[test]
+        fn test_memory_consumption_1() {
+            use std::fmt::Write;
+            let len_words = 100_000;
+            let word_len = 8;
+            let mut buf = String::with_capacity(word_len);
+
+            fn read_stats() -> (usize, usize) {
+                jemalloc_ctl::epoch::advance().unwrap();
+                let allocated = jemalloc_ctl::stats::allocated::read().unwrap();
+                let resident = jemalloc_ctl::stats::resident::read().unwrap();
+                (allocated, resident)
+            }
+
+            let (allocated_before, resident_before) = read_stats();
+
+            let mut interner = StringInterner::new();
+            for i in (0..).take(len_words) {
+                write!(&mut buf, "{:08}", i);
+                interner.get_or_intern(buf.as_str());
+                buf.clear();
+            }
+            assert_eq!(interner.len(), len_words);
+
+            let (allocated_after, resident_after) = read_stats();
+
+            let allocated = allocated_after - allocated_before;
+            let resident  = resident_after - resident_before;
+            let ideal = len_words * word_len;
+
+            println!("interned words = {:9}", len_words);
+            println!("bytes per word = {:9}", word_len);
+            println!("ideal          = {:9}", ideal);
+            println!("allocated      = {:9}", allocated);
+            println!("resident       = {:9}", resident);
+
+            // Overhead for the string interners compared to ideal.
+            let known_overhead = 18.0;
+            assert!((allocated as f64) < (ideal as f64 * known_overhead));
+        }
 
         #[test]
         fn new_works() {
