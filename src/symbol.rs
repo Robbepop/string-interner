@@ -61,7 +61,7 @@ macro_rules! gen_symbol_for {
             #[inline]
             fn try_from_usize(index: usize) -> Option<Self> {
                 <$non_zero>::new((index as $base_ty).wrapping_add(1))
-                    .map(|non_zero| Self { value: non_zero })
+                    .map(|value| Self { value })
             }
 
             #[inline]
