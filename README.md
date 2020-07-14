@@ -9,13 +9,6 @@ the interned strings with unique symbols.
 These symbols allow for constant time comparisons and look-ups to the underlying interned string contents.
 Also, iterating through the interned strings is cache efficient.
 
-### Internals
-
-- Internally a hashmap `M` and a vector `V` is used.
-- `V` stores the contents of interned strings while `M` has internal references into the string of `V` to avoid duplicates.
-- `V` stores the strings with an indirection to avoid iterator invalidation.
-- Returned symbols usually have a low memory footprint and are efficiently comparable.
-
 ## License
 
 Licensed under either of
