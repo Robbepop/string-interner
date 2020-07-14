@@ -2,6 +2,10 @@
 
 ## 0.12 - 2020/07/??
 
+- Add new crate feature `more-inline` that puts more `#[inline]` on public methods.
+	- The new `more-inline` crate feature is enabled by default. If you want to
+	  turn it off use `--no-default-features`.
+	- Enabling `more-inline` also enables `hashbrown/more-inline`.
 - Remove `&B: IntoIter` trait bound from `Clone` impl of `StringInterner`
 
 ## 0.11 - 2020/07/14
