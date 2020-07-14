@@ -6,7 +6,6 @@ use crate::{
         Vec,
     },
     symbol::expect_valid_symbol,
-    InternalStr,
     Symbol,
 };
 use core::{
@@ -38,7 +37,7 @@ use core::{
 /// | Supports `get_or_intern_static` | **yes** |
 #[derive(Debug)]
 pub struct BucketBackend<S> {
-    spans: Vec<InternalStr>,
+    spans: Vec<InternedStr>,
     head: String,
     full: Vec<String>,
     marker: PhantomData<fn() -> S>,
@@ -177,7 +176,7 @@ where
 }
 
 pub struct Iter<'a, S> {
-    iter: Enumerate<slice::Iter<'a, InternalStr>>,
+    iter: Enumerate<slice::Iter<'a, InternedStr>>,
     symbol_marker: PhantomData<fn() -> S>,
 }
 

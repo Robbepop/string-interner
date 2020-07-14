@@ -59,11 +59,8 @@ mod serde_impl;
 
 pub mod backend;
 mod compat;
-mod internal_str;
 mod interner;
 pub mod symbol;
-
-use self::internal_str::InternalStr;
 
 #[doc(inline)]
 pub use self::{
