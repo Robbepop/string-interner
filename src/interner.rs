@@ -275,22 +275,6 @@ where
     }
 }
 
-unsafe impl<S, B, H> Send for StringInterner<S, B, H>
-where
-    S: Symbol + Send,
-    B: Backend<S> + Send,
-    H: BuildHasher,
-{
-}
-
-unsafe impl<S, B, H> Sync for StringInterner<S, B, H>
-where
-    S: Symbol + Sync,
-    B: Backend<S> + Sync,
-    H: BuildHasher,
-{
-}
-
 impl<S, B, H, T> FromIterator<T> for StringInterner<S, B, H>
 where
     S: Symbol,
