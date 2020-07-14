@@ -2,10 +2,12 @@
 
 use cfg_if::cfg_if;
 
-pub use ::hashbrown::hash_map as hash_map;
-pub use ::hashbrown::hash_map::{
-    DefaultHashBuilder,
-    HashMap,
+pub use ::hashbrown::{
+    hash_map,
+    hash_map::{
+        DefaultHashBuilder,
+        HashMap,
+    },
 };
 
 cfg_if! {
