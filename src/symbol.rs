@@ -61,6 +61,8 @@ macro_rules! gen_symbol_for {
             fn try_from_usize(index: usize) -> Option<Self> {
                 if index < <$base_ty>::MAX as usize {
                     return Some(Self {
+                        // SAFETY: This is safe because we have already checked
+                        //         above that `index + 1` won't result in 0.
                         value: unsafe { <$non_zero>::new_unchecked(index as $base_ty + 1) },
                     })
                 }
