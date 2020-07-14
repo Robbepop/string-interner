@@ -11,6 +11,21 @@ use crate::{
 #[global_allocator]
 static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
+// backend::BucketBackend<DefaultSymbol>
+// backend::SimpleBackend<DefaultSymbol>
+
+pub trait BackendStats {
+    const OVERHEAD: f64;
+}
+
+impl BackendStats for backend::BucketBackend<DefaultSymbol> {
+    const OVERHEAD: f64 = 17.5;
+}
+
+impl BackendStats for backend::SimpleBackend<DefaultSymbol> {
+    const OVERHEAD: f64 = 17.5;
+}
+
 macro_rules! gen_tests_for_backend {
     ( $backend:ty ) => {
         type StringInterner =
@@ -60,7 +75,7 @@ macro_rules! gen_tests_for_backend {
             //
             // An approximation for the currently known overhead for both
             // SimpleBackend and BucketBackend is factor 18 compared to ideal.
-            let known_overhead = 18.0;
+            let known_overhead = <$backend as BackendStats>::OVERHEAD;
             assert!((allocated as f64) < (ideal as f64 * known_overhead));
         }
 
