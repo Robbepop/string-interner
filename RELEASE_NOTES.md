@@ -15,6 +15,7 @@
 		- same as above for `intern_static`
 		- add `unsafe fn resolve_unchecked` which does the same as `resolve`
 		  but explicitely without bounds checking
+	- No longer export `backend::InternedStr` type
 	- Make `hashbrown` a mandatory dependency.
 	  **Note:** We depend on it for the moment for its `raw_entry` API that has not yet been
 	  stabilized for Rust. Also benchmarks show that it is 20-30% faster than Rust's
