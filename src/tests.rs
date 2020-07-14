@@ -43,14 +43,18 @@ macro_rules! gen_tests_for_backend {
             let (allocated_after, resident_after) = read_stats();
 
             let allocated = allocated_after - allocated_before;
-            let resident  = resident_after - resident_before;
+            let resident = resident_after - resident_before;
             let ideal = len_words * word_len;
 
-            println!("interned words = {:9}", len_words);
-            println!("bytes per word = {:9}", word_len);
-            println!("ideal          = {:9}", ideal);
-            println!("allocated      = {:9}", allocated);
-            println!("resident       = {:9}", resident);
+            println!(
+                "string interner consumed too much memory:\
+                \n   interned words = {:9}\
+                \n   bytes per word = {:9}\
+                \n   ideal          = {:9}\
+                \n   allocated      = {:9}\
+                \n   resident       = {:9}",
+                len_words, word_len, ideal, allocated, resident,
+            );
 
             // Overhead for the string interners compared to ideal.
             let known_overhead = 18.0;
