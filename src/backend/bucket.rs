@@ -71,6 +71,9 @@ where
 
     #[inline]
     fn intern(&mut self, string: &str) -> S {
+        // SAFETY: This is safe because we never hand out the returned
+        //         interned string instance to the outside and only operate
+        //         on it within this backend.
         let interned = unsafe { self.alloc(string) };
         self.push_span(interned)
     }

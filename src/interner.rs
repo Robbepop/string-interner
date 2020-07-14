@@ -198,6 +198,8 @@ where
         dedup
             .raw_entry()
             .from_hash(hash, |symbol| {
+                // SAFETY: This is safe because we only operate on symbols that
+                //         we receive from our backend making them valid.
                 string == unsafe { backend.resolve_unchecked(*symbol) }
             })
             .map(|(&symbol, &())| symbol)
@@ -218,6 +220,8 @@ where
         } = self;
         let hash = make_hash(hasher, string.as_ref());
         let entry = dedup.raw_entry_mut().from_hash(hash, |symbol| {
+            // SAFETY: This is safe because we only operate on symbols that
+            //         we receive from our backend making them valid.
             string == unsafe { backend.resolve_unchecked(*symbol) }
         });
         use crate::compat::hash_map::RawEntryMut;
@@ -226,6 +230,8 @@ where
             RawEntryMut::Vacant(vacant) => {
                 let symbol = intern_fn(backend, string);
                 vacant.insert_with_hasher(hash, symbol, (), |symbol| {
+                    // SAFETY: This is safe because we only operate on symbols that
+                    //         we receive from our backend making them valid.
                     let string = unsafe { backend.resolve_unchecked(*symbol) };
                     make_hash(hasher, string)
                 })
