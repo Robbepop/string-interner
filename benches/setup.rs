@@ -3,6 +3,7 @@ use string_interner::{
         Backend,
         BucketBackend,
         SimpleBackend,
+        StringBackend,
     },
     DefaultSymbol,
     StringInterner,
@@ -90,70 +91,45 @@ pub trait BackendBenchmark {
     const NAME: &'static str;
     type Backend: Backend<DefaultSymbol>;
 
-    fn setup() -> StringInternerWith<Self::Backend>;
-    fn setup_with_capacity(cap: usize) -> StringInternerWith<Self::Backend>;
-    fn setup_filled(words: &[String]) -> StringInternerWith<Self::Backend>;
+    fn setup() -> StringInternerWith<Self::Backend> {
+        <StringInternerWith<Self::Backend>>::new()
+    }
+
+    fn setup_with_capacity(cap: usize) -> StringInternerWith<Self::Backend> {
+        <StringInternerWith<Self::Backend>>::with_capacity(cap)
+    }
+
+    fn setup_filled(words: &[String]) -> StringInternerWith<Self::Backend> {
+        words.iter().collect::<StringInternerWith<Self::Backend>>()
+    }
+
     fn setup_filled_with_ids(
         words: &[String],
-    ) -> (StringInternerWith<Self::Backend>, Vec<DefaultSymbol>);
+    ) -> (StringInternerWith<Self::Backend>, Vec<DefaultSymbol>) {
+        let mut interner = <StringInternerWith<Self::Backend>>::new();
+        let mut word_ids = Vec::new();
+        for word in words {
+            let word_id = interner.get_or_intern(word);
+            word_ids.push(word_id);
+        }
+        (interner, word_ids)
+    }
 }
 
 pub struct BenchBucket;
 impl BackendBenchmark for BenchBucket {
     const NAME: &'static str = "BucketBackend";
     type Backend = BucketBackend<DefaultSymbol>;
-
-    fn setup() -> StringInternerWith<Self::Backend> {
-        <StringInternerWith<Self::Backend>>::new()
-    }
-
-    fn setup_with_capacity(cap: usize) -> StringInternerWith<Self::Backend> {
-        <StringInternerWith<Self::Backend>>::with_capacity(cap)
-    }
-
-    fn setup_filled(words: &[String]) -> StringInternerWith<Self::Backend> {
-        words.iter().collect::<StringInternerWith<Self::Backend>>()
-    }
-
-    fn setup_filled_with_ids(
-        words: &[String],
-    ) -> (StringInternerWith<Self::Backend>, Vec<DefaultSymbol>) {
-        let mut interner = <StringInternerWith<Self::Backend>>::new();
-        let mut word_ids = Vec::new();
-        for word in words {
-            let word_id = interner.get_or_intern(word);
-            word_ids.push(word_id);
-        }
-        (interner, word_ids)
-    }
 }
 
 pub struct BenchSimple;
 impl BackendBenchmark for BenchSimple {
     const NAME: &'static str = "SimpleBackend";
     type Backend = SimpleBackend<DefaultSymbol>;
+}
 
-    fn setup() -> StringInternerWith<Self::Backend> {
-        <StringInternerWith<Self::Backend>>::new()
-    }
-
-    fn setup_with_capacity(cap: usize) -> StringInternerWith<Self::Backend> {
-        <StringInternerWith<Self::Backend>>::with_capacity(cap)
-    }
-
-    fn setup_filled(words: &[String]) -> StringInternerWith<Self::Backend> {
-        words.iter().collect::<StringInternerWith<Self::Backend>>()
-    }
-
-    fn setup_filled_with_ids(
-        words: &[String],
-    ) -> (StringInternerWith<Self::Backend>, Vec<DefaultSymbol>) {
-        let mut interner = <StringInternerWith<Self::Backend>>::new();
-        let mut word_ids = Vec::new();
-        for word in words {
-            let word_id = interner.get_or_intern(word);
-            word_ids.push(word_id);
-        }
-        (interner, word_ids)
-    }
+pub struct BenchString;
+impl BackendBenchmark for BenchString {
+    const NAME: &'static str = "StringBackend";
+    type Backend = StringBackend<DefaultSymbol>;
 }
