@@ -2,9 +2,9 @@
 
 use cfg_if::cfg_if;
 
-pub use ::hashbrown as hash_map;
-pub use ::hashbrown::{
-    hash_map::DefaultHashBuilder,
+pub use ::hashbrown::hash_map as hash_map;
+pub use ::hashbrown::hash_map::{
+    DefaultHashBuilder,
     HashMap,
 };
 
