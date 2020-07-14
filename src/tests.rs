@@ -11,10 +11,9 @@ use crate::{
 #[global_allocator]
 static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
-// backend::BucketBackend<DefaultSymbol>
-// backend::SimpleBackend<DefaultSymbol>
-
+/// Stats for the backend.
 pub trait BackendStats {
+    /// How much memory consumption overhead the backend has over the ideal.
     const OVERHEAD: f64;
 }
 
