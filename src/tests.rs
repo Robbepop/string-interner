@@ -57,6 +57,9 @@ macro_rules! gen_tests_for_backend {
             );
 
             // Overhead for the string interners compared to ideal.
+            //
+            // An approximation for the currently known overhead for both
+            // SimpleBackend and BucketBackend is factor 18 compared to ideal.
             let known_overhead = 18.0;
             assert!((allocated as f64) < (ideal as f64 * known_overhead));
         }
