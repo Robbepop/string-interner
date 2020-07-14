@@ -1,8 +1,5 @@
 use crate::{
-    backend::{
-        Backend,
-        InternedStr,
-    },
+    backend::Backend,
     compat::{
         DefaultHashBuilder,
         HashMap,
@@ -213,11 +210,7 @@ where
     ///
     /// This is used as backend by [`get_or_intern`] and [`get_or_intern_static`].
     #[inline]
-    fn get_or_intern_using<T>(
-        &mut self,
-        string: T,
-        intern_fn: unsafe fn(&mut B, T) -> (InternedStr, S),
-    ) -> S
+    fn get_or_intern_using<T>(&mut self, string: T, intern_fn: fn(&mut B, T) -> S) -> S
     where
         T: Copy + Hash + AsRef<str> + for<'a> PartialEq<&'a str>,
     {
@@ -237,7 +230,7 @@ where
         let (&mut symbol, &mut ()) = match entry {
             RawEntryMut::Occupied(occupied) => occupied.into_key_value(),
             RawEntryMut::Vacant(vacant) => {
-                let (_interned_str, symbol) = unsafe { intern_fn(backend, string) };
+                let symbol = intern_fn(backend, string);
                 vacant.insert_with_hasher(hash, symbol, (), |symbol| {
                     let string = backend
                         .resolve(*symbol)

@@ -71,17 +71,17 @@ where
     }
 
     #[inline]
-    unsafe fn intern(&mut self, string: &str) -> (InternedStr, S) {
-        let interned = self.alloc(string);
+    fn intern(&mut self, string: &str) -> S {
+        let interned = unsafe { self.alloc(string) };
         let symbol = self.push_span(interned);
-        (interned, symbol)
+        symbol
     }
 
     #[inline]
-    unsafe fn intern_static(&mut self, string: &'static str) -> (InternedStr, S) {
+    fn intern_static(&mut self, string: &'static str) -> S {
         let interned = InternedStr::new(string);
         let symbol = self.push_span(interned);
-        (interned, symbol)
+        symbol
     }
 
     #[inline]
