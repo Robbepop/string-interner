@@ -1,4 +1,4 @@
-#![doc(html_root_url = "https://docs.rs/crate/string-interner/0.10.1")]
+#![doc(html_root_url = "https://docs.rs/crate/string-interner/0.11.0")]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![deny(missing_docs)]
 
