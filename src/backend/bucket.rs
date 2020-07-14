@@ -87,6 +87,11 @@ where
             .get(symbol.to_usize())
             .map(|interned| interned.as_str())
     }
+
+    #[inline]
+    unsafe fn resolve_unchecked(&self, symbol: S) -> &str {
+        self.spans.get_unchecked(symbol.to_usize()).as_str()
+    }
 }
 
 impl<S> BucketBackend<S>
