@@ -2,7 +2,10 @@
 
 ## 0.11.1 - 2020/07/14
 
+Special thanks to [Ten0](https://github.com/Ten0) for help with this release!
+
 - Remove usage of `unsafe` in `Symbol::try_from_usize` methods.
+- Remove no longer correct `unsafe impls` for `Send` and `Sync` for `StringInterner`.
 - Add new crate feature `more-inline` that puts more `#[inline]` on public methods.
 	- The new `more-inline` crate feature is enabled by default. If you want to
 	  turn it off use `--no-default-features`.
