@@ -35,7 +35,7 @@ use core::{
 /// | Fill     | **bad** |
 /// | Query    | **good** |
 /// | Memory   | **bad:** many small allocations |
-/// | Supports `get_or_intern_static` | **yes** |
+/// | Supports `get_or_intern_static` | **no** |
 #[derive(Debug)]
 pub struct SimpleBackend<S> {
     strings: Vec<Pin<Box<str>>>,
