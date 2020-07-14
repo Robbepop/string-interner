@@ -73,15 +73,13 @@ where
     #[inline]
     fn intern(&mut self, string: &str) -> S {
         let interned = unsafe { self.alloc(string) };
-        let symbol = self.push_span(interned);
-        symbol
+        self.push_span(interned)
     }
 
     #[inline]
     fn intern_static(&mut self, string: &'static str) -> S {
         let interned = InternedStr::new(string);
-        let symbol = self.push_span(interned);
-        symbol
+        self.push_span(interned)
     }
 
     #[inline]
