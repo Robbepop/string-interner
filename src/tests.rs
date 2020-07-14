@@ -34,7 +34,7 @@ macro_rules! gen_tests_for_backend {
 
             let mut interner = StringInterner::new();
             for i in (0..).take(len_words) {
-                write!(&mut buf, "{:08}", i);
+                write!(&mut buf, "{:08}", i).unwrap();
                 interner.get_or_intern(buf.as_str());
                 buf.clear();
             }
