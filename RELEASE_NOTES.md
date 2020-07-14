@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.12 - 2020/07/??
+
+- Remove `&B: IntoIter` trait bound from `Clone` impl of `StringInterner`
+
 ## 0.11 - 2020/07/14
 
 Thanks a lot (again) to [CAD97](https://dev.to/cad97) who is the vanguard
