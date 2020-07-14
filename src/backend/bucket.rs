@@ -44,7 +44,7 @@ pub struct BucketBackend<S> {
 }
 
 impl<S> Default for BucketBackend<S> {
-    #[inline]
+    #[cfg_attr(feature = "inline-more", inline)]
     fn default() -> Self {
         Self {
             spans: Vec::new(),
@@ -59,7 +59,7 @@ impl<S> Backend<S> for BucketBackend<S>
 where
     S: Symbol,
 {
-    #[inline]
+    #[cfg_attr(feature = "inline-more", inline)]
     fn with_capacity(cap: usize) -> Self {
         Self {
             spans: Vec::with_capacity(cap),
@@ -78,7 +78,7 @@ where
         self.push_span(interned)
     }
 
-    #[inline]
+    #[cfg_attr(feature = "inline-more", inline)]
     fn intern_static(&mut self, string: &'static str) -> S {
         let interned = InternedStr::new(string);
         self.push_span(interned)
@@ -164,7 +164,7 @@ impl<S> PartialEq for BucketBackend<S>
 where
     S: Symbol,
 {
-    #[inline]
+    #[cfg_attr(feature = "inline-more", inline)]
     fn eq(&self, other: &Self) -> bool {
         self.spans == other.spans
     }
@@ -177,7 +177,7 @@ where
     type Item = (S, &'a str);
     type IntoIter = Iter<'a, S>;
 
-    #[inline]
+    #[cfg_attr(feature = "inline-more", inline)]
     fn into_iter(self) -> Self::IntoIter {
         Self::IntoIter::new(self)
     }
@@ -189,7 +189,7 @@ pub struct Iter<'a, S> {
 }
 
 impl<'a, S> Iter<'a, S> {
-    #[inline]
+    #[cfg_attr(feature = "inline-more", inline)]
     pub fn new(backend: &'a BucketBackend<S>) -> Self {
         Self {
             iter: backend.spans.iter().enumerate(),

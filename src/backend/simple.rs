@@ -42,7 +42,7 @@ pub struct SimpleBackend<S> {
 }
 
 impl<S> Default for SimpleBackend<S> {
-    #[inline]
+    #[cfg_attr(feature = "inline-more", inline)]
     fn default() -> Self {
         Self {
             strings: Vec::new(),
@@ -55,7 +55,7 @@ impl<S> Backend<S> for SimpleBackend<S>
 where
     S: Symbol,
 {
-    #[inline]
+    #[cfg_attr(feature = "inline-more", inline)]
     fn with_capacity(cap: usize) -> Self {
         Self {
             strings: Vec::with_capacity(cap),
@@ -86,7 +86,7 @@ impl<S> Clone for SimpleBackend<S>
 where
     S: Symbol,
 {
-    #[inline]
+    #[cfg_attr(feature = "inline-more", inline)]
     fn clone(&self) -> Self {
         Self {
             strings: self.strings.clone(),
@@ -101,7 +101,7 @@ impl<S> PartialEq for SimpleBackend<S>
 where
     S: Symbol,
 {
-    #[inline]
+    #[cfg_attr(feature = "inline-more", inline)]
     fn eq(&self, other: &Self) -> bool {
         self.strings == other.strings
     }
@@ -114,7 +114,7 @@ where
     type Item = (S, &'a str);
     type IntoIter = Iter<'a, S>;
 
-    #[inline]
+    #[cfg_attr(feature = "inline-more", inline)]
     fn into_iter(self) -> Self::IntoIter {
         Self::IntoIter::new(self)
     }
@@ -126,7 +126,7 @@ pub struct Iter<'a, S> {
 }
 
 impl<'a, S> Iter<'a, S> {
-    #[inline]
+    #[cfg_attr(feature = "inline-more", inline)]
     pub fn new(backend: &'a SimpleBackend<S>) -> Self {
         Self {
             iter: backend.strings.iter().enumerate(),

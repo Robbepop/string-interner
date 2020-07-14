@@ -69,7 +69,7 @@ where
 }
 
 impl Default for StringInterner<DefaultSymbol, DefaultBackend, DefaultHashBuilder> {
-    #[inline]
+    #[cfg_attr(feature = "inline-more", inline)]
     fn default() -> Self {
         StringInterner::new()
     }
@@ -116,7 +116,7 @@ where
     H: BuildHasher + Default,
 {
     /// Creates a new empty `StringInterner`.
-    #[inline]
+    #[cfg_attr(feature = "inline-more", inline)]
     pub fn new() -> Self {
         Self {
             dedup: HashMap::default(),
@@ -126,7 +126,7 @@ where
     }
 
     /// Creates a new `StringInterner` with the given initial capacity.
-    #[inline]
+    #[cfg_attr(feature = "inline-more", inline)]
     pub fn with_capacity(cap: usize) -> Self {
         Self {
             dedup: HashMap::with_capacity_and_hasher(cap, ()),
@@ -143,7 +143,7 @@ where
     H: BuildHasher,
 {
     /// Creates a new empty `StringInterner` with the given hasher.
-    #[inline]
+    #[cfg_attr(feature = "inline-more", inline)]
     pub fn with_hasher(hash_builder: H) -> Self {
         StringInterner {
             dedup: HashMap::default(),
@@ -153,7 +153,7 @@ where
     }
 
     /// Creates a new empty `StringInterner` with the given initial capacity and the given hasher.
-    #[inline]
+    #[cfg_attr(feature = "inline-more", inline)]
     pub fn with_capacity_and_hasher(cap: usize, hash_builder: H) -> Self {
         StringInterner {
             dedup: HashMap::with_capacity_and_hasher(cap, ()),
@@ -163,13 +163,13 @@ where
     }
 
     /// Returns the number of strings interned by the interner.
-    #[inline]
+    #[cfg_attr(feature = "inline-more", inline)]
     pub fn len(&self) -> usize {
         self.dedup.len()
     }
 
     /// Returns `true` if the string interner has no interned strings.
-    #[inline]
+    #[cfg_attr(feature = "inline-more", inline)]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -202,7 +202,7 @@ where
     /// Interns the given string.
     ///
     /// This is used as backend by [`get_or_intern`] and [`get_or_intern_static`].
-    #[inline]
+    #[cfg_attr(feature = "inline-more", inline)]
     fn get_or_intern_using<T>(&mut self, string: T, intern_fn: fn(&mut B, T) -> S) -> S
     where
         T: Copy + Hash + AsRef<str> + for<'a> PartialEq<&'a str>,
@@ -317,7 +317,6 @@ where
     H: BuildHasher,
     T: AsRef<str>,
 {
-    #[inline]
     fn extend<I>(&mut self, iter: I)
     where
         I: IntoIterator<Item = T>,
@@ -338,7 +337,7 @@ where
     type Item = (S, &'a str);
     type IntoIter = <&'a B as IntoIterator>::IntoIter;
 
-    #[inline]
+    #[cfg_attr(feature = "inline-more", inline)]
     fn into_iter(self) -> Self::IntoIter {
         self.backend.into_iter()
     }

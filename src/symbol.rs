@@ -35,6 +35,7 @@ pub trait Symbol: Copy + Eq {
 /// # Panics
 ///
 /// Panics if the conversion is invalid.
+#[inline]
 pub(crate) fn expect_valid_symbol<S>(index: usize) -> S
 where
     S: Symbol,
