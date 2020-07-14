@@ -9,7 +9,6 @@ use crate::{
     },
     DefaultBackend,
     DefaultSymbol,
-    InternalStr,
     Symbol,
 };
 use core::{
@@ -18,7 +17,11 @@ use core::{
         Debug,
         Formatter,
     },
-    hash::BuildHasher,
+    hash::{
+        BuildHasher,
+        Hash,
+        Hasher,
+    },
     iter::FromIterator,
 };
 
@@ -39,7 +42,8 @@ where
     B: Backend<S>,
     H: BuildHasher,
 {
-    map: HashMap<InternalStr, S, H>,
+    dedup: HashMap<S, (), ()>,
+    hasher: H,
     backend: B,
 }
 
@@ -51,7 +55,7 @@ where
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("StringInterner")
-            .field("dedup", &self.map)
+            .field("dedup", &self.dedup)
             .field("backend", &self.backend)
             .finish()
     }
@@ -77,12 +81,11 @@ where
         // This was an issue with former implementations. Visit the following
         // link for more information:
         // https://github.com/Robbepop/string-interner/issues/9
-        let backend = self.backend.clone();
-        let map = backend
-            .into_iter()
-            .map(|(id, str)| (InternedStr::new(str).into(), id))
-            .collect::<HashMap<_, S, H>>();
-        Self { map, backend }
+        Self {
+            dedup: self.dedup.clone(),
+            hasher: Default::default(),
+            backend: self.backend.clone(),
+        }
     }
 }
 
@@ -115,7 +118,8 @@ where
     #[inline]
     pub fn new() -> Self {
         Self {
-            map: HashMap::default(),
+            dedup: HashMap::default(),
+            hasher: Default::default(),
             backend: B::default(),
         }
     }
@@ -124,7 +128,8 @@ where
     #[inline]
     pub fn with_capacity(cap: usize) -> Self {
         Self {
-            map: HashMap::default(),
+            dedup: HashMap::with_capacity_and_hasher(cap, ()),
+            hasher: Default::default(),
             backend: B::with_capacity(cap),
         }
     }
@@ -140,7 +145,8 @@ where
     #[inline]
     pub fn with_hasher(hash_builder: H) -> Self {
         StringInterner {
-            map: HashMap::with_hasher(hash_builder),
+            dedup: HashMap::default(),
+            hasher: hash_builder,
             backend: B::default(),
         }
     }
@@ -149,7 +155,8 @@ where
     #[inline]
     pub fn with_capacity_and_hasher(cap: usize, hash_builder: H) -> Self {
         StringInterner {
-            map: HashMap::with_hasher(hash_builder),
+            dedup: HashMap::with_capacity_and_hasher(cap, ()),
+            hasher: hash_builder,
             backend: B::with_capacity(cap),
         }
     }
@@ -157,13 +164,23 @@ where
     /// Returns the number of strings interned by the interner.
     #[inline]
     pub fn len(&self) -> usize {
-        self.map.len()
+        self.dedup.len()
     }
 
     /// Returns `true` if the string interner has no interned strings.
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+
+    /// Computes the hash for the given entity.
+    fn make_hash<T>(&self, value: T) -> u64
+    where
+        T: Hash,
+    {
+        let mut state = self.hasher.build_hasher();
+        value.hash(&mut state);
+        state.finish()
     }
 
     /// Returns the symbol for the given string if any.
@@ -174,7 +191,46 @@ where
     where
         T: AsRef<str>,
     {
-        self.map.get(string.as_ref()).copied()
+        let string = string.as_ref();
+        let hash = self.make_hash(string);
+        let Self { dedup, backend, .. } = self;
+        dedup.raw_entry().from_hash(hash, |symbol| {
+            string
+                == backend
+                    .resolve(*symbol)
+                    .expect("encountered missing symbol")
+        }).map(|(&symbol, &())| symbol)
+    }
+
+    /// Interns the given string.
+    ///
+    /// This is used as backend by [`get_or_intern`] and [`get_or_intern_static`].
+    #[inline]
+    fn get_or_intern_using<T>(
+        &mut self,
+        string: T,
+        intern_fn: unsafe fn(&mut B, T) -> (InternedStr, S),
+    ) -> S
+    where
+        T: Copy + Hash + for<'a> PartialEq<&'a str>,
+    {
+        let hash = self.make_hash(string);
+        let Self { dedup, backend, .. } = self;
+        let entry = dedup.raw_entry_mut().from_hash(hash, |symbol| {
+            string
+                == backend
+                    .resolve(*symbol)
+                    .expect("encountered missing symbol")
+        });
+        use crate::compat::hash_map::RawEntryMut;
+        let (&mut symbol, &mut ()) = match entry {
+            RawEntryMut::Occupied(occupied) => occupied.into_key_value(),
+            RawEntryMut::Vacant(vacant) => {
+                let (_interned_str, symbol) = unsafe { intern_fn(backend, string) };
+                vacant.insert_with_hasher(hash, symbol, (), |_symbol| hash)
+            }
+        };
+        symbol
     }
 
     /// Interns the given string.
@@ -190,12 +246,7 @@ where
     where
         T: AsRef<str>,
     {
-        let str = string.as_ref();
-        self.map.get(str).copied().unwrap_or_else(|| unsafe {
-            let (interned_str, symbol) = self.backend.intern(str);
-            self.map.insert(interned_str.into(), symbol);
-            symbol
-        })
+        self.get_or_intern_using(string.as_ref(), B::intern)
     }
 
     /// Interns the given `'static` string.
@@ -213,11 +264,7 @@ where
     /// by the chosen symbol type.
     #[inline]
     pub fn get_or_intern_static(&mut self, string: &'static str) -> S {
-        self.map.get(string).copied().unwrap_or_else(|| unsafe {
-            let (interned_str, symbol) = self.backend.intern_static(string);
-            self.map.insert(interned_str.into(), symbol);
-            symbol
-        })
+        self.get_or_intern_using(string, B::intern_static)
     }
 
     /// Returns the string for the given symbol if any.
