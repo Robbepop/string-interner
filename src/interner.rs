@@ -13,6 +13,11 @@ use crate::{
     Symbol,
 };
 use core::{
+    fmt,
+    fmt::{
+        Debug,
+        Formatter,
+    },
     hash::BuildHasher,
     iter::FromIterator,
 };
@@ -28,7 +33,6 @@ use core::{
 ///     - This maps from `string` type to `symbol` type.
 /// - [`StringInterner::resolve`]: To resolve your already interned strings.
 ///     - This maps from `symbol` type to `string` type.
-#[derive(Debug)]
 pub struct StringInterner<S = DefaultSymbol, B = DefaultBackend, H = DefaultHashBuilder>
 where
     S: Symbol,
@@ -37,6 +41,20 @@ where
 {
     map: HashMap<InternalStr, S, H>,
     backend: B,
+}
+
+impl<S, B, H> Debug for StringInterner<S, B, H>
+where
+    S: Symbol + Debug,
+    B: Backend<S> + Debug,
+    H: BuildHasher,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("StringInterner")
+            .field("dedup", &self.map)
+            .field("backend", &self.backend)
+            .finish()
+    }
 }
 
 impl Default for StringInterner<DefaultSymbol, DefaultBackend, DefaultHashBuilder> {
