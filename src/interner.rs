@@ -25,6 +25,16 @@ use core::{
     iter::FromIterator,
 };
 
+/// Creates the `u64` hash value for the given value using the given hash builder.
+fn make_hash<T>(builder: &impl BuildHasher, value: &T) -> u64
+where
+    T: ?Sized + Hash,
+{
+    let state = &mut builder.build_hasher();
+    value.hash(state);
+    state.finish()
+}
+
 /// Data structure to intern and resolve strings.
 ///
 /// Caches strings efficiently, with minimal memory footprint and associates them with unique symbols.
@@ -173,16 +183,6 @@ where
         self.len() == 0
     }
 
-    /// Computes the hash for the given entity.
-    fn make_hash<T>(&self, value: T) -> u64
-    where
-        T: Hash,
-    {
-        let mut state = self.hasher.build_hasher();
-        value.hash(&mut state);
-        state.finish()
-    }
-
     /// Returns the symbol for the given string if any.
     ///
     /// Can be used to query if a string has already been interned without interning.
@@ -192,14 +192,21 @@ where
         T: AsRef<str>,
     {
         let string = string.as_ref();
-        let hash = self.make_hash(string);
-        let Self { dedup, backend, .. } = self;
-        dedup.raw_entry().from_hash(hash, |symbol| {
-            string
-                == backend
-                    .resolve(*symbol)
-                    .expect("encountered missing symbol")
-        }).map(|(&symbol, &())| symbol)
+        let Self {
+            dedup,
+            hasher,
+            backend,
+        } = self;
+        let hash = make_hash(hasher, string);
+        dedup
+            .raw_entry()
+            .from_hash(hash, |symbol| {
+                string
+                    == backend
+                        .resolve(*symbol)
+                        .expect("encountered missing symbol")
+            })
+            .map(|(&symbol, &())| symbol)
     }
 
     /// Interns the given string.
@@ -212,10 +219,14 @@ where
         intern_fn: unsafe fn(&mut B, T) -> (InternedStr, S),
     ) -> S
     where
-        T: Copy + Hash + for<'a> PartialEq<&'a str>,
+        T: Copy + Hash + AsRef<str> + for<'a> PartialEq<&'a str>,
     {
-        let hash = self.make_hash(string);
-        let Self { dedup, backend, .. } = self;
+        let Self {
+            dedup,
+            hasher,
+            backend,
+        } = self;
+        let hash = make_hash(hasher, string.as_ref());
         let entry = dedup.raw_entry_mut().from_hash(hash, |symbol| {
             string
                 == backend
@@ -227,7 +238,12 @@ where
             RawEntryMut::Occupied(occupied) => occupied.into_key_value(),
             RawEntryMut::Vacant(vacant) => {
                 let (_interned_str, symbol) = unsafe { intern_fn(backend, string) };
-                vacant.insert_with_hasher(hash, symbol, (), |_symbol| hash)
+                vacant.insert_with_hasher(hash, symbol, (), |symbol| {
+                    let string = backend
+                        .resolve(*symbol)
+                        .expect("encountered missing symbol");
+                    make_hash(hasher, string)
+                })
             }
         };
         symbol
