@@ -41,6 +41,15 @@ additional terms or conditions.
 
 ## Changelog
 
+- 0.11
+
+	- Make `hashbrown` a mandatory dependency.
+	  We depend on it for the moment for its `raw_entry` API that has not yet been
+	  stabilized for Rust. Also benchmarks show that it is 20-30% faster than Rust's
+	  hashmap implementation.
+	- Benchmarks now use `FxBuildHasher` by default which results in another
+	  20% performance increase.
+
 - 0.10.1
 
 	- Allow to intern `&'static str` using `get_or_intern_static` API.
