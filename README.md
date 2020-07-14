@@ -57,6 +57,9 @@ additional terms or conditions.
 	Special thanks to [CAD97](https://dev.to/cad97) who motivated me to craft this
 	release through [their blog post](https://dev.to/cad97/string-interners-in-rust-797)
 	"String interners in Rust".
+	Also I want to thank [matklad](https://github.com/matklad) who wrote a nice
+	[blog post](https://matklad.github.io/2020/03/22/fast-simple-rust-interner.html)
+	that inspired the design of the new `BucketBackend` for `StringInterner`.
 
 	- Implement pluggable backends for `StringInterner`.
 	  Uses the new `BucketBackend` by default which results in significant
