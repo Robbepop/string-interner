@@ -8,9 +8,9 @@ mod bucket;
 mod interned_str;
 mod simple;
 
+use self::interned_str::InternedStr;
 pub use self::{
     bucket::BucketBackend,
-    interned_str::InternedStr,
     simple::SimpleBackend,
 };
 use crate::{

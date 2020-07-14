@@ -25,11 +25,20 @@ impl InternedStr {
     ///
     /// The user has to make sure that no lifetime guarantees are invalidated.
     #[inline]
-    pub(crate) unsafe fn as_str(&self) -> &str {
+    pub(super) fn as_str(&self) -> &str {
         // SAFETY: This is safe since we only ever operate on interned `str`
         //         that are never moved around in memory to avoid danling
         //         references.
-        self.ptr.as_ref()
+        unsafe { self.ptr.as_ref() }
+    }
+}
+
+impl Eq for InternedStr {}
+
+impl PartialEq for InternedStr {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.as_str() == other.as_str()
     }
 }
 
