@@ -16,12 +16,6 @@ Also, iterating through the interned strings is cache efficient.
 - `V` stores the strings with an indirection to avoid iterator invalidation.
 - Returned symbols usually have a low memory footprint and are efficiently comparable.
 
-### Planned Features
-
-- Safe abstraction wrapper that protects the user from the following misusages:
-	- Using symbols of a different string interner instance to resolve string in another.
-	- Using symbols that are already no longer valid (i.e. the associated string interner is no longer available).
-
 ## License
 
 Licensed under either of
