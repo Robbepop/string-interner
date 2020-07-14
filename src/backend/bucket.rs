@@ -33,7 +33,7 @@ use core::{
 /// |:---------|:------:|
 /// | Fill     | **good** |
 /// | Query    | **ok** |
-/// | Memory   | **good** |
+/// | Memory   | **ok** |
 /// | Supports `get_or_intern_static` | **yes** |
 #[derive(Debug)]
 pub struct BucketBackend<S> {
