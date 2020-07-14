@@ -1,14 +1,15 @@
 # Release Notes
 
-## 0.12 - 2020/07/??
+## 0.11.1 - 2020/07/14
 
+- Remove usage of `unsafe` in `Symbol::try_from_usize` methods.
 - Add new crate feature `more-inline` that puts more `#[inline]` on public methods.
 	- The new `more-inline` crate feature is enabled by default. If you want to
 	  turn it off use `--no-default-features`.
 	- Enabling `more-inline` also enables `hashbrown/more-inline`.
 - Remove `&B: IntoIter` trait bound from `Clone` impl of `StringInterner`
 
-## 0.11 - 2020/07/14
+## 0.11.0 - 2020/07/14
 
 Thanks a lot (again) to [CAD97](https://dev.to/cad97) who is the vanguard
 of the technical improvements in this release with their
