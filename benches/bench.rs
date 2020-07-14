@@ -20,9 +20,9 @@ use criterion::{
 };
 use string_interner::DefaultSymbol;
 
-criterion_group!(bench_resolve, bench_resolve_already_filled,);
-criterion_group!(bench_get, bench_get_already_filled,);
-criterion_group!(bench_iter, bench_iter_already_filled,);
+criterion_group!(bench_resolve, bench_resolve_already_filled);
+criterion_group!(bench_get, bench_get_already_filled);
+criterion_group!(bench_iter, bench_iter_already_filled);
 criterion_group!(
     bench_get_or_intern,
     bench_get_or_intern_fill,
