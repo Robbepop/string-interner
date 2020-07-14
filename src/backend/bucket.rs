@@ -35,6 +35,7 @@ use core::{
 /// | Fill     | **good** |
 /// | Query    | **ok** |
 /// | Memory   | **good** |
+/// | Supports `get_or_intern_static` | **yes** |
 #[derive(Debug)]
 pub struct BucketBackend<S> {
     spans: Vec<InternalStr>,
