@@ -32,7 +32,6 @@ harness = false
 [features]
 default = ["std", "serde-1"]
 std = []
-bench = ["std"]
 serde-1 = ["serde"]
 
 [badges]
