@@ -59,4 +59,15 @@ where
 
     /// Resolves the given symbol to its original string contents.
     fn resolve(&self, symbol: S) -> Option<&str>;
+
+    /// Resolves the given symbol to its original string contents.
+    ///
+    /// # Safety
+    ///
+    /// Does not perform validity checks on the given symbol and relies
+    /// on the caller to be provided with a symbol that has been generated
+    /// by the [`Backend::intern`](`intern`) or
+    /// [`Backend::intern_static`](`intern_static`) methods of the same
+    /// interner backend.
+    unsafe fn resolve_unchecked(&self, symbol: S) -> &str;
 }

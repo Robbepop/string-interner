@@ -75,6 +75,11 @@ where
     fn resolve(&self, symbol: S) -> Option<&str> {
         self.strings.get(symbol.to_usize()).map(|pinned| &**pinned)
     }
+
+    #[inline]
+    unsafe fn resolve_unchecked(&self, symbol: S) -> &str {
+        self.strings.get_unchecked(symbol.to_usize())
+    }
 }
 
 impl<S> Clone for SimpleBackend<S>
