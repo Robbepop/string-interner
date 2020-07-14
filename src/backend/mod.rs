@@ -7,11 +7,13 @@
 mod bucket;
 mod interned_str;
 mod simple;
+mod string;
 
 use self::interned_str::InternedStr;
 pub use self::{
     bucket::BucketBackend,
     simple::SimpleBackend,
+    string::StringBackend,
 };
 use crate::{
     DefaultSymbol,
