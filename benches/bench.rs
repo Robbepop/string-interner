@@ -1,22 +1,12 @@
 mod setup;
 
 use self::setup::{
-    generate_test_strings,
-    BackendBenchmark,
-    BenchBucket,
-    BenchSimple,
-    BENCH_LEN_STRINGS,
+    generate_test_strings, BackendBenchmark, BenchBucket, BenchSimple, BENCH_LEN_STRINGS,
     BENCH_STRING_LEN,
 };
 use criterion::{
-    black_box,
-    criterion_group,
-    criterion_main,
-    measurement::WallTime,
-    BatchSize,
-    BenchmarkGroup,
-    Criterion,
-    Throughput,
+    black_box, criterion_group, criterion_main, measurement::WallTime, BatchSize,
+    BenchmarkGroup, Criterion, Throughput,
 };
 use string_interner::DefaultSymbol;
 

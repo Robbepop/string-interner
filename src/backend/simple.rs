@@ -1,19 +1,10 @@
 use super::Backend;
 use crate::{
-    compat::{
-        Box,
-        ToString,
-        Vec,
-    },
+    compat::{Box, ToString, Vec},
     symbol::expect_valid_symbol,
     Symbol,
 };
-use core::{
-    iter::Enumerate,
-    marker::PhantomData,
-    pin::Pin,
-    slice,
-};
+use core::{iter::Enumerate, marker::PhantomData, pin::Pin, slice};
 
 /// A simple backend that stores a separate allocation for every interned string.
 ///

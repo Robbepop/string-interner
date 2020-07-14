@@ -9,14 +9,8 @@ mod interned_str;
 mod simple;
 
 use self::interned_str::InternedStr;
-pub use self::{
-    bucket::BucketBackend,
-    simple::SimpleBackend,
-};
-use crate::{
-    DefaultSymbol,
-    Symbol,
-};
+pub use self::{bucket::BucketBackend, simple::SimpleBackend};
+use crate::{DefaultSymbol, Symbol};
 
 /// The default backend recommended for general use.
 pub type DefaultBackend = BucketBackend<DefaultSymbol>;

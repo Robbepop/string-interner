@@ -1,11 +1,6 @@
 use string_interner::{
-    backend::{
-        Backend,
-        BucketBackend,
-        SimpleBackend,
-    },
-    DefaultSymbol,
-    StringInterner,
+    backend::{Backend, BucketBackend, SimpleBackend},
+    DefaultSymbol, StringInterner,
 };
 
 /// Alphabet containing all characters that may be put into a benchmark string.
@@ -37,10 +32,10 @@ impl WordBuilder {
         'l: for index in &mut self.indices {
             if *index == (64 - 1) {
                 *index = 0;
-                continue 'l
+                continue 'l;
             }
             *index += 1;
-            return Some(&self.indices[..])
+            return Some(&self.indices[..]);
         }
         None
     }

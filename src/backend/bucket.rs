@@ -1,18 +1,11 @@
 use super::Backend;
 use crate::{
     backend::InternedStr,
-    compat::{
-        String,
-        Vec,
-    },
+    compat::{String, Vec},
     symbol::expect_valid_symbol,
     Symbol,
 };
-use core::{
-    iter::Enumerate,
-    marker::PhantomData,
-    slice,
-};
+use core::{iter::Enumerate, marker::PhantomData, slice};
 
 /// An interner backend that reduces memory allocations by using string buckets.
 ///

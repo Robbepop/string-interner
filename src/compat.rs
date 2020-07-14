@@ -4,10 +4,7 @@ use cfg_if::cfg_if;
 
 pub use ::hashbrown::{
     hash_map,
-    hash_map::{
-        DefaultHashBuilder,
-        HashMap,
-    },
+    hash_map::{DefaultHashBuilder, HashMap},
 };
 
 cfg_if! {

@@ -1,8 +1,5 @@
 use crate::{
-    backend,
-    compat::DefaultHashBuilder,
-    symbol::expect_valid_symbol,
-    DefaultSymbol,
+    backend, compat::DefaultHashBuilder, symbol::expect_valid_symbol, DefaultSymbol,
     Symbol,
 };
 

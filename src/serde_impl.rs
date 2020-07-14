@@ -1,26 +1,8 @@
-use crate::{
-    backend::Backend,
-    StringInterner,
-    Symbol,
-};
-use core::{
-    default::Default,
-    fmt,
-    hash::BuildHasher,
-    marker,
-};
+use crate::{backend::Backend, StringInterner, Symbol};
+use core::{default::Default, fmt, hash::BuildHasher, marker};
 use serde::{
-    de::{
-        Deserialize,
-        Deserializer,
-        SeqAccess,
-        Visitor,
-    },
-    ser::{
-        Serialize,
-        SerializeSeq,
-        Serializer,
-    },
+    de::{Deserialize, Deserializer, SeqAccess, Visitor},
+    ser::{Serialize, SerializeSeq, Serializer},
 };
 
 impl<S, B, H> Serialize for StringInterner<S, B, H>
