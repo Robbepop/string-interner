@@ -18,11 +18,15 @@ pub trait BackendStats {
 }
 
 impl BackendStats for backend::BucketBackend<DefaultSymbol> {
-    const OVERHEAD: f64 = 10.5;
+    const OVERHEAD: f64 = 12.5;
 }
 
 impl BackendStats for backend::SimpleBackend<DefaultSymbol> {
-    const OVERHEAD: f64 = 10.5;
+    const OVERHEAD: f64 = 12.0;
+}
+
+impl BackendStats for backend::StringBackend<DefaultSymbol> {
+    const OVERHEAD: f64 = 15.5;
 }
 
 macro_rules! gen_tests_for_backend {
@@ -219,4 +223,10 @@ mod simple_backend {
     use super::*;
 
     gen_tests_for_backend!(backend::SimpleBackend<DefaultSymbol>);
+}
+
+mod string_backend {
+    use super::*;
+
+    gen_tests_for_backend!(backend::StringBackend<DefaultSymbol>);
 }
