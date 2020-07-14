@@ -1,6 +1,5 @@
 use super::Backend;
 use crate::{
-    backend::InternedStr,
     compat::{
         Box,
         ToString,
@@ -65,12 +64,11 @@ where
     }
 
     #[inline]
-    unsafe fn intern(&mut self, string: &str) -> (InternedStr, S) {
+    fn intern(&mut self, string: &str) -> S {
         let symbol = expect_valid_symbol(self.strings.len());
         let str = Pin::new(string.to_string().into_boxed_str());
-        let interned = InternedStr::new(&*str);
         self.strings.push(str);
-        (interned, symbol)
+        symbol
     }
 
     #[inline]

@@ -37,21 +37,20 @@ where
 
     /// Interns the given string and returns its interned ref and symbol.
     ///
-    /// # Safety
+    /// # Note
     ///
-    /// The returned `InternedStr` points to an actually interned string. The
-    /// backend must make sure that it never moves its interned string arounds.
-    /// This is why this method is `unsafe`.
-    unsafe fn intern(&mut self, string: &str) -> (InternedStr, S);
+    /// The backend must make sure that the returned symbol maps back to the
+    /// original string in its [`resolve`](`Backend::resolve`) method.
+    fn intern(&mut self, string: &str) -> S;
 
     /// Interns the given static string and returns its interned ref and symbol.
     ///
-    /// # Safety
+    /// # Note
     ///
-    /// The returned `InternedStr` should point to the static string itself.
-    /// Backends should try to not allocate any interned strings in this case.
+    /// The backend must make sure that the returned symbol maps back to the
+    /// original string in its [`resolve`](`Backend::resolve`) method.
     #[inline]
-    unsafe fn intern_static(&mut self, string: &'static str) -> (InternedStr, S) {
+    fn intern_static(&mut self, string: &'static str) -> S {
         // The default implementation simply forwards to the normal [`intern`]
         // implementation. Backends that can optimize for this use case should
         // implement this method.
