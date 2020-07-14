@@ -105,7 +105,8 @@ criterion_group!(
 );
 criterion_main!(bench_get_or_intern, bench_resolve, bench_get, bench_iter);
 
-type StringInternerWith<B> = StringInterner<DefaultSymbol, B, DefaultHashBuilder>;
+type FxBuildHasher = fxhash::FxBuildHasher;
+type StringInternerWith<B> = StringInterner<DefaultSymbol, B, FxBuildHasher>;
 
 trait BackendBenchmark {
     const NAME: &'static str;
