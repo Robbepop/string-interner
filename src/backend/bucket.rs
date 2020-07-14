@@ -109,7 +109,7 @@ where
     /// Pushes the given interned string into the spans and returns its symbol.
     fn push_span(&mut self, interned: InternedStr) -> S {
         let symbol = self.next_symbol();
-        self.spans.push(interned.into());
+        self.spans.push(interned);
         symbol
     }
 
@@ -147,7 +147,7 @@ where
             let start = head.len();
             head.push_str(string);
             let interned = InternedStr::new(&head[start..start + string.len()]);
-            spans.push(interned.into());
+            spans.push(interned);
         }
         Self {
             spans,
