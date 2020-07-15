@@ -37,7 +37,7 @@ use core::{
 /// | Supports `get_or_intern_static` | **no** |
 #[derive(Debug, Clone)]
 pub struct StringBackend<S> {
-    spans: Vec<Span>,
+    ends: Vec<u32>,
     buffer: String,
     marker: PhantomData<fn() -> S>,
 }
@@ -54,8 +54,11 @@ where
     S: Symbol,
 {
     fn eq(&self, other: &Self) -> bool {
-        for (&lhs, &rhs) in self.spans.iter().zip(other.spans.iter()) {
-            if self.span_to_str(lhs) != self.span_to_str(rhs) {
+        if self.ends.len() != other.ends.len() {
+            return false
+        }
+        for ((_, lhs), (_, rhs)) in self.into_iter().zip(other) {
+            if lhs != rhs {
                 return false
             }
         }
@@ -69,7 +72,7 @@ impl<S> Default for StringBackend<S> {
     #[cfg_attr(feature = "inline-more", inline)]
     fn default() -> Self {
         Self {
-            spans: Vec::default(),
+            ends: Vec::default(),
             buffer: String::default(),
             marker: Default::default(),
         }
@@ -82,7 +85,7 @@ where
 {
     /// Returns the next available symbol.
     fn next_symbol(&self) -> S {
-        expect_valid_symbol(self.spans.len())
+        expect_valid_symbol(self.ends.len())
     }
 
     /// Returns the string associated to the span.
@@ -100,19 +103,19 @@ where
 
     /// Returns the span for the given symbol if any.
     fn symbol_to_span(&self, symbol: S) -> Option<Span> {
-        self.spans.get(symbol.to_usize()).copied()
+        let index = symbol.to_usize();
+        self.ends.get(index).copied().map(|to| {
+            let from = self.ends.get(index.wrapping_sub(1)).copied().unwrap_or(0);
+            Span { from, to }
+        })
     }
 
     /// Returns the span for the given symbol if any.
     unsafe fn symbol_to_span_unchecked(&self, symbol: S) -> Span {
-        *self.spans.get_unchecked(symbol.to_usize())
-    }
-
-    /// Pushes the given span into the spans and returns its symbol.
-    fn push_span(&mut self, span: Span) -> S {
-        let symbol = self.next_symbol();
-        self.spans.push(span);
-        symbol
+        let index = symbol.to_usize();
+        let to = *self.ends.get_unchecked(index);
+        let from = self.ends.get(index.wrapping_sub(1)).copied().unwrap_or(0);
+        Span { from, to }
     }
 
     /// Pushes the given string into the buffer and returns its span.
@@ -120,14 +123,17 @@ where
     /// # Panics
     ///
     /// If the backend ran out of symbols.
-    fn push_string(&mut self, string: &str) -> Span {
-        let from = self.buffer.as_bytes().len();
+    fn push_string(&mut self, string: &str) -> S {
         self.buffer.push_str(string);
-        let to = self.buffer.as_bytes().len();
-        Span {
-            from: from.try_into().expect("ran out of symbols"),
-            to: to.try_into().expect("ran out of symbols"),
-        }
+        let to = self
+            .buffer
+            .as_bytes()
+            .len()
+            .try_into()
+            .expect("ran out of symbols");
+        let symbol = self.next_symbol();
+        self.ends.push(to);
+        symbol
     }
 }
 
@@ -140,7 +146,7 @@ where
         // According to google the approx. word length is 5.
         let default_word_len = 5;
         Self {
-            spans: Vec::with_capacity(cap),
+            ends: Vec::with_capacity(cap),
             buffer: String::with_capacity(cap * default_word_len),
             marker: Default::default(),
         }
@@ -148,8 +154,7 @@ where
 
     #[inline]
     fn intern(&mut self, string: &str) -> S {
-        let span = self.push_string(string);
-        self.push_span(span)
+        self.push_string(string)
     }
 
     #[inline]
@@ -179,7 +184,8 @@ where
 
 pub struct Iter<'a, S> {
     backend: &'a StringBackend<S>,
-    iter: Enumerate<slice::Iter<'a, Span>>,
+    start: u32,
+    ends: Enumerate<slice::Iter<'a, u32>>,
 }
 
 impl<'a, S> Iter<'a, S> {
@@ -187,7 +193,8 @@ impl<'a, S> Iter<'a, S> {
     pub fn new(backend: &'a StringBackend<S>) -> Self {
         Self {
             backend,
-            iter: backend.spans.iter().enumerate(),
+            start: 0,
+            ends: backend.ends.iter().enumerate(),
         }
     }
 }
@@ -200,13 +207,17 @@ where
 
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
-        self.iter.size_hint()
+        self.ends.size_hint()
     }
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter
-            .next()
-            .map(|(id, &span)| (expect_valid_symbol(id), self.backend.span_to_str(span)))
+        self.ends.next().map(|(id, &to)| {
+            let from = core::mem::replace(&mut self.start, to);
+            (
+                expect_valid_symbol(id),
+                self.backend.span_to_str(Span { from, to }),
+            )
+        })
     }
 }
