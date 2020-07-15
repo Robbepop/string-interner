@@ -71,9 +71,7 @@ where
     }
 }
 
-impl Default
-    for StringInterner<DefaultSymbol, DefaultBackend<DefaultSymbol>, DefaultHashBuilder>
-{
+impl Default for StringInterner {
     #[cfg_attr(feature = "inline-more", inline)]
     fn default() -> Self {
         StringInterner::new()
