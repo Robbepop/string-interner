@@ -78,8 +78,8 @@ where
     ///
     /// Does not perform validity checks on the given symbol and relies
     /// on the caller to be provided with a symbol that has been generated
-    /// by the [`Backend::intern`](`intern`) or
-    /// [`Backend::intern_static`](`intern_static`) methods of the same
+    /// by the [`intern`](`Backend::intern`) or
+    /// [`intern_static`](`Backend::intern_static`) methods of the same
     /// interner backend.
     unsafe fn resolve_unchecked(&self, symbol: S) -> &str;
 }
