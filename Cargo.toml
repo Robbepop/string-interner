@@ -32,7 +32,17 @@ harness = false
 [features]
 default = ["std", "serde-1", "inline-more"]
 std = []
+
+# Enable this if you need `Serde` serialization and deserialization support.
+#
+# Enabled by default.
 serde-1 = ["serde"]
+
+# Use this to mark more public functions of the StringInterner (and hashbrown)
+# as inline. This significantly increases compile times of the crate but improves
+# upon runtime execution.
+#
+# Enabled by default.
 inline-more = ["hashbrown/inline-more"]
 
 [badges]
