@@ -1,10 +1,10 @@
 use crate::{
     backend::Backend,
-    DefaultBackend,
     compat::{
         DefaultHashBuilder,
         HashMap,
     },
+    DefaultBackend,
     DefaultSymbol,
     Symbol,
 };
