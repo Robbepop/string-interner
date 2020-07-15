@@ -1,5 +1,12 @@
 # Release Notes
 
+## 0.12.0 - 2020/07/15
+
+- Make `DefaultBackend` generic over its symbol type.
+	- This simplifies type ascription of string interners that do not use the
+	  default symbol type.
+	  - E.g. `StringInterner<usize>` is now possible to write (again).
+
 ## 0.11.3 - 2020/07/15
 
 - Add `Symbol` implementation for `usize`.
