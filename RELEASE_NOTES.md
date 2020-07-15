@@ -1,5 +1,10 @@
 # Release Notes
 
+## 0.11.2 - 2020/07/15
+
+- Add new `StringBackend` that is optimized for memory allocations and footprint.
+	- Use it if your memory constraints are most important to you.
+
 ## 0.11.1 - 2020/07/14
 
 Special thanks to [Ten0](https://github.com/Ten0) for help with this release!
