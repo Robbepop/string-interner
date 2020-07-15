@@ -15,10 +15,7 @@ pub use self::{
     simple::SimpleBackend,
     string::StringBackend,
 };
-use crate::{
-    DefaultSymbol,
-    Symbol,
-};
+use crate::Symbol;
 
 /// The default backend recommended for general use.
 pub type DefaultBackend<S> = BucketBackend<S>;
