@@ -43,7 +43,7 @@ where
 ///     - This maps from `string` type to `symbol` type.
 /// - [`StringInterner::resolve`]: To resolve your already interned strings.
 ///     - This maps from `symbol` type to `string` type.
-pub struct StringInterner<S = DefaultSymbol, B = DefaultBackend, H = DefaultHashBuilder>
+pub struct StringInterner<S = DefaultSymbol, B = DefaultBackend<S>, H = DefaultHashBuilder>
 where
     S: Symbol,
     B: Backend<S>,
@@ -68,7 +68,7 @@ where
     }
 }
 
-impl Default for StringInterner<DefaultSymbol, DefaultBackend, DefaultHashBuilder> {
+impl Default for StringInterner<DefaultSymbol, DefaultBackend<DefaultSymbol>, DefaultHashBuilder> {
     #[cfg_attr(feature = "inline-more", inline)]
     fn default() -> Self {
         StringInterner::new()

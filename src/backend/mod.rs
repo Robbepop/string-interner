@@ -21,7 +21,7 @@ use crate::{
 };
 
 /// The default backend recommended for general use.
-pub type DefaultBackend = BucketBackend<DefaultSymbol>;
+pub type DefaultBackend<S> = BucketBackend<S>;
 
 /// Types implementing this trait may act as backends for the string interner.
 ///
