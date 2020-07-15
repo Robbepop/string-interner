@@ -46,6 +46,18 @@ where
 /// The symbol type that is used by default.
 pub type DefaultSymbol = SymbolU32;
 
+impl Symbol for usize {
+    #[inline]
+    fn try_from_usize(index: usize) -> Option<Self> {
+        Some(index)
+    }
+
+    #[inline]
+    fn to_usize(self) -> usize {
+        self
+    }
+}
+
 macro_rules! gen_symbol_for {
     (
         $( #[$doc:meta] )*
