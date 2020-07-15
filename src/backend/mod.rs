@@ -9,7 +9,9 @@ mod interned_str;
 mod simple;
 mod string;
 
+#[cfg(feature = "backends")]
 use self::interned_str::InternedStr;
+#[cfg(feature = "backends")]
 pub use self::{
     bucket::BucketBackend,
     simple::SimpleBackend,
@@ -17,8 +19,19 @@ pub use self::{
 };
 use crate::Symbol;
 
-/// The default backend recommended for general use.
-pub type DefaultBackend<S> = BucketBackend<S>;
+#[cfg(not(feature = "backends"))]
+/// Indicates that no proper backend is in use.
+pub struct NoBackend<S>(core::marker::PhantomData<S>);
+
+cfg_if::cfg_if! {
+    if #[cfg(feature = "backends")] {
+        /// The default backend recommended for general use.
+        pub type DefaultBackend<S> = BucketBackend<S>;
+    } else {
+        /// The `backends` crate feature is disabled thus there is no default backend.
+        pub type DefaultBackend<S> = NoBackend<S>;
+    }
+}
 
 /// Types implementing this trait may act as backends for the string interner.
 ///

@@ -1,10 +1,10 @@
 use crate::{
     backend::Backend,
+    DefaultBackend,
     compat::{
         DefaultHashBuilder,
         HashMap,
     },
-    DefaultBackend,
     DefaultSymbol,
     Symbol,
 };
@@ -49,7 +49,6 @@ pub struct StringInterner<
     H = DefaultHashBuilder,
 > where
     S: Symbol,
-    B: Backend<S>,
     H: BuildHasher,
 {
     dedup: HashMap<S, (), ()>,
@@ -71,6 +70,7 @@ where
     }
 }
 
+#[cfg(feature = "backends")]
 impl Default for StringInterner {
     #[cfg_attr(feature = "inline-more", inline)]
     fn default() -> Self {

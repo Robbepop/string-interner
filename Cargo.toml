@@ -30,7 +30,7 @@ name = "bench"
 harness = false
 
 [features]
-default = ["std", "serde-1", "inline-more"]
+default = ["std", "serde-1", "inline-more", "backends"]
 std = []
 
 # Enable this if you need `Serde` serialization and deserialization support.
@@ -44,6 +44,13 @@ serde-1 = ["serde"]
 #
 # Enabled by default.
 inline-more = ["hashbrown/inline-more"]
+
+# Enables the backends provided out of the box by this crate.
+# Disable this if you want to only use your own backend and thus don't have
+# the need for those present backends. Reduces compilation time of this crate.
+#
+# Enabled by default.
+backends = []
 
 [badges]
 travis-ci = { repository = "Robbepop/string-interner" }

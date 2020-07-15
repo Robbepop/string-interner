@@ -1,3 +1,5 @@
+#![cfg(feature = "backends")]
+
 use super::Backend;
 use crate::{
     compat::{

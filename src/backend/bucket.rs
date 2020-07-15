@@ -1,3 +1,6 @@
+
+#![cfg(feature = "backends")]
+
 use super::Backend;
 use crate::{
     backend::InternedStr,

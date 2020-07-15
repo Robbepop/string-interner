@@ -1,3 +1,6 @@
+
+#![cfg(feature = "backends")]
+
 use core::ptr::NonNull;
 
 /// Reference to an interned string.
