@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.11.3 - 2020/07/15
+
+- Add `Symbol` implementation for `usize`.
+
 ## 0.11.2 - 2020/07/15
 
 - Add new `StringBackend` that is optimized for memory allocations and footprint.
