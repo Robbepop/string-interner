@@ -24,16 +24,18 @@ use core::{
 /// # Usage
 ///
 /// - **Fill:** Efficiency of filling an empty string interner.
-/// - **Query:** Efficiency of interned string look-up given a symbol.
-/// - **Memory:** The number of allocations and overall memory consumption.
+/// - **Resolve:** Efficiency of interned string look-up given a symbol.
+/// - **Allocations:** The number of allocations performed by the backend.
+/// - **Footprint:** The total heap memory consumed by the backend.
 ///
 /// Rating varies between **bad**, **ok** and **good**.
 ///
-/// | Scenario | Rating |
-/// |:---------|:------:|
-/// | Fill     | **ok** |
-/// | Query    | **ok** |
-/// | Memory   | **good** |
+/// | Scenario    |  Rating  |
+/// |:------------|:--------:|
+/// | Fill        | **good** |
+/// | Resolve     | **bad**   |
+/// | Allocations | **good** |
+/// | Footprint   | **good**   |
 /// | Supports `get_or_intern_static` | **no** |
 #[derive(Debug, Clone)]
 pub struct StringBackend<S> {
