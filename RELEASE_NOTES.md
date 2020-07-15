@@ -6,6 +6,10 @@
 	- This simplifies type ascription of string interners that do not use the
 	  default symbol type.
 	  - E.g. `StringInterner<usize>` is now possible to write (again).
+- Add `backends` crate feature.
+	- Enabled by default.
+	- Disable this if you do not use any of the backends provided by the
+	  `string-interner` crate.
 
 ## 0.11.3 - 2020/07/15
 
