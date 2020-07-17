@@ -95,10 +95,12 @@ where
 
     /// Returns the string associated to the span.
     fn span_to_str(&self, span: Span) -> &str {
-        // SAFETY: We convert a `String` into its underlying bytes and then
-        //         directly reinterpret it as `&str` again which is safe. Also
-        //         nothing mutates the string in between since this is a `&self`
-        //         method.
+        // SAFETY: - We convert a `String` into its underlying bytes and then
+        //           directly reinterpret it as `&str` again which is safe.
+        //         - Nothing mutates the string in between since this is a `&self`
+        //           method.
+        //         - The spans we use for `(start..end]` ranges are always
+        //           constructed in accordance to valid utf8 byte ranges.
         unsafe {
             core::str::from_utf8_unchecked(
                 &self.buffer.as_bytes()[(span.from as usize)..(span.to as usize)],
