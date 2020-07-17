@@ -39,6 +39,7 @@ use core::{
 /// | Allocations | **good** |
 /// | Footprint   | **good**   |
 /// | Supports `get_or_intern_static` | **no** |
+/// | `Send` + `Sync` | **yes** |
 #[derive(Debug, Clone)]
 pub struct StringBackend<S> {
     ends: Vec<u32>,

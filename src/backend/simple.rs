@@ -39,6 +39,7 @@ use core::{
 /// | Allocations | **bad** |
 /// | Footprint   | **bad**   |
 /// | Supports `get_or_intern_static` | **no** |
+/// | `Send` + `Sync` | **yes** |
 #[derive(Debug)]
 pub struct SimpleBackend<S> {
     strings: Vec<Pin<Box<str>>>,
