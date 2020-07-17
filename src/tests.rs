@@ -21,6 +21,10 @@ impl BackendStats for backend::BucketBackend<DefaultSymbol> {
     const OVERHEAD: f64 = 14.0;
 }
 
+impl BackendStats for backend::BucketBackend2<DefaultSymbol> {
+    const OVERHEAD: f64 = 14.0;
+}
+
 impl BackendStats for backend::SimpleBackend<DefaultSymbol> {
     const OVERHEAD: f64 = 12.0;
 }
@@ -218,6 +222,12 @@ mod bucket_backend {
     use super::*;
 
     gen_tests_for_backend!(backend::BucketBackend<DefaultSymbol>);
+}
+
+mod bucket_backend2 {
+    use super::*;
+
+    gen_tests_for_backend!(backend::BucketBackend2<DefaultSymbol>);
 }
 
 mod simple_backend {
