@@ -13,7 +13,6 @@ use crate::{
 use core::{
     iter::Enumerate,
     marker::PhantomData,
-    pin::Pin,
     slice,
 };
 
@@ -42,7 +41,7 @@ use core::{
 /// | `Send` + `Sync` | **yes** |
 #[derive(Debug)]
 pub struct SimpleBackend<S> {
-    strings: Vec<Pin<Box<str>>>,
+    strings: Vec<Box<str>>,
     symbol_marker: PhantomData<fn() -> S>,
 }
 
@@ -71,7 +70,7 @@ where
     #[inline]
     fn intern(&mut self, string: &str) -> S {
         let symbol = expect_valid_symbol(self.strings.len());
-        let str = Pin::new(string.to_string().into_boxed_str());
+        let str = string.to_string().into_boxed_str();
         self.strings.push(str);
         symbol
     }
@@ -126,7 +125,7 @@ where
 }
 
 pub struct Iter<'a, S> {
-    iter: Enumerate<slice::Iter<'a, Pin<Box<str>>>>,
+    iter: Enumerate<slice::Iter<'a, Box<str>>>,
     symbol_marker: PhantomData<fn() -> S>,
 }
 
