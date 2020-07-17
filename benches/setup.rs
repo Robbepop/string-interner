@@ -2,6 +2,7 @@ use string_interner::{
     backend::{
         Backend,
         BucketBackend,
+        BucketBackend2,
         SimpleBackend,
         StringBackend,
     },
@@ -120,6 +121,12 @@ pub struct BenchBucket;
 impl BackendBenchmark for BenchBucket {
     const NAME: &'static str = "BucketBackend";
     type Backend = BucketBackend<DefaultSymbol>;
+}
+
+pub struct BenchBucket2;
+impl BackendBenchmark for BenchBucket2 {
+    const NAME: &'static str = "BucketBackend2";
+    type Backend = BucketBackend2<DefaultSymbol>;
 }
 
 pub struct BenchSimple;
