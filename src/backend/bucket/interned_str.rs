@@ -6,7 +6,7 @@ use core::ptr::NonNull;
 ///
 /// It is inherently `unsafe` to use instances of this type and should not be
 /// done outside of the `string-interner` crate itself.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug)]
 #[repr(transparent)]
 pub struct InternedStr {
     ptr: NonNull<str>,
