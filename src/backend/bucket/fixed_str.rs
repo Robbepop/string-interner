@@ -1,68 +1,68 @@
+use super::InternedStr;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FixedString {
-    contents: Box<str>,
-    len: usize,
+    contents: String,
 }
 
 impl Default for FixedString {
+    #[inline]
     fn default() -> Self {
         Self {
-            contents: String::new().into_boxed_str(),
-            len: 0,
+            contents: String::new(),
         }
     }
 }
 
 impl FixedString {
     /// Creates a new fixed string with the given fixed capacity.
+    #[inline]
     pub fn with_capacity(cap: usize) -> Self {
-        let contents = String::from_utf8(vec![0x00; cap])
-            .expect("encountered invalid utf8 init sequence")
-            .into_boxed_str();
-        debug_assert_eq!(contents.len(), cap);
-        Self { contents, len: 0 }
+        Self {
+            contents: String::with_capacity(cap),
+        }
     }
 
     /// Returns the underlying [`Box<str>`].
     ///
     /// Guarantees not to perform any reallocations in this process.
-    pub fn into_boxed_str(self) -> Box<str> {
+    #[inline]
+    pub fn finish(self) -> String {
         self.contents
     }
 
     /// Returns the capacity in bytes of the fixed string.
+    #[inline]
     pub fn capacity(&self) -> usize {
-        self.contents.len()
+        self.contents.capacity()
     }
 
     /// Returns the length in bytes of the fixed string.
+    #[inline]
     pub fn len(&self) -> usize {
-        self.len
+        self.contents.len()
     }
 
     /// Pushes the given string into the fixed string if there is enough capacity.
     ///
     /// Returns a reference to the pushed string if there was enough capacity to
     /// perform the operation. Otherwise returns `None`.
-    pub fn push_str<'a>(&'a mut self, str: &str) -> Option<&'a str> {
+    #[inline]
+    pub fn push_str(&mut self, string: &str) -> Option<InternedStr> {
         let len = self.len();
-        if self.capacity() < len + str.len() {
+        if self.capacity() < len + string.len() {
             return None
         }
-        // SAFETY: This operation is safe since we checked beforehand if the
-        //         capacity of the fixed string is large enough to fix the
-        //         contents of the newly pushed string.
-        //         Also the newly pushed string is of type `str` which means
-        //         that it respects unicode points properly.
-        unsafe {
-            self.contents.as_bytes_mut()[len..len + str.len()]
-                .copy_from_slice(str.as_bytes())
-        };
-        self.len += str.len();
-        Some(unsafe {
-            core::str::from_utf8_unchecked(
-                &self.contents.as_bytes()[len..len + str.len()],
-            )
-        })
+        self.contents.push_str(string);
+        debug_assert_eq!(self.contents.len(), len + string.len());
+        Some(InternedStr::new(
+            // SAFETY: We convert from bytes to utf8 from which we know through the
+            //         input string that they must represent valid utf8.
+            unsafe {
+                core::str::from_utf8_unchecked(
+                    &self.contents.as_bytes()[len..len + string.len()],
+                )
+            },
+        ))
     }
 }

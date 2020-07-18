@@ -47,7 +47,7 @@ use core::{
 pub struct BucketBackend<S> {
     spans: Vec<InternedStr>,
     head: FixedString,
-    full: Vec<Box<str>>,
+    full: Vec<String>,
     marker: PhantomData<fn() -> S>,
 }
 
@@ -56,20 +56,14 @@ pub struct BucketBackend<S> {
 /// The bucket backend requires a manual [`Send`] impl because it is self
 /// referential. When cloning a bucket backend a deep clone is performed and
 /// all references to itself are updated for the clone.
-unsafe impl<S> Send for BucketBackend<S>
-where
-    S: Symbol,
-{}
+unsafe impl<S> Send for BucketBackend<S> where S: Symbol {}
 
 /// # Safety
 ///
 /// The bucket backend requires a manual [`Send`] impl because it is self
 /// referential. Those references won't escape its own scope and also
 /// the bucket backend has no interior mutability.
-unsafe impl<S> Sync for BucketBackend<S>
-where
-    S: Symbol,
-{}
+unsafe impl<S> Sync for BucketBackend<S> where S: Symbol {}
 
 impl<S> Default for BucketBackend<S> {
     #[cfg_attr(feature = "inline-more", inline)]
@@ -148,14 +142,11 @@ where
             let new_cap = (usize::max(cap, string.len()) + 1).next_power_of_two();
             let new_head = FixedString::with_capacity(new_cap);
             let old_head = core::mem::replace(&mut self.head, new_head);
-            self.full.push(old_head.into_boxed_str());
+            self.full.push(old_head.finish());
         }
-        let interned = {
-            self.head
-                .push_str(string)
-                .expect("encountered invalid head capacity (2)")
-        };
-        InternedStr::new(interned)
+        self.head
+            .push_str(string)
+            .expect("encountered invalid head capacity (2)")
     }
 }
 
@@ -174,7 +165,6 @@ where
             let string = span.as_str();
             let interned = head
                 .push_str(string)
-                .map(InternedStr::new)
                 .expect("encountered invalid head capacity");
             spans.push(interned);
         }
