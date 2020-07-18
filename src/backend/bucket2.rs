@@ -58,6 +58,8 @@ pub struct BucketBackend<S> {
 pub struct InternedSpan {
     /// The bucket ID of the interned string.
     bucket_id: BucketId,
+    /// The start index of the string within the bucket.
+    start: u32,
     /// The end index of the string within the bucket.
     end: u32,
 }
@@ -135,33 +137,15 @@ where
         }
     }
 
-    /// Returns the previous symbol of the given symbol.
-    /// Returns the given symbol if it has no previous symbol.
-    fn prev_symbol(symbol: S) -> Option<S> {
-        Symbol::try_from_usize(symbol.to_usize().wrapping_sub(1))
-    }
-
     /// Returns the string associated with the given symbol if any.
     fn symbol_to_string(&self, symbol: S) -> Option<&str> {
         let span = self.spans.get(symbol.to_usize()).copied()?;
-        let prev = Self::prev_symbol(symbol)
-            .map(|symbol| {
-                self.spans
-                    .get(symbol.to_usize())
-                    .copied()
-                    .expect("encountered invalid symbol")
-            })
-            .unwrap_or_else(|| {
-                InternedSpan {
-                    bucket_id: span.bucket_id,
-                    end: 0,
-                }
-            });
-        let start = if prev.bucket_id == span.bucket_id {
-            prev.end as usize
-        } else {
-            0
-        };
+        self.span_to_string(span)
+    }
+
+    /// Returns the string associated with the given span if any.
+    fn span_to_string(&self, span: InternedSpan) -> Option<&str> {
+        let start = span.start as usize;
         let end = span.end as usize;
         let string = unsafe {
             core::str::from_utf8_unchecked(
@@ -174,24 +158,7 @@ where
     /// Returns the string associated with the given symbol if any.
     unsafe fn symbol_to_string_unchecked(&self, symbol: S) -> &str {
         let span = self.spans.get_unchecked(symbol.to_usize());
-        let prev = Self::prev_symbol(symbol)
-            .map(|symbol| {
-                self.spans
-                    .get(symbol.to_usize())
-                    .copied()
-                    .expect("encountered invalid symbol")
-            })
-            .unwrap_or_else(|| {
-                InternedSpan {
-                    bucket_id: span.bucket_id,
-                    end: 0,
-                }
-            });
-        let start = if prev.bucket_id == span.bucket_id {
-            prev.end as usize
-        } else {
-            0
-        };
+        let start = span.start as usize;
         let end = span.end as usize;
         core::str::from_utf8_unchecked(
             &self.bucket_id_to_bucket(span.bucket_id).as_bytes()[start..end],
@@ -201,9 +168,8 @@ where
     /// Returns the bucket for the given bucket ID.
     fn bucket_id_to_bucket(&self, bucket_id: BucketId) -> &str {
         debug_assert!(bucket_id.get() as usize <= self.full.len());
-        self.full
-            .get(bucket_id.get() as usize)
-            .unwrap_or_else(|| &self.head)
+        let bucket_id = bucket_id.get() as usize;
+        self.full.get(bucket_id).unwrap_or_else(|| &self.head)
     }
 
     /// Pushes the given interned span into the spans and returns its symbol.
@@ -222,15 +188,19 @@ where
             let old_head = core::mem::replace(&mut self.head, new_head);
             self.full.push(old_head);
         }
-        let end = {
-            let start = self.head.len();
-            self.head.push_str(string);
-            (start + string.len())
+        let (start, end) = {
+            let start = self.head.len() as u32;
+            let len: u32 = string
+                .len()
                 .try_into()
-                .expect("encountered out of bounds end range")
+                .expect("encountered too big string literal");
+            let end = start + len;
+            self.head.push_str(string);
+            (start, end)
         };
         InternedSpan {
             bucket_id: self.head_bucket_id(),
+            start,
             end,
         }
     }
@@ -329,14 +299,13 @@ where
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().map(|(id, _)| {
+        self.iter.next().map(|(id, &span)| {
             let symbol = expect_valid_symbol(id);
-            (
-                symbol,
-                self.backend
-                    .symbol_to_string(symbol)
-                    .expect("encountered invalid symbol"),
-            )
+            let string = self
+                .backend
+                .span_to_string(span)
+                .expect("encountered invalid span");
+            (symbol, string)
         })
     }
 }
