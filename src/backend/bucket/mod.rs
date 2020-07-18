@@ -170,7 +170,7 @@ where
             self.head.capacity() + self.full.iter().fold(0, |lhs, rhs| lhs + rhs.len());
         let mut head = FixedString::with_capacity(new_head_cap);
         let mut spans = Vec::with_capacity(self.spans.len());
-        for &span in &self.spans {
+        for span in &self.spans {
             let string = span.as_str();
             let interned = head
                 .push_str(string)
