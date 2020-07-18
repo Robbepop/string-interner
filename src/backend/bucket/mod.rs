@@ -1,12 +1,15 @@
 #![cfg(feature = "backends")]
 
+mod fixed_str;
+mod interned_str;
+
+use self::{
+    fixed_str::FixedString,
+    interned_str::InternedStr,
+};
 use super::Backend;
 use crate::{
-    backend::InternedStr,
-    compat::{
-        String,
-        Vec,
-    },
+    compat::Vec,
     symbol::expect_valid_symbol,
     Symbol,
 };
@@ -43,17 +46,37 @@ use core::{
 #[derive(Debug)]
 pub struct BucketBackend<S> {
     spans: Vec<InternedStr>,
-    head: String,
-    full: Vec<String>,
+    head: FixedString,
+    full: Vec<Box<str>>,
     marker: PhantomData<fn() -> S>,
 }
+
+/// # Safety
+///
+/// The bucket backend requires a manual [`Send`] impl because it is self
+/// referential. When cloning a bucket backend a deep clone is performed and
+/// all references to itself are updated for the clone.
+unsafe impl<S> Send for BucketBackend<S>
+where
+    S: Symbol,
+{}
+
+/// # Safety
+///
+/// The bucket backend requires a manual [`Send`] impl because it is self
+/// referential. Those references won't escape its own scope and also
+/// the bucket backend has no interior mutability.
+unsafe impl<S> Sync for BucketBackend<S>
+where
+    S: Symbol,
+{}
 
 impl<S> Default for BucketBackend<S> {
     #[cfg_attr(feature = "inline-more", inline)]
     fn default() -> Self {
         Self {
             spans: Vec::new(),
-            head: String::new(),
+            head: FixedString::default(),
             full: Vec::new(),
             marker: Default::default(),
         }
@@ -68,7 +91,7 @@ where
     fn with_capacity(cap: usize) -> Self {
         Self {
             spans: Vec::with_capacity(cap),
-            head: String::with_capacity(cap),
+            head: FixedString::with_capacity(cap),
             full: Vec::new(),
             marker: Default::default(),
         }
@@ -123,14 +146,14 @@ where
         let cap = self.head.capacity();
         if cap < self.head.len() + string.len() {
             let new_cap = (usize::max(cap, string.len()) + 1).next_power_of_two();
-            let new_head = String::with_capacity(new_cap);
+            let new_head = FixedString::with_capacity(new_cap);
             let old_head = core::mem::replace(&mut self.head, new_head);
-            self.full.push(old_head);
+            self.full.push(old_head.into_boxed_str());
         }
         let interned = {
-            let start = self.head.len();
-            self.head.push_str(string);
-            &self.head[start..start + string.len()]
+            self.head
+                .push_str(string)
+                .expect("encountered invalid head capacity (2)")
         };
         InternedStr::new(interned)
     }
@@ -143,15 +166,16 @@ where
     fn clone(&self) -> Self {
         // For performance reasons we copy all cloned strings into a single cloned
         // head string leaving the cloned `full` empty.
-        let new_head_cap = self.head.capacity()
-            + self.full.iter().fold(0, |lhs, rhs| lhs + rhs.capacity());
-        let mut head = String::with_capacity(new_head_cap);
+        let new_head_cap =
+            self.head.capacity() + self.full.iter().fold(0, |lhs, rhs| lhs + rhs.len());
+        let mut head = FixedString::with_capacity(new_head_cap);
         let mut spans = Vec::with_capacity(self.spans.len());
         for &span in &self.spans {
             let string = span.as_str();
-            let start = head.len();
-            head.push_str(string);
-            let interned = InternedStr::new(&head[start..start + string.len()]);
+            let interned = head
+                .push_str(string)
+                .map(InternedStr::new)
+                .expect("encountered invalid head capacity");
             spans.push(interned);
         }
         Self {

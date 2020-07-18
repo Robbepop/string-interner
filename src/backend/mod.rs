@@ -5,12 +5,9 @@
 //! find the backend that suits their use case best.
 
 mod bucket;
-mod interned_str;
 mod simple;
 mod string;
 
-#[cfg(feature = "backends")]
-use self::interned_str::InternedStr;
 #[cfg(feature = "backends")]
 pub use self::{
     bucket::BucketBackend,
