@@ -42,7 +42,7 @@ use core::{
 /// | Allocations | **good** |
 /// | Footprint   | **ok**   |
 /// | Supports `get_or_intern_static` | **yes** |
-/// | `Send` + `Sync` | **no** |
+/// | `Send` + `Sync` | **yes** |
 #[derive(Debug)]
 pub struct BucketBackend<S> {
     spans: Vec<InternedStr>,
