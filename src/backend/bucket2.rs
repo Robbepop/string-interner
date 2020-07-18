@@ -143,33 +143,50 @@ where
         self.span_to_string(span)
     }
 
+    /// Returns the bucket for the given bucket ID.
+    fn bucket_id_to_bucket(&self, bucket_id: BucketId) -> Option<&str> {
+        let bucket_id = bucket_id.get() as usize;
+        if bucket_id > self.full.len() {
+            return None
+        }
+        Some(self.full.get(bucket_id).unwrap_or_else(|| &self.head))
+    }
+
     /// Returns the string associated with the given span if any.
     fn span_to_string(&self, span: InternedSpan) -> Option<&str> {
         let start = span.start as usize;
         let end = span.end as usize;
-        let string = unsafe {
-            core::str::from_utf8_unchecked(
-                &self.bucket_id_to_bucket(span.bucket_id).as_bytes()[start..end],
-            )
-        };
+        let bucket = self.bucket_id_to_bucket(span.bucket_id)?;
+        let string =
+            unsafe { core::str::from_utf8_unchecked(&bucket.as_bytes()[start..end]) };
         Some(string)
     }
 
     /// Returns the string associated with the given symbol if any.
     unsafe fn symbol_to_string_unchecked(&self, symbol: S) -> &str {
         let span = self.spans.get_unchecked(symbol.to_usize());
-        let start = span.start as usize;
-        let end = span.end as usize;
-        core::str::from_utf8_unchecked(
-            &self.bucket_id_to_bucket(span.bucket_id).as_bytes()[start..end],
-        )
+        self.span_to_string_unchecked(*span)
     }
 
     /// Returns the bucket for the given bucket ID.
-    fn bucket_id_to_bucket(&self, bucket_id: BucketId) -> &str {
-        debug_assert!(bucket_id.get() as usize <= self.full.len());
+    unsafe fn bucket_id_to_bucket_unchecked(&self, bucket_id: BucketId) -> &str {
         let bucket_id = bucket_id.get() as usize;
-        self.full.get(bucket_id).unwrap_or_else(|| &self.head)
+        if bucket_id == self.full.len() {
+            return &self.head
+        }
+        self.full.get_unchecked(bucket_id)
+    }
+
+    /// Returns the string associated with the given symbol.
+    ///
+    /// # Safety
+    ///
+    /// Relies on the caller to provide a valid span.
+    unsafe fn span_to_string_unchecked(&self, span: InternedSpan) -> &str {
+        let start = span.start as usize;
+        let end = span.end as usize;
+        let bucket = self.bucket_id_to_bucket_unchecked(span.bucket_id);
+        core::str::from_utf8_unchecked(&bucket.as_bytes()[start..end])
     }
 
     /// Pushes the given interned span into the spans and returns its symbol.
@@ -301,10 +318,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|(id, &span)| {
             let symbol = expect_valid_symbol(id);
-            let string = self
-                .backend
-                .span_to_string(span)
-                .expect("encountered invalid span");
+            let string = unsafe { self.backend.span_to_string_unchecked(span) };
             (symbol, string)
         })
     }
