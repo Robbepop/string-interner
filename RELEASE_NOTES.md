@@ -1,5 +1,10 @@
 # Release Notes
 
+## 0.12.1 - 2020/11/14
+
+- The `BucketBackend` now implements `Send` + `Sync`.
+- Implemented some minor internal improvements.
+
 ## 0.12.0 - 2020/07/15
 
 - Make `DefaultBackend` generic over its symbol type.
