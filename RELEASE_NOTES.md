@@ -4,6 +4,9 @@
 
 - The `BucketBackend` now implements `Send` + `Sync`.
 - Implemented some minor internal improvements.
+- Update dependencies:
+	- `hashbrown 0.8` -> `0.9`
+	- `cfg-if 0.1` -> `1.0`
 
 ## 0.12.0 - 2020/07/15
 
