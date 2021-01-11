@@ -1,5 +1,11 @@
 # Release Notes
 
+## 0.12.2 - 2021/01/11
+
+- Ensure cloned `StringInterner` can still look up the same symbols.
+  [#34](https://github.com/Robbepop/string-interner/pull/34) (Thanks @alamb)
+    - This requires `BuildHasher: Clone` trait bound for `StringInterner`'s `Clone` impl.
+
 ## 0.12.1 - 2020/11/14
 
 - The `BucketBackend` now implements `Send` + `Sync`.
