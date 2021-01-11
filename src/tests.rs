@@ -102,9 +102,13 @@ macro_rules! gen_tests_for_backend {
 
         #[test]
         fn clone_works() {
-            let interner = StringInterner::new();
-            let cloned = interner.clone();
+            let mut interner = StringInterner::new();
+            assert_eq!(interner.get_or_intern("a").to_usize(), 0);
+
+            let mut cloned = interner.clone();
             assert_eq!(interner, cloned);
+            // And the clone should have the same interned values
+            assert_eq!(cloned.get_or_intern("a").to_usize(), 0);
         }
 
         #[test]
