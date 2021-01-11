@@ -82,12 +82,12 @@ impl<S, B, H> Clone for StringInterner<S, B, H>
 where
     S: Symbol,
     B: Backend<S> + Clone,
-    H: BuildHasher + Default,
+    H: BuildHasher + Clone,
 {
     fn clone(&self) -> Self {
         Self {
             dedup: self.dedup.clone(),
-            hasher: Default::default(),
+            hasher: self.hasher.clone(),
             backend: self.backend.clone(),
         }
     }
