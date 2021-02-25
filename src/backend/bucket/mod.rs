@@ -24,7 +24,7 @@ use core::{
 /// # Note
 ///
 /// Implementation inspired by matklad's blog post that can be found here:
-/// https://matklad.github.io/2020/03/22/fast-simple-rust-interner.html
+/// <https://matklad.github.io/2020/03/22/fast-simple-rust-interner.html>
 ///
 /// # Usage
 ///

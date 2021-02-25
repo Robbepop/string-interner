@@ -204,7 +204,10 @@ where
 
     /// Interns the given string.
     ///
-    /// This is used as backend by [`get_or_intern`] and [`get_or_intern_static`].
+    /// This is used as backend by [`get_or_intern`][1] and [`get_or_intern_static`][2].
+    ///
+    /// [1]: [`StringInterner::get_or_intern`]
+    /// [2]: [`StringInterner::get_or_intern_static`]
     #[cfg_attr(feature = "inline-more", inline)]
     fn get_or_intern_using<T>(&mut self, string: T, intern_fn: fn(&mut B, T) -> S) -> S
     where
