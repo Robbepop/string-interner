@@ -51,9 +51,6 @@
 //! }
 //! ```
 
-#[cfg(test)]
-mod tests;
-
 #[cfg(feature = "serde-1")]
 mod serde_impl;
 

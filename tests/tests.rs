@@ -1,86 +1,150 @@
-use crate::{
+mod allocator;
+
+use allocator::TracingAllocator;
+use string_interner::{
     backend,
-    compat::DefaultHashBuilder,
-    symbol::expect_valid_symbol,
+    DefaultHashBuilder,
     DefaultSymbol,
     Symbol,
 };
 
-// We use jemalloc mainly to get heap usage of the different string interner
-// backends while they are interning a bunch of strings.
 #[global_allocator]
-static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+static ALLOCATOR: TracingAllocator = TracingAllocator::new();
+
+/// Creates the symbol `S` from the given `usize`.
+///
+/// # Panics
+///
+/// Panics if the conversion is invalid.
+#[inline]
+pub(crate) fn expect_valid_symbol<S>(index: usize) -> S
+where
+    S: Symbol,
+{
+    S::try_from_usize(index).expect("encountered invalid symbol")
+}
 
 /// Stats for the backend.
 pub trait BackendStats {
-    /// How much memory consumption overhead the backend has over the ideal.
-    const OVERHEAD: f64;
+    /// The expected minimum memory overhead for this string interner backend.
+    const MIN_OVERHEAD: f64;
+    /// The expected maximum memory overhead for this string interner backend.
+    const MAX_OVERHEAD: f64;
+    /// The name of the backend for debug display purpose.
+    const NAME: &'static str;
 }
 
 impl BackendStats for backend::BucketBackend<DefaultSymbol> {
-    const OVERHEAD: f64 = 14.0;
+    const MIN_OVERHEAD: f64 = 2.45;
+    const MAX_OVERHEAD: f64 = 3.25;
+    const NAME: &'static str = "BucketBackend";
 }
 
 impl BackendStats for backend::SimpleBackend<DefaultSymbol> {
-    const OVERHEAD: f64 = 12.0;
+    const MIN_OVERHEAD: f64 = 2.25;
+    const MAX_OVERHEAD: f64 = 2.85;
+    const NAME: &'static str = "SimpleBackend";
 }
 
 impl BackendStats for backend::StringBackend<DefaultSymbol> {
-    const OVERHEAD: f64 = 15.5;
+    const MIN_OVERHEAD: f64 = 1.70;
+    const MAX_OVERHEAD: f64 = 2.55;
+    const NAME: &'static str = "StringBackend";
 }
 
 macro_rules! gen_tests_for_backend {
     ( $backend:ty ) => {
         type StringInterner =
-            crate::StringInterner<DefaultSymbol, $backend, DefaultHashBuilder>;
+            string_interner::StringInterner<DefaultSymbol, $backend, DefaultHashBuilder>;
 
-        #[test]
-        #[ignore]
-        fn test_memory_consumption() {
-            use std::fmt::Write;
-            let len_words = 100_000;
-            let word_len = 8;
-            let mut buf = String::with_capacity(word_len);
-
-            fn read_stats() -> (usize, usize) {
-                jemalloc_ctl::epoch::advance().unwrap();
-                let allocated = jemalloc_ctl::stats::allocated::read().unwrap();
-                let resident = jemalloc_ctl::stats::resident::read().unwrap();
-                (allocated, resident)
-            }
-
-            let (allocated_before, resident_before) = read_stats();
-
+        fn profile_memory_usage(words: &[String]) -> f64 {
+            ALLOCATOR.reset();
+            ALLOCATOR.start_profiling();
             let mut interner = StringInterner::new();
-            for i in (0..).take(len_words) {
-                write!(&mut buf, "{:08}", i).unwrap();
-                interner.get_or_intern(buf.as_str());
-                buf.clear();
+            ALLOCATOR.end_profiling();
+
+            for word in words {
+                ALLOCATOR.start_profiling();
+                interner.get_or_intern(word);
+                ALLOCATOR.end_profiling();
             }
-            assert_eq!(interner.len(), len_words);
 
-            let (allocated_after, resident_after) = read_stats();
+            let stats = ALLOCATOR.stats();
+            let len_allocations = stats.len_allocations();
+            let len_deallocations = stats.len_deallocations();
+            let current_allocated_bytes = stats.current_allocated_bytes();
+            let total_allocated_bytes = stats.total_allocated_bytes();
 
-            let allocated = allocated_after - allocated_before;
-            let resident = resident_after - resident_before;
-            let ideal = len_words * word_len;
+            assert_eq!(interner.len(), words.len());
 
             println!(
-                "string interner consumed too much memory:\
-                \n   interned words = {:9}\
-                \n   bytes per word = {:9}\
-                \n   ideal          = {:9}\
-                \n   allocated      = {:9}\
-                \n   resident       = {:9}",
-                len_words, word_len, ideal, allocated, resident,
+                "\
+                \n\t- # words         = {}\
+                \n\t- # allocations   = {}\
+                \n\t- # deallocations = {}\
+                \n\t- allocated bytes = {}\
+                \n\t- requested bytes = {}\
+                ",
+                words.len(),
+                len_allocations, len_deallocations, current_allocated_bytes, total_allocated_bytes,
             );
 
-            // Overhead for the string interners compared to ideal.
-            //
-            // An approximation for the currently known overhead for both
-            // SimpleBackend and BucketBackend is factor 18 compared to ideal.
-            let known_overhead = <$backend as BackendStats>::OVERHEAD;
-            assert!((allocated as f64) < (ideal as f64 * known_overhead));
+            let ideal_memory_usage = words.len() * words[0].len();
+            let memory_usage_overhead =
+                (current_allocated_bytes as f64) / (ideal_memory_usage as f64);
+            println!("\t- ideal allocated bytes  = {}", ideal_memory_usage);
+            println!("\t- actual allocated bytes = {}", current_allocated_bytes);
+            println!("\t- % actual overhead      = {:.02}%", memory_usage_overhead * 100.0);
+
+            memory_usage_overhead
+        }
+
+        #[test]
+        #[cfg_attr(miri, ignore)]
+        fn test_memory_consumption() {
+            let len_words = 1_000_000;
+            let words = (0..).take(len_words).map(|i| {
+                format!("{:20}", i)
+            }).collect::<Vec<_>>();
+
+            println!();
+            println!("Benchmark Memory Usage for {}", <$backend as BackendStats>::NAME);
+            let mut min_overhead = None;
+            let mut max_overhead = None;
+            for i in 0..10 {
+                let len_words = 100_000 * (i+1);
+                let words = &words[0..len_words];
+                let overhead = profile_memory_usage(words);
+                if min_overhead.map(|min| overhead < min).unwrap_or(true) {
+                    min_overhead = Some(overhead);
+                }
+                if max_overhead.map(|max| overhead > max).unwrap_or(true) {
+                    max_overhead = Some(overhead);
+                }
+            }
+            let actual_min_overhead = min_overhead.unwrap();
+            let actual_max_overhead = max_overhead.unwrap();
+            let expect_min_overhead = <$backend as BackendStats>::MIN_OVERHEAD;
+            let expect_max_overhead = <$backend as BackendStats>::MAX_OVERHEAD;
+
+            println!();
+            println!("- % min. overhead = {:.02}%", actual_min_overhead * 100.0);
+            println!("- % max. overhead = {:.02}%", actual_max_overhead * 100.0);
+
+            assert!(
+                actual_min_overhead < expect_min_overhead,
+                "{} string interner backend minimum memory overhead is greater than expected. expected = {:?}, actual = {:?}",
+                <$backend as BackendStats>::NAME,
+                expect_min_overhead,
+                actual_min_overhead,
+            );
+            assert!(
+                actual_max_overhead < expect_max_overhead,
+                "{} string interner backend maximum memory overhead is greater than expected. expected = {:?}, actual = {:?}",
+                <$backend as BackendStats>::NAME,
+                expect_max_overhead,
+                actual_max_overhead,
+            );
         }
 
         #[test]
