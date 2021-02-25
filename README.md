@@ -9,6 +9,29 @@ the interned strings with unique symbols.
 These symbols allow for constant time comparisons and look-ups to the underlying interned string contents.
 Also, iterating through the interned strings is cache efficient.
 
+[1]: https://github.com/Robbepop/string-interner/workflows/Rust%20-%20Continuous%20Integration/badge.svg?branch=master
+[2]: https://github.com/Robbepop/string-interner/actions?query=workflow%3A%22Rust+-+Continuous+Integration%22+branch%3Amaster
+[5]:  https://codecov.io/gh/robbepop/string-interner/branch/master/graph/badge.svg
+[6]:  https://codecov.io/gh/Robbepop/string-interner/branch/master
+[9]:  https://docs.rs/string-interner/badge.svg
+[10]: https://docs.rs/string-interner
+[11]: https://img.shields.io/crates/v/string-interner.svg
+[12]: https://crates.io/crates/string-interner
+
+[license-mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
+[license-apache-badge]: https://img.shields.io/badge/license-APACHE-orange.svg
+
+## Contributing
+
+### Testing
+
+Test the project using
+```
+cargo test -- --test-threads 1
+```
+The `--test-thread 1` argument is required for the tests that assert
+the memory overhead by string interner backends.
+
 ## License
 
 Licensed under either of
@@ -23,17 +46,5 @@ at your option.
 ### Contribution
 
 Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as below, without any
 additional terms or conditions.
-
-[1]: https://github.com/Robbepop/string-interner/workflows/Rust%20-%20Continuous%20Integration/badge.svg?branch=master
-[2]: https://github.com/Robbepop/string-interner/actions?query=workflow%3A%22Rust+-+Continuous+Integration%22+branch%3Amaster
-[5]:  https://codecov.io/gh/robbepop/string-interner/branch/master/graph/badge.svg
-[6]:  https://codecov.io/gh/Robbepop/string-interner/branch/master
-[9]:  https://docs.rs/string-interner/badge.svg
-[10]: https://docs.rs/string-interner
-[11]: https://img.shields.io/crates/v/string-interner.svg
-[12]: https://crates.io/crates/string-interner
-
-[license-mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
-[license-apache-badge]: https://img.shields.io/badge/license-APACHE-orange.svg
