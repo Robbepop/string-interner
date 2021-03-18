@@ -150,10 +150,7 @@ where
     }
 }
 
-impl<S> Clone for BucketBackend<S>
-where
-    S: Symbol,
-{
+impl<S> Clone for BucketBackend<S> {
     fn clone(&self) -> Self {
         // For performance reasons we copy all cloned strings into a single cloned
         // head string leaving the cloned `full` empty.

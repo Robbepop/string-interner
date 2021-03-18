@@ -86,10 +86,7 @@ where
     }
 }
 
-impl<S> Clone for SimpleBackend<S>
-where
-    S: Symbol,
-{
+impl<S> Clone for SimpleBackend<S> {
     #[cfg_attr(feature = "inline-more", inline)]
     fn clone(&self) -> Self {
         Self {
