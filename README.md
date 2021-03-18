@@ -41,6 +41,7 @@ cargo test --features test-allocations -- --test-threads 1
 - The `--features test-allocations` enables the memory allocations tests. 
 - The `--test-thread 1` argument is required for the memory allocations tests
   since otherwise they interfere with each other causing them to randomly fail.
+- Use `--nocapture` to receive verbose output useful for debugging.
 
 ## License
 
