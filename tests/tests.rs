@@ -101,6 +101,7 @@ macro_rules! gen_tests_for_backend {
 
         #[test]
         #[cfg_attr(miri, ignore)]
+        #[cfg_attr(not(feature = "test-allocations"), ignore)]
         fn test_memory_consumption() {
             let len_words = 1_000_000;
             let words = (0..).take(len_words).map(|i| {

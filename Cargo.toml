@@ -50,6 +50,16 @@ inline-more = ["hashbrown/inline-more"]
 # Enabled by default.
 backends = []
 
+# Enables testing of memory heap allocations.
+#
+# These tests are disabled by default since they are slow
+# compared to the other unit tests and also are required
+# to run single threaded using `--test-threads 1` as `rustc`
+# argument:
+#
+# cargo test --feature test-allocations -- --test-threads 1
+test-allocations = []
+
 [badges]
 travis-ci = { repository = "Robbepop/string-interner" }
 appveyor = { repository = "Robbepop/string-interner", branch = "master", service = "github" }

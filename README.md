@@ -27,10 +27,20 @@ Also, iterating through the interned strings is cache efficient.
 
 Test the project using
 ```
-cargo test -- --test-threads 1
+cargo test
 ```
-The `--test-thread 1` argument is required for the tests that assert
-the memory overhead by string interner backends.
+
+### Memory Allocation Tests
+
+To further test memory consumption and allocatios performed by the
+different string interner backends test the project as follows:
+```
+cargo test --features test-allocations -- --test-threads 1
+```
+
+- The `--features test-allocations` enables the memory allocations tests. 
+- The `--test-thread 1` argument is required for the memory allocations tests
+  since otherwise they interfere with each other causing them to randomly fail.
 
 ## License
 
