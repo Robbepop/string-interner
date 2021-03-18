@@ -127,7 +127,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly-2020-07-12
+          toolchain: nightly
           override: true
           components: miri
       - uses: actions-rs/cargo@v1
