@@ -40,7 +40,7 @@ use core::{
 /// | Footprint   | **good**   |
 /// | Supports `get_or_intern_static` | **no** |
 /// | `Send` + `Sync` | **yes** |
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct StringBackend<S> {
     ends: Vec<u32>,
     buffer: String,
@@ -72,6 +72,16 @@ where
 }
 
 impl<S> Eq for StringBackend<S> where S: Symbol {}
+
+impl<S> Clone for StringBackend<S> {
+    fn clone(&self) -> Self {
+        Self {
+            ends: self.ends.clone(),
+            buffer: self.buffer.clone(),
+            marker: Default::default(),
+        }
+    }
+}
 
 impl<S> Default for StringBackend<S> {
     #[cfg_attr(feature = "inline-more", inline)]
