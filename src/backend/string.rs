@@ -10,7 +10,6 @@ use crate::{
     Symbol,
 };
 use core::{
-    convert::TryInto,
     iter::Enumerate,
     marker::PhantomData,
     slice,
@@ -42,7 +41,7 @@ use core::{
 /// | `Send` + `Sync` | **yes** |
 #[derive(Debug)]
 pub struct StringBackend<S> {
-    ends: Vec<u32>,
+    ends: Vec<usize>,
     buffer: String,
     marker: PhantomData<fn() -> S>,
 }
@@ -50,8 +49,8 @@ pub struct StringBackend<S> {
 /// Represents a `[from, to)` index into the `StringBackend` buffer.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Span {
-    from: u32,
-    to: u32,
+    from: usize,
+    to: usize,
 }
 
 impl<S> PartialEq for StringBackend<S>
@@ -142,12 +141,7 @@ where
     /// If the backend ran out of symbols.
     fn push_string(&mut self, string: &str) -> S {
         self.buffer.push_str(string);
-        let to = self
-            .buffer
-            .as_bytes()
-            .len()
-            .try_into()
-            .expect("ran out of symbols");
+        let to = self.buffer.as_bytes().len();
         let symbol = self.next_symbol();
         self.ends.push(to);
         symbol
@@ -201,8 +195,8 @@ where
 
 pub struct Iter<'a, S> {
     backend: &'a StringBackend<S>,
-    start: u32,
-    ends: Enumerate<slice::Iter<'a, u32>>,
+    start: usize,
+    ends: Enumerate<slice::Iter<'a, usize>>,
 }
 
 impl<'a, S> Iter<'a, S> {
