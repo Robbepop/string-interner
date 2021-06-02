@@ -65,4 +65,10 @@ impl FixedString {
             },
         ))
     }
+
+    /// Shrink capacity to fit the contents exactly.
+    #[inline]
+    pub fn shrink_to_fit(&mut self) {
+        self.contents.shrink_to_fit();
+    }
 }
