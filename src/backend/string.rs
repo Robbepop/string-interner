@@ -180,7 +180,6 @@ where
             .map(|span| self.span_to_str(span))
     }
 
-    #[inline]
     fn shrink_to_fit(&mut self) {
         self.ends.shrink_to_fit();
         self.buffer.shrink_to_fit();

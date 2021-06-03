@@ -275,7 +275,6 @@ where
     }
 
     /// Shrink backend capacity to fit the interned strings exactly.
-    #[inline]
     pub fn shrink_to_fit(&mut self) {
         self.backend.shrink_to_fit()
     }

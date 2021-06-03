@@ -75,7 +75,6 @@ where
         symbol
     }
 
-    #[inline]
     fn shrink_to_fit(&mut self) {
         self.strings.shrink_to_fit()
     }

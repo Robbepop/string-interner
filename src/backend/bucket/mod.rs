@@ -106,7 +106,6 @@ where
         self.push_span(interned)
     }
 
-    #[inline]
     fn shrink_to_fit(&mut self) {
         self.spans.shrink_to_fit();
         self.head.shrink_to_fit();
@@ -124,7 +123,6 @@ where
     unsafe fn resolve_unchecked(&self, symbol: S) -> &str {
         self.spans.get_unchecked(symbol.to_usize()).as_str()
     }
-
 }
 
 impl<S> BucketBackend<S>
