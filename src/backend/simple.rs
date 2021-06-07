@@ -75,6 +75,10 @@ where
         symbol
     }
 
+    fn shrink_to_fit(&mut self) {
+        self.strings.shrink_to_fit()
+    }
+
     #[inline]
     fn resolve(&self, symbol: S) -> Option<&str> {
         self.strings.get(symbol.to_usize()).map(|pinned| &**pinned)

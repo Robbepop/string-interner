@@ -180,6 +180,11 @@ where
             .map(|span| self.span_to_str(span))
     }
 
+    fn shrink_to_fit(&mut self) {
+        self.ends.shrink_to_fit();
+        self.buffer.shrink_to_fit();
+    }
+
     #[inline]
     unsafe fn resolve_unchecked(&self, symbol: S) -> &str {
         self.span_to_str(self.symbol_to_span_unchecked(symbol))
