@@ -47,8 +47,8 @@ impl BackendStats for backend::SimpleBackend<DefaultSymbol> {
 }
 
 impl BackendStats for backend::StringBackend<DefaultSymbol> {
-    const MIN_OVERHEAD: f64 = 1.70;
-    const MAX_OVERHEAD: f64 = 2.55;
+    const MIN_OVERHEAD: f64 = 1.93;
+    const MAX_OVERHEAD: f64 = 2.89;
     const NAME: &'static str = "StringBackend";
 }
 
