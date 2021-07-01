@@ -106,6 +106,12 @@ where
         self.push_span(interned)
     }
 
+    fn shrink_to_fit(&mut self) {
+        self.spans.shrink_to_fit();
+        self.head.shrink_to_fit();
+        self.full.shrink_to_fit();
+    }
+
     #[inline]
     fn resolve(&self, symbol: S) -> Option<&str> {
         self.spans

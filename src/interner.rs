@@ -274,6 +274,11 @@ where
         self.get_or_intern_using(string, B::intern_static)
     }
 
+    /// Shrink backend capacity to fit the interned strings exactly.
+    pub fn shrink_to_fit(&mut self) {
+        self.backend.shrink_to_fit()
+    }
+
     /// Returns the string for the given symbol if any.
     #[inline]
     pub fn resolve(&self, symbol: S) -> Option<&str> {

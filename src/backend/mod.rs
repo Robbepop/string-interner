@@ -66,6 +66,9 @@ where
         self.intern(string)
     }
 
+    /// Shrink backend capacity to fit interned symbols exactly.
+    fn shrink_to_fit(&mut self);
+
     /// Resolves the given symbol to its original string contents.
     fn resolve(&self, symbol: S) -> Option<&str>;
 
