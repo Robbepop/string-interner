@@ -1,5 +1,19 @@
 # Release Notes
 
+## 0.13.0 - 2021/08/25
+
+- Update `hashbrown` dependency from version `0.9` to version `0.11`.
+- Add `shrink_to_fit` method to `StringInterner` via backend. (#36)
+- Add support more than 4G of interned strings with `StringBackend`. (#37)
+- Remove `S: Symbol` trait bound from interner backends.
+- Remove `S: Symbol` trait bound from `Clone impl` for `StringBackend`.
+
+- Reworked the memory and allocation tests
+	- Run them via `cargo test -- --test-threads 1`
+- CI now tests the whole build for windows, linux (ubuntu) and macos.
+- Add `cargo-audit` and `cargo-outdated` checks to CI pipeline.
+- Remove no longer needed `jemalloc` `dev-dependency`.
+
 ## 0.12.2 - 2021/01/11
 
 - Ensure cloned `StringInterner` can still look up the same symbols.
