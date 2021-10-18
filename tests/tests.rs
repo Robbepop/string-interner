@@ -232,14 +232,19 @@ macro_rules! gen_tests_for_backend {
         fn get_or_intern_works() {
             let mut interner = StringInterner::new();
             // Insert 3 unique strings:
-            assert_eq!(interner.get_or_intern("a").to_usize(), 0);
-            assert_eq!(interner.get_or_intern("b").to_usize(), 1);
-            assert_eq!(interner.get_or_intern("c").to_usize(), 2);
+            let a = interner.get_or_intern("a").to_usize();
+            let b = interner.get_or_intern("b").to_usize();
+            let c = interner.get_or_intern("c").to_usize();
+            // All symbols must be different from each other.
+            assert_ne!(a, b);
+            assert_ne!(b, c);
+            assert_ne!(c, a);
+            // The length of the string interner must be 3 at this point.
             assert_eq!(interner.len(), 3);
             // Insert the same 3 unique strings, yield the same symbols:
-            assert_eq!(interner.get_or_intern("a").to_usize(), 0);
-            assert_eq!(interner.get_or_intern("b").to_usize(), 1);
-            assert_eq!(interner.get_or_intern("c").to_usize(), 2);
+            assert_eq!(interner.get_or_intern("a").to_usize(), a);
+            assert_eq!(interner.get_or_intern("b").to_usize(), b);
+            assert_eq!(interner.get_or_intern("c").to_usize(), c);
             assert_eq!(interner.len(), 3);
         }
 
@@ -247,14 +252,19 @@ macro_rules! gen_tests_for_backend {
         fn get_or_intern_static_works() {
             let mut interner = StringInterner::new();
             // Insert 3 unique strings:
-            assert_eq!(interner.get_or_intern_static("a").to_usize(), 0);
-            assert_eq!(interner.get_or_intern_static("b").to_usize(), 1);
-            assert_eq!(interner.get_or_intern_static("c").to_usize(), 2);
+            let a = interner.get_or_intern_static("a").to_usize();
+            let b = interner.get_or_intern_static("b").to_usize();
+            let c = interner.get_or_intern_static("c").to_usize();
+            // All symbols must be different from each other.
+            assert_ne!(a, b);
+            assert_ne!(b, c);
+            assert_ne!(c, a);
+            // The length of the string interner must be 3 at this point.
             assert_eq!(interner.len(), 3);
             // Insert the same 3 unique strings, yield the same symbols:
-            assert_eq!(interner.get_or_intern_static("a").to_usize(), 0);
-            assert_eq!(interner.get_or_intern_static("b").to_usize(), 1);
-            assert_eq!(interner.get_or_intern_static("c").to_usize(), 2);
+            assert_eq!(interner.get_or_intern_static("a").to_usize(), a);
+            assert_eq!(interner.get_or_intern_static("b").to_usize(), b);
+            assert_eq!(interner.get_or_intern_static("c").to_usize(), c);
             assert_eq!(interner.len(), 3);
         }
 
