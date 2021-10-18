@@ -39,24 +39,24 @@ pub trait BackendStats {
 }
 
 impl BackendStats for backend::BucketBackend<DefaultSymbol> {
-    const MIN_OVERHEAD: f64 = 2.45;
-    const MAX_OVERHEAD: f64 = 3.25;
+    const MIN_OVERHEAD: f64 = 2.1;
+    const MAX_OVERHEAD: f64 = 2.33;
     const MAX_ALLOCATIONS: usize = 66;
     const MAX_DEALLOCATIONS: usize = 43;
     const NAME: &'static str = "BucketBackend";
 }
 
 impl BackendStats for backend::SimpleBackend<DefaultSymbol> {
-    const MIN_OVERHEAD: f64 = 2.25;
-    const MAX_OVERHEAD: f64 = 2.85;
+    const MIN_OVERHEAD: f64 = 2.1;
+    const MAX_OVERHEAD: f64 = 2.33;
     const MAX_ALLOCATIONS: usize = 1000040;
     const MAX_DEALLOCATIONS: usize = 38;
     const NAME: &'static str = "SimpleBackend";
 }
 
 impl BackendStats for backend::StringBackend<DefaultSymbol> {
-    const MIN_OVERHEAD: f64 = 1.93;
-    const MAX_OVERHEAD: f64 = 2.89;
+    const MIN_OVERHEAD: f64 = 1.7;
+    const MAX_OVERHEAD: f64 = 1.93;
     const MAX_ALLOCATIONS: usize = 62;
     const MAX_DEALLOCATIONS: usize = 59;
     const NAME: &'static str = "StringBackend";
@@ -86,8 +86,9 @@ macro_rules! gen_tests_for_backend {
             for word in words {
                 ALLOCATOR.start_profiling();
                 interner.get_or_intern(word);
-                ALLOCATOR.end_profiling();
             }
+            interner.shrink_to_fit();
+            ALLOCATOR.end_profiling();
 
             let stats = ALLOCATOR.stats();
             let len_allocations = stats.len_allocations();
