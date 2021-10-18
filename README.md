@@ -43,6 +43,13 @@ cargo test --features test-allocations -- --test-threads 1
   since otherwise they interfere with each other causing them to randomly fail.
 - Use `--nocapture` to receive verbose output useful for debugging.
 
+### Profiling & Benchmarks
+
+Benchmark the string interner and its various backends using
+```
+cargo bench
+```
+
 ## License
 
 Licensed under either of
