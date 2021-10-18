@@ -124,7 +124,7 @@ where
         let start_str = index + LEN_USIZE;
         // SAFETY: The function is marked unsafe so that the caller guarantees
         //         that required invariants are checked.
-        let slice_len = self.buffer.get_unchecked(index..start_str);
+        let slice_len = unsafe { self.buffer.get_unchecked(index..start_str) };
         let mut bytes_len = [0; LEN_USIZE];
         bytes_len.copy_from_slice(slice_len);
         let str_len = usize::from_le_bytes(bytes_len);
@@ -187,7 +187,9 @@ where
 
     #[inline]
     unsafe fn resolve_unchecked(&self, symbol: S) -> &str {
-        self.resolve_index_to_str_unchecked(symbol.to_usize())
+        // SAFETY: The function is marked unsafe so that the caller guarantees
+        //         that required invariants are checked.
+        unsafe { self.resolve_index_to_str_unchecked(symbol.to_usize()) }
     }
 }
 

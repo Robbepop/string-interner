@@ -129,7 +129,9 @@ where
     /// Returns the span for the given symbol if any.
     unsafe fn symbol_to_span_unchecked(&self, symbol: S) -> Span {
         let index = symbol.to_usize();
-        let to = *self.ends.get_unchecked(index);
+        // SAFETY: The function is marked unsafe so that the caller guarantees
+        //         that required invariants are checked.
+        let to = unsafe { *self.ends.get_unchecked(index) };
         let from = self.ends.get(index.wrapping_sub(1)).copied().unwrap_or(0);
         Span { from, to }
     }
@@ -181,7 +183,9 @@ where
 
     #[inline]
     unsafe fn resolve_unchecked(&self, symbol: S) -> &str {
-        self.span_to_str(self.symbol_to_span_unchecked(symbol))
+        // SAFETY: The function is marked unsafe so that the caller guarantees
+        //         that required invariants are checked.
+        unsafe { self.span_to_str(self.symbol_to_span_unchecked(symbol)) }
     }
 }
 

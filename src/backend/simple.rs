@@ -86,7 +86,9 @@ where
 
     #[inline]
     unsafe fn resolve_unchecked(&self, symbol: S) -> &str {
-        self.strings.get_unchecked(symbol.to_usize())
+        // SAFETY: The function is marked unsafe so that the caller guarantees
+        //         that required invariants are checked.
+        unsafe { self.strings.get_unchecked(symbol.to_usize()) }
     }
 }
 
