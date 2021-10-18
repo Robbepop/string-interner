@@ -5,16 +5,16 @@
 //! find the backend that suits their use case best.
 
 mod bucket;
+mod buffer;
 mod simple;
 mod string;
-mod buffer;
 
 #[cfg(feature = "backends")]
 pub use self::{
     bucket::BucketBackend,
+    buffer::BufferBackend,
     simple::SimpleBackend,
     string::StringBackend,
-    buffer::BufferBackend,
 };
 use crate::Symbol;
 

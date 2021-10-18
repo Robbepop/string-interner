@@ -4,9 +4,9 @@ use self::setup::{
     generate_test_strings,
     BackendBenchmark,
     BenchBucket,
+    BenchBuffer,
     BenchSimple,
     BenchString,
-    BenchBuffer,
     BENCH_LEN_STRINGS,
     BENCH_STRING_LEN,
 };

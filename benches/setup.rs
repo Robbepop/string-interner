@@ -2,9 +2,9 @@ use string_interner::{
     backend::{
         Backend,
         BucketBackend,
+        BufferBackend,
         SimpleBackend,
         StringBackend,
-        BufferBackend,
     },
     DefaultSymbol,
     StringInterner,
