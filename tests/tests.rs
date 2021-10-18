@@ -30,6 +30,10 @@ pub trait BackendStats {
     const MIN_OVERHEAD: f64;
     /// The expected maximum memory overhead for this string interner backend.
     const MAX_OVERHEAD: f64;
+    /// The amount of allocations per 1M words.
+    const MAX_ALLOCATIONS: usize;
+    /// The amount of deallocations per 1M words.
+    const MAX_DEALLOCATIONS: usize;
     /// The name of the backend for debug display purpose.
     const NAME: &'static str;
 }
@@ -37,19 +41,35 @@ pub trait BackendStats {
 impl BackendStats for backend::BucketBackend<DefaultSymbol> {
     const MIN_OVERHEAD: f64 = 2.45;
     const MAX_OVERHEAD: f64 = 3.25;
+    const MAX_ALLOCATIONS: usize = 66;
+    const MAX_DEALLOCATIONS: usize = 43;
     const NAME: &'static str = "BucketBackend";
 }
 
 impl BackendStats for backend::SimpleBackend<DefaultSymbol> {
     const MIN_OVERHEAD: f64 = 2.25;
     const MAX_OVERHEAD: f64 = 2.85;
+    const MAX_ALLOCATIONS: usize = 1000040;
+    const MAX_DEALLOCATIONS: usize = 38;
     const NAME: &'static str = "SimpleBackend";
 }
 
 impl BackendStats for backend::StringBackend<DefaultSymbol> {
     const MIN_OVERHEAD: f64 = 1.93;
     const MAX_OVERHEAD: f64 = 2.89;
+    const MAX_ALLOCATIONS: usize = 62;
+    const MAX_DEALLOCATIONS: usize = 59;
     const NAME: &'static str = "StringBackend";
+}
+
+/// Memory profiling stats.
+pub struct ProfilingStats {
+    /// The minimum memory usage overhead as factor.
+    pub overhead: f64,
+    /// The total amount of allocations of the profiling test.
+    pub allocations: usize,
+    /// The total amount of deallocations of the profiling test.
+    pub deallocations: usize,
 }
 
 macro_rules! gen_tests_for_backend {
@@ -57,7 +77,7 @@ macro_rules! gen_tests_for_backend {
         type StringInterner =
             string_interner::StringInterner<DefaultSymbol, $backend, DefaultHashBuilder>;
 
-        fn profile_memory_usage(words: &[String]) -> f64 {
+        fn profile_memory_usage(words: &[String]) -> ProfilingStats {
             ALLOCATOR.reset();
             ALLOCATOR.start_profiling();
             let mut interner = StringInterner::new();
@@ -96,7 +116,11 @@ macro_rules! gen_tests_for_backend {
             println!("\t- actual allocated bytes = {}", current_allocated_bytes);
             println!("\t- % actual overhead      = {:.02}%", memory_usage_overhead * 100.0);
 
-            memory_usage_overhead
+            ProfilingStats {
+                overhead: memory_usage_overhead,
+                allocations: len_allocations,
+                deallocations: len_deallocations,
+            }
         }
 
         #[test]
@@ -111,25 +135,39 @@ macro_rules! gen_tests_for_backend {
             println!("Benchmark Memory Usage for {}", <$backend as BackendStats>::NAME);
             let mut min_overhead = None;
             let mut max_overhead = None;
+            let mut max_allocations = None;
+            let mut max_deallocations = None;
             for i in 0..10 {
                 let len_words = 100_000 * (i+1);
                 let words = &words[0..len_words];
-                let overhead = profile_memory_usage(words);
-                if min_overhead.map(|min| overhead < min).unwrap_or(true) {
-                    min_overhead = Some(overhead);
+                let stats = profile_memory_usage(words);
+                if min_overhead.map(|min| stats.overhead < min).unwrap_or(true) {
+                    min_overhead = Some(stats.overhead);
                 }
-                if max_overhead.map(|max| overhead > max).unwrap_or(true) {
-                    max_overhead = Some(overhead);
+                if max_overhead.map(|max| stats.overhead > max).unwrap_or(true) {
+                    max_overhead = Some(stats.overhead);
+                }
+                if max_allocations.map(|max| stats.allocations > max).unwrap_or(true) {
+                    max_allocations = Some(stats.allocations);
+                }
+                if max_deallocations.map(|max| stats.deallocations > max).unwrap_or(true) {
+                    max_deallocations = Some(stats.deallocations);
                 }
             }
             let actual_min_overhead = min_overhead.unwrap();
             let actual_max_overhead = max_overhead.unwrap();
             let expect_min_overhead = <$backend as BackendStats>::MIN_OVERHEAD;
             let expect_max_overhead = <$backend as BackendStats>::MAX_OVERHEAD;
+            let actual_max_allocations = max_allocations.unwrap();
+            let actual_max_deallocations = max_deallocations.unwrap();
+            let expect_max_allocations = <$backend as BackendStats>::MAX_ALLOCATIONS;
+            let expect_max_deallocations = <$backend as BackendStats>::MAX_DEALLOCATIONS;
 
             println!();
-            println!("- % min. overhead = {:.02}%", actual_min_overhead * 100.0);
-            println!("- % max. overhead = {:.02}%", actual_max_overhead * 100.0);
+            println!("- % min overhead      = {:.02}%", actual_min_overhead * 100.0);
+            println!("- % max overhead      = {:.02}%", actual_max_overhead * 100.0);
+            println!("- % max allocations   = {}", actual_max_allocations);
+            println!("- % max deallocations = {}", actual_max_deallocations);
 
             assert!(
                 actual_min_overhead < expect_min_overhead,
@@ -144,6 +182,20 @@ macro_rules! gen_tests_for_backend {
                 <$backend as BackendStats>::NAME,
                 expect_max_overhead,
                 actual_max_overhead,
+            );
+            assert_eq!(
+                actual_max_allocations, expect_max_allocations,
+                "{} string interner backend maximum amount of allocations is greater than expected. expected = {:?}, actual = {:?}",
+                <$backend as BackendStats>::NAME,
+                expect_max_allocations,
+                actual_max_allocations,
+            );
+            assert_eq!(
+                actual_max_deallocations, expect_max_deallocations,
+                "{} string interner backend maximum amount of deallocations is greater than expected. expected = {:?}, actual = {:?}",
+                <$backend as BackendStats>::NAME,
+                expect_max_deallocations,
+                actual_max_deallocations,
             );
         }
 
