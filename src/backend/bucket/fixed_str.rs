@@ -1,17 +1,8 @@
 use super::InternedStr;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct FixedString {
     contents: String,
-}
-
-impl Default for FixedString {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            contents: String::new(),
-        }
-    }
 }
 
 impl FixedString {
