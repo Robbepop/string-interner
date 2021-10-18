@@ -62,6 +62,14 @@ impl BackendStats for backend::StringBackend<DefaultSymbol> {
     const NAME: &'static str = "StringBackend";
 }
 
+impl BackendStats for backend::BufferBackend<DefaultSymbol> {
+    const MIN_OVERHEAD: f64 = 1.7;
+    const MAX_OVERHEAD: f64 = 1.93;
+    const MAX_ALLOCATIONS: usize = 42;
+    const MAX_DEALLOCATIONS: usize = 40;
+    const NAME: &'static str = "BufferBackend";
+}
+
 /// Memory profiling stats.
 pub struct ProfilingStats {
     /// The minimum memory usage overhead as factor.
@@ -361,4 +369,10 @@ mod string_backend {
     use super::*;
 
     gen_tests_for_backend!(backend::StringBackend<DefaultSymbol>);
+}
+
+mod buffer_backend {
+    use super::*;
+
+    gen_tests_for_backend!(backend::BufferBackend<DefaultSymbol>);
 }

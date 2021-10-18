@@ -7,12 +7,14 @@
 mod bucket;
 mod simple;
 mod string;
+mod buffer;
 
 #[cfg(feature = "backends")]
 pub use self::{
     bucket::BucketBackend,
     simple::SimpleBackend,
     string::StringBackend,
+    buffer::BufferBackend,
 };
 use crate::Symbol;
 

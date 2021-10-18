@@ -4,6 +4,7 @@ use string_interner::{
         BucketBackend,
         SimpleBackend,
         StringBackend,
+        BufferBackend,
     },
     DefaultSymbol,
     StringInterner,
@@ -132,4 +133,10 @@ pub struct BenchString;
 impl BackendBenchmark for BenchString {
     const NAME: &'static str = "StringBackend";
     type Backend = StringBackend<DefaultSymbol>;
+}
+
+pub struct BenchBuffer;
+impl BackendBenchmark for BenchBuffer {
+    const NAME: &'static str = "BufferBackend";
+    type Backend = BufferBackend<DefaultSymbol>;
 }

@@ -6,6 +6,7 @@ use self::setup::{
     BenchBucket,
     BenchSimple,
     BenchString,
+    BenchBuffer,
     BENCH_LEN_STRINGS,
     BENCH_STRING_LEN,
 };
@@ -78,6 +79,7 @@ fn bench_get_or_intern_static(c: &mut Criterion) {
     bench_for_backend::<BenchSimple>(&mut g);
     bench_for_backend::<BenchBucket>(&mut g);
     bench_for_backend::<BenchString>(&mut g);
+    bench_for_backend::<BenchBuffer>(&mut g);
 }
 
 fn bench_get_or_intern_fill_with_capacity(c: &mut Criterion) {
@@ -104,6 +106,7 @@ fn bench_get_or_intern_fill_with_capacity(c: &mut Criterion) {
     bench_for_backend::<BenchSimple>(&mut g);
     bench_for_backend::<BenchBucket>(&mut g);
     bench_for_backend::<BenchString>(&mut g);
+    bench_for_backend::<BenchBuffer>(&mut g);
 }
 
 fn bench_get_or_intern_fill(c: &mut Criterion) {
@@ -130,6 +133,7 @@ fn bench_get_or_intern_fill(c: &mut Criterion) {
     bench_for_backend::<BenchSimple>(&mut g);
     bench_for_backend::<BenchBucket>(&mut g);
     bench_for_backend::<BenchString>(&mut g);
+    bench_for_backend::<BenchBuffer>(&mut g);
 }
 
 fn bench_get_or_intern_already_filled(c: &mut Criterion) {
@@ -156,6 +160,7 @@ fn bench_get_or_intern_already_filled(c: &mut Criterion) {
     bench_for_backend::<BenchSimple>(&mut g);
     bench_for_backend::<BenchBucket>(&mut g);
     bench_for_backend::<BenchString>(&mut g);
+    bench_for_backend::<BenchBuffer>(&mut g);
 }
 
 fn bench_resolve_already_filled(c: &mut Criterion) {
@@ -182,6 +187,7 @@ fn bench_resolve_already_filled(c: &mut Criterion) {
     bench_for_backend::<BenchSimple>(&mut g);
     bench_for_backend::<BenchBucket>(&mut g);
     bench_for_backend::<BenchString>(&mut g);
+    bench_for_backend::<BenchBuffer>(&mut g);
 }
 
 fn bench_get_already_filled(c: &mut Criterion) {
@@ -208,6 +214,7 @@ fn bench_get_already_filled(c: &mut Criterion) {
     bench_for_backend::<BenchSimple>(&mut g);
     bench_for_backend::<BenchBucket>(&mut g);
     bench_for_backend::<BenchString>(&mut g);
+    bench_for_backend::<BenchBuffer>(&mut g);
 }
 
 fn bench_iter_already_filled(c: &mut Criterion) {
@@ -238,4 +245,5 @@ fn bench_iter_already_filled(c: &mut Criterion) {
     bench_for_backend::<BenchSimple>(&mut g);
     bench_for_backend::<BenchBucket>(&mut g);
     bench_for_backend::<BenchString>(&mut g);
+    bench_for_backend::<BenchBuffer>(&mut g);
 }
