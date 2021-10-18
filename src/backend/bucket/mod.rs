@@ -114,9 +114,7 @@ where
 
     #[inline]
     fn resolve(&self, symbol: S) -> Option<&str> {
-        self.spans
-            .get(symbol.to_usize())
-            .map(InternedStr::as_str)
+        self.spans.get(symbol.to_usize()).map(InternedStr::as_str)
     }
 
     #[inline]
