@@ -28,6 +28,7 @@ use core::{
 /// - **Resolve:** Efficiency of interned string look-up given a symbol.
 /// - **Allocations:** The number of allocations performed by the backend.
 /// - **Footprint:** The total heap memory consumed by the backend.
+/// - **Contiguous:** True if the returned symbols have contiguous values.
 ///
 /// Rating varies between **bad**, **ok** and **good**.
 ///
@@ -39,6 +40,7 @@ use core::{
 /// | Footprint   | **bad**   |
 /// | Supports `get_or_intern_static` | **no** |
 /// | `Send` + `Sync` | **yes** |
+/// | Contiguous  | **yes**   |
 #[derive(Debug)]
 pub struct SimpleBackend<S> {
     strings: Vec<Box<str>>,

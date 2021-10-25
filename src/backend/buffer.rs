@@ -12,12 +12,7 @@ use core::{
     str,
 };
 
-/// An interner backend that appends all interned strings together.
-///
-/// # Note
-///
-/// Implementation inspired by [CAD97's](https://github.com/CAD97) research
-/// project [`strena`](https://github.com/CAD97/strena).
+/// An interner backend that appends all interned string information in a single buffer.
 ///
 /// # Usage
 ///
@@ -25,6 +20,7 @@ use core::{
 /// - **Resolve:** Efficiency of interned string look-up given a symbol.
 /// - **Allocations:** The number of allocations performed by the backend.
 /// - **Footprint:** The total heap memory consumed by the backend.
+/// - **Contiguous:** True if the returned symbols have contiguous values.
 ///
 /// Rating varies between **bad**, **ok** and **good**.
 ///
@@ -36,6 +32,7 @@ use core::{
 /// | Footprint   | **good** |
 /// | Supports `get_or_intern_static` | **no** |
 /// | `Send` + `Sync` | **yes** |
+/// | Contiguous  | **no**   |
 #[derive(Debug)]
 pub struct BufferBackend<S> {
     len_strings: usize,

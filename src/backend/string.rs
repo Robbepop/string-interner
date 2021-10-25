@@ -15,7 +15,7 @@ use core::{
     slice,
 };
 
-/// An interner backend that appends all interned strings together.
+/// An interner backend that accumulates all interned string contents into one string.
 ///
 /// # Note
 ///
@@ -28,17 +28,19 @@ use core::{
 /// - **Resolve:** Efficiency of interned string look-up given a symbol.
 /// - **Allocations:** The number of allocations performed by the backend.
 /// - **Footprint:** The total heap memory consumed by the backend.
+/// - **Contiguous:** True if the returned symbols have contiguous values.
 ///
 /// Rating varies between **bad**, **ok** and **good**.
 ///
 /// | Scenario    |  Rating  |
 /// |:------------|:--------:|
 /// | Fill        | **good** |
-/// | Resolve     | **bad**   |
+/// | Resolve     | **bad**  |
 /// | Allocations | **good** |
-/// | Footprint   | **good**   |
+/// | Footprint   | **good** |
 /// | Supports `get_or_intern_static` | **no** |
 /// | `Send` + `Sync` | **yes** |
+/// | Contiguous  | **yes**  |
 #[derive(Debug)]
 pub struct StringBackend<S> {
     ends: Vec<usize>,
