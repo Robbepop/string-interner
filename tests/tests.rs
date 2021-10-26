@@ -240,19 +240,35 @@ macro_rules! gen_tests_for_backend {
         fn get_or_intern_works() {
             let mut interner = StringInterner::new();
             // Insert 3 unique strings:
-            let a = interner.get_or_intern("a").to_usize();
-            let b = interner.get_or_intern("b").to_usize();
-            let c = interner.get_or_intern("c").to_usize();
+            let aa = interner.get_or_intern("aaa").to_usize();
+            let bb = interner.get_or_intern("bb").to_usize();
+            let cc = interner.get_or_intern("cc").to_usize();
             // All symbols must be different from each other.
-            assert_ne!(a, b);
-            assert_ne!(b, c);
-            assert_ne!(c, a);
+            assert_ne!(aa, bb);
+            assert_ne!(bb, cc);
+            assert_ne!(cc, aa);
             // The length of the string interner must be 3 at this point.
             assert_eq!(interner.len(), 3);
+            println!("interner = {:?}", interner);
             // Insert the same 3 unique strings, yield the same symbols:
-            assert_eq!(interner.get_or_intern("a").to_usize(), a);
-            assert_eq!(interner.get_or_intern("b").to_usize(), b);
-            assert_eq!(interner.get_or_intern("c").to_usize(), c);
+            assert_eq!(interner.resolve(
+                <DefaultSymbol>::try_from_usize(aa).unwrap()), Some("aaa"));
+            assert_eq!(
+                interner.get_or_intern("aaa").to_usize(),
+                aa,
+                "'aa' did not produce the same symbol",
+            );
+            assert_eq!(
+                interner.get_or_intern("bb").to_usize(),
+                bb,
+                "'bb' did not produce the same symbol",
+            );
+            assert_eq!(
+                interner.get_or_intern("cc").to_usize(),
+                cc,
+                "'cc' did not produce the same symbol",
+            );
+            println!("interner = {:?}", interner);
             assert_eq!(interner.len(), 3);
         }
 
