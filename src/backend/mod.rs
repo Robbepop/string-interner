@@ -25,7 +25,7 @@ pub struct NoBackend<S>(core::marker::PhantomData<S>);
 cfg_if::cfg_if! {
     if #[cfg(feature = "backends")] {
         /// The default backend recommended for general use.
-        pub type DefaultBackend<S> = BucketBackend<S>;
+        pub type DefaultBackend<S> = StringBackend<S>;
     } else {
         /// The `backends` crate feature is disabled thus there is no default backend.
         pub type DefaultBackend<S> = NoBackend<S>;
