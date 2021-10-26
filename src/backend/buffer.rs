@@ -82,6 +82,7 @@ where
     S: Symbol,
 {
     /// Returns the next available symbol.
+    #[inline]
     fn next_symbol(&self) -> S {
         expect_valid_symbol(self.buffer.len())
     }
@@ -203,6 +204,7 @@ where
 /// Encodes the value using variable length encoding into the buffer.
 ///
 /// Returns the amount of bytes used for the encoding.
+#[inline]
 fn encode_var_usize(buffer: &mut Vec<u8>, mut value: usize) -> usize {
     if value <= 0x7F {
         // Shortcut the common case for low value.
