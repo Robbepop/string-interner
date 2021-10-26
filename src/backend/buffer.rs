@@ -100,8 +100,8 @@ where
                     panic!("could not decode variable `usize` from bytes: {:?}", slice)
                 })
             })
-            .and_then(|str_len| {
-                let start_str = index + str_len;
+            .and_then(|(str_len, str_len_bytes)| {
+                let start_str = index + str_len_bytes;
                 let str_bytes = self.buffer.get(start_str..start_str + str_len)?;
                 // SAFETY: It is guaranteed by the backend that only valid strings
                 //         are stored in this portion of the buffer.
@@ -124,13 +124,13 @@ where
         // SAFETY: The function is marked unsafe so that the caller guarantees
         //         that required invariants are checked.
         let slice_len = unsafe { self.buffer.get_unchecked(index..) };
-        let str_len = decode_var_usize(slice_len).unwrap_or_else(|| {
+        let (str_len, str_len_bytes) = decode_var_usize(slice_len).unwrap_or_else(|| {
             panic!(
                 "could not decode variable `usize` from bytes: {:?}",
                 slice_len
             )
         });
-        let start_str = index + str_len;
+        let start_str = index + str_len_bytes;
         let str_bytes =
             // SAFETY: The function is marked unsafe so that the caller guarantees
             //         that required invariants are checked.
@@ -231,21 +231,26 @@ fn encode_var_usize(buffer: &mut Vec<u8>, mut value: usize) -> usize {
 }
 
 /// Decodes from a variable length encoded `usize` from the buffer.
-fn decode_var_usize(buffer: &[u8]) -> Option<usize> {
+///
+/// Returns the decoded value as first return value.
+/// Returns the number of decoded bytes as second return value.
+fn decode_var_usize(buffer: &[u8]) -> Option<(usize, usize)> {
     if buffer.get(0)? <= &0x7F_u8 {
         // Shortcut the common case for low values.
-        return Some(buffer[0] as usize)
+        return Some((buffer[0] as usize, 1))
     }
     let mut result: usize = 0;
-    for i in 0.. {
+    let mut i = 0;
+    loop {
         let byte = *buffer.get(i)?;
         let shifted = ((byte & 0x7F_u8) as usize).checked_shl((i * 7) as u32)?;
         result = result.checked_add(shifted)?;
         if (byte & 0x80) == 0 {
             break
         }
+        i += 1;
     }
-    Some(result)
+    Some((result, i + 1))
 }
 
 #[cfg(test)]
@@ -262,7 +267,7 @@ mod tests {
             buffer.clear();
             assert_eq!(encode_var_usize(&mut buffer, i), 1);
             assert_eq!(buffer, [i as u8]);
-            assert_eq!(decode_var_usize(&buffer), Some(i));
+            assert_eq!(decode_var_usize(&buffer), Some((i, 1)));
         }
     }
 
@@ -273,7 +278,7 @@ mod tests {
             buffer.clear();
             assert_eq!(encode_var_usize(&mut buffer, i), 2);
             assert_eq!(buffer, [0x80 | ((i & 0x7F) as u8), (0x7F & (i >> 7) as u8)]);
-            assert_eq!(decode_var_usize(&buffer), Some(i));
+            assert_eq!(decode_var_usize(&buffer), Some((i, 2)));
         }
     }
 
@@ -291,7 +296,7 @@ mod tests {
                     (0x7F & (i >> 14) as u8),
                 ]
             );
-            assert_eq!(decode_var_usize(&buffer), Some(i));
+            assert_eq!(decode_var_usize(&buffer), Some((i, 3)));
         }
     }
 
@@ -310,7 +315,7 @@ mod tests {
                     (0x7F & (i >> 21) as u8),
                 ]
             );
-            assert_eq!(decode_var_usize(&buffer), Some(i));
+            assert_eq!(decode_var_usize(&buffer), Some((i, 4)));
         }
     }
 
@@ -340,7 +345,7 @@ mod tests {
         let i = u32::MAX as usize;
         assert_eq!(encode_var_usize(&mut buffer, i), 5);
         assert_eq!(buffer, [0xFF, 0xFF, 0xFF, 0xFF, 0x0F]);
-        assert_eq!(decode_var_usize(&buffer), Some(i));
+        assert_eq!(decode_var_usize(&buffer), Some((i, 5)));
     }
 
     #[test]
@@ -352,7 +357,7 @@ mod tests {
             buffer,
             [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01]
         );
-        assert_eq!(decode_var_usize(&buffer), Some(i));
+        assert_eq!(decode_var_usize(&buffer), Some((i, 9)));
     }
 
     #[test]
