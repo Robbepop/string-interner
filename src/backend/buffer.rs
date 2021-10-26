@@ -31,8 +31,8 @@ use core::{
 ///
 /// | Scenario    |  Rating  |
 /// |:------------|:--------:|
-/// | Fill        | **good** |
-/// | Resolve     | **ok**   |
+/// | Fill        | **best** |
+/// | Resolve     | **bad**  |
 /// | Allocations | **best** |
 /// | Footprint   | **best** |
 /// | Supports `get_or_intern_static` | **no** |

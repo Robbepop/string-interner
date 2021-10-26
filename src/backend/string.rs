@@ -38,7 +38,7 @@ use core::{
 ///
 /// | Scenario    |  Rating  |
 /// |:------------|:--------:|
-/// | Fill        | **best** |
+/// | Fill        | **good** |
 /// | Resolve     | **ok**   |
 /// | Allocations | **good** |
 /// | Footprint   | **good** |
