@@ -93,14 +93,14 @@ where
     /// Returns the string from the given index if any as well
     /// as the index of the next string in the buffer.
     fn resolve_index_to_str(&self, index: usize) -> Option<(&str, usize)> {
-        let (str_len, str_len_bytes) =
-            self.buffer.get(index..).map(decode_var_usize).flatten()?;
-        let start_str = index + str_len_bytes;
-        let str_bytes = self.buffer.get(start_str..start_str + str_len)?;
+        let bytes = self.buffer.get(index..)?;
+        let (str_len, str_len_bytes) = decode_var_usize(bytes)?;
+        let index_str = index + str_len_bytes;
+        let str_bytes = self.buffer.get(index_str..index_str + str_len)?;
         // SAFETY: It is guaranteed by the backend that only valid strings
         //         are stored in this portion of the buffer.
         let string = unsafe { str::from_utf8_unchecked(str_bytes) };
-        Some((string, start_str + str_len))
+        Some((string, index_str + str_len))
     }
 
     /// Resolves the string for the given symbol.
