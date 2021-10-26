@@ -357,7 +357,7 @@ mod tests {
             buffer,
             [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01]
         );
-        assert_eq!(decode_var_usize(&buffer), Some((i, 9)));
+        assert_eq!(decode_var_usize(&buffer), Some((i, 10)));
     }
 
     #[test]
