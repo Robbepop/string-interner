@@ -118,12 +118,9 @@ where
         // SAFETY: The function is marked unsafe so that the caller guarantees
         //         that required invariants are checked.
         let slice_len = unsafe { self.buffer.get_unchecked(index..) };
-        let (str_len, str_len_bytes) = decode_var_usize(slice_len).unwrap_or_else(|| {
-            panic!(
-                "could not decode variable `usize` from bytes: {:?}",
-                slice_len
-            )
-        });
+        // SAFETY: The function is marked unsafe so that the caller guarantees
+        //         that required invariants are checked.
+        let (str_len, str_len_bytes) = unsafe { decode_var_usize_unchecked(slice_len) };
         let start_str = index + str_len_bytes;
         let str_bytes =
             // SAFETY: The function is marked unsafe so that the caller guarantees
@@ -223,6 +220,35 @@ fn encode_var_usize(buffer: &mut Vec<u8>, mut value: usize) -> usize {
         }
     }
     len_chunks
+}
+
+/// Decodes from a variable length encoded `usize` from the buffer.
+///
+/// Returns the decoded value as first return value.
+/// Returns the number of decoded bytes as second return value.
+///
+/// # Safety
+///
+/// The caller has to make sure that the buffer contains the necessary
+/// bytes needed to properly decode a valid `usize` value.
+#[inline]
+unsafe fn decode_var_usize_unchecked(buffer: &[u8]) -> (usize, usize) {
+    let first = unsafe { *buffer.get_unchecked(0) };
+    if first <= 0x7F_u8 {
+        return (first as usize, 1)
+    }
+    let mut result: usize = 0;
+    let mut i = 0;
+    loop {
+        let byte = unsafe { *buffer.get_unchecked(i) };
+        let shifted = ((byte & 0x7F_u8) as usize) << ((i * 7) as u32);
+        result += shifted;
+        if (byte & 0x80) == 0 {
+            break
+        }
+        i += 1;
+    }
+    (result, i + 1)
 }
 
 /// Decodes from a variable length encoded `usize` from the buffer.
