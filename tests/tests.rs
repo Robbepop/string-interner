@@ -366,6 +366,15 @@ macro_rules! gen_tests_for_backend {
             assert_eq!(actual.len(), strings.len());
             assert_eq!(actual, expected);
         }
+
+        #[test]
+        fn iter_works() {
+            let mut interner = StringInterner::new();
+            let strings = ["aa", "bb", "cc", "dd", "ee", "ff"];
+            let symbols = strings.iter().map(|s| interner.get_or_intern(s)).collect::<Vec<_>>();
+            let expected_iter = symbols.into_iter().zip(strings);
+            assert!(Iterator::eq(expected_iter, &interner));
+        }
     };
 }
 
