@@ -251,7 +251,7 @@ macro_rules! gen_tests_for_backend {
             assert_eq!(interner.len(), 3);
             // Insert the same 3 unique strings, yield the same symbols:
             assert_eq!(interner.resolve(
-                <DefaultSymbol>::try_from_usize(aa).unwrap()), Some("aaa"));
+                <DefaultSymbol>::try_from_usize(aa).unwrap()), Some("aa"));
             assert_eq!(
                 interner.get_or_intern("aa").to_usize(),
                 aa,
