@@ -211,6 +211,11 @@ where
 ///
 /// Returns the amount of bytes used for the encoding.
 fn encode_var_usize(buffer: &mut Vec<u8>, mut value: usize) -> usize {
+    if value <= 0x7F {
+        // Shortcut the common case for low value.
+        buffer.push(value as u8);
+        return 1
+    }
     let mut len_chunks = 0;
     loop {
         let mut chunk = (value as u8) & 0x7F_u8;
@@ -227,6 +232,10 @@ fn encode_var_usize(buffer: &mut Vec<u8>, mut value: usize) -> usize {
 
 /// Decodes from a variable length encoded `usize` from the buffer.
 fn decode_var_usize(buffer: &[u8]) -> Option<usize> {
+    if buffer.get(0)? <= &0x7F_u8 {
+        // Shortcut the common case for low values.
+        return Some(buffer[0] as usize)
+    }
     let mut result: usize = 0;
     for i in 0.. {
         let byte = *buffer.get(i)?;
