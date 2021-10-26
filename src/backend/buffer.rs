@@ -14,6 +14,11 @@ use core::{
 
 /// An interner backend that appends all interned string information in a single buffer.
 ///
+/// # Usage Hint
+///
+/// Use this backend if memory consumption is what matters most to you.
+/// Note though that unlike all other backends symbol values are not contigous!
+///
 /// # Usage
 ///
 /// - **Fill:** Efficiency of filling an empty string interner.
@@ -22,14 +27,14 @@ use core::{
 /// - **Footprint:** The total heap memory consumed by the backend.
 /// - **Contiguous:** True if the returned symbols have contiguous values.
 ///
-/// Rating varies between **bad**, **ok** and **good**.
+/// Rating varies between **bad**, **ok**, **good** and **best**.
 ///
 /// | Scenario    |  Rating  |
 /// |:------------|:--------:|
 /// | Fill        | **good** |
-/// | Resolve     | **good** |
-/// | Allocations | **good** |
-/// | Footprint   | **good** |
+/// | Resolve     | **ok**   |
+/// | Allocations | **best** |
+/// | Footprint   | **best** |
 /// | Supports `get_or_intern_static` | **no** |
 /// | `Send` + `Sync` | **yes** |
 /// | Contiguous  | **no**   |

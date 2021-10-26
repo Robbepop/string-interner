@@ -26,6 +26,11 @@ use core::{
 /// Implementation inspired by matklad's blog post that can be found here:
 /// <https://matklad.github.io/2020/03/22/fast-simple-rust-interner.html>
 ///
+/// # Usage Hint
+///
+/// Use when deallocations or copy overhead is costly or when
+/// interning of static strings is especially common.
+///
 /// # Usage
 ///
 /// - **Fill:** Efficiency of filling an empty string interner.
@@ -34,7 +39,7 @@ use core::{
 /// - **Footprint:** The total heap memory consumed by the backend.
 /// - **Contiguous:** True if the returned symbols have contiguous values.
 ///
-/// Rating varies between **bad**, **ok** and **good**.
+/// Rating varies between **bad**, **ok**, **good** and **best**.
 ///
 /// | Scenario    |  Rating  |
 /// |:------------|:--------:|

@@ -22,6 +22,10 @@ use core::{
 /// especially decent performance for look-ups when the string interner is
 /// already filled to some extend.
 ///
+/// # Usage Hint
+///
+/// Never actually use this interner backend since it only acts as a trivial baseline.
+///
 /// # Usage
 ///
 /// - **Fill:** Efficiency of filling an empty string interner.
@@ -30,17 +34,17 @@ use core::{
 /// - **Footprint:** The total heap memory consumed by the backend.
 /// - **Contiguous:** True if the returned symbols have contiguous values.
 ///
-/// Rating varies between **bad**, **ok** and **good**.
+/// Rating varies between **bad**, **ok**, **good** and **best**.
 ///
 /// | Scenario    |  Rating  |
 /// |:------------|:--------:|
-/// | Fill        | **bad** |
-/// | Resolve     | **good**   |
-/// | Allocations | **bad** |
-/// | Footprint   | **bad**   |
+/// | Fill        | **bad**  |
+/// | Resolve     | **good** |
+/// | Allocations | **bad**  |
+/// | Footprint   | **bad**  |
 /// | Supports `get_or_intern_static` | **no** |
 /// | `Send` + `Sync` | **yes** |
-/// | Contiguous  | **yes**   |
+/// | Contiguous  | **yes**  |
 #[derive(Debug)]
 pub struct SimpleBackend<S> {
     strings: Vec<Box<str>>,

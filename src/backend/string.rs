@@ -30,12 +30,12 @@ use core::{
 /// - **Footprint:** The total heap memory consumed by the backend.
 /// - **Contiguous:** True if the returned symbols have contiguous values.
 ///
-/// Rating varies between **bad**, **ok** and **good**.
+/// Rating varies between **bad**, **ok**, **good** and **best**.
 ///
 /// | Scenario    |  Rating  |
 /// |:------------|:--------:|
-/// | Fill        | **good** |
-/// | Resolve     | **bad**  |
+/// | Fill        | **best** |
+/// | Resolve     | **ok**   |
 /// | Allocations | **good** |
 /// | Footprint   | **good** |
 /// | Supports `get_or_intern_static` | **no** |
