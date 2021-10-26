@@ -26,7 +26,7 @@
 //!
 //! ```
 //! # use string_interner::StringInterner;
-//! let interner = vec!["Elephant", "Tiger", "Horse", "Tiger"]
+//! let interner = ["Elephant", "Tiger", "Horse", "Tiger"]
 //!     .into_iter()
 //!     .collect::<StringInterner>();
 //! ```
@@ -43,12 +43,10 @@
 //! ### Example: Iteration
 //!
 //! ```
-//! # use string_interner::StringInterner;
-//! let interner = vec!["Earth", "Water", "Fire", "Air"]
-//!     .into_iter()
-//!     .collect::<StringInterner>();
+//! # use string_interner::{StringInterner, Symbol};
+//! let interner = <StringInterner>::from_iter(["Earth", "Water", "Fire", "Air"]);
 //! for (sym, str) in &interner {
-//!     // iteration code here!
+//!     println!("{} = {}", sym.to_usize(), str);
 //! }
 //! ```
 
