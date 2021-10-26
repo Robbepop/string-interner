@@ -49,6 +49,20 @@
 //!     println!("{} = {}", sym.to_usize(), str);
 //! }
 //! ```
+//!
+//! ### Example: Use Different Backend
+//!
+//! ```
+//! # use string_interner::{StringInterner, DefaultSymbol, DefaultHashBuilder};
+//! # use string_interner::backend;
+//! type Interner = StringInterner<backend::StringBackend<DefaultSymbol>, DefaultHashBuilder>;
+//! let mut interner = Interner::new();
+//! let sym1 = interner.get_or_intern("Tiger");
+//! let sym2 = interner.get_or_intern("Horse");
+//! let sym3 = interner.get_or_intern("Tiger");
+//! assert_ne!(sym1, sym2);
+//! assert_eq!(sym1, sym3); // same!
+//! ```
 
 #[cfg(feature = "serde-1")]
 mod serde_impl;
