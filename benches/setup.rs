@@ -86,11 +86,11 @@ pub const BENCH_LEN_STRINGS: usize = 100_000;
 pub const BENCH_STRING_LEN: usize = 5;
 
 type FxBuildHasher = fxhash::FxBuildHasher;
-type StringInternerWith<B> = StringInterner<DefaultSymbol, B, FxBuildHasher>;
+type StringInternerWith<B> = StringInterner<B, FxBuildHasher>;
 
 pub trait BackendBenchmark {
     const NAME: &'static str;
-    type Backend: Backend<DefaultSymbol>;
+    type Backend: Backend;
 
     fn setup() -> StringInternerWith<Self::Backend> {
         <StringInternerWith<Self::Backend>>::new()
@@ -106,13 +106,15 @@ pub trait BackendBenchmark {
 
     fn setup_filled_with_ids(
         words: &[String],
-    ) -> (StringInternerWith<Self::Backend>, Vec<DefaultSymbol>) {
+    ) -> (
+        StringInternerWith<Self::Backend>,
+        Vec<<Self::Backend as Backend>::Symbol>,
+    ) {
         let mut interner = <StringInternerWith<Self::Backend>>::new();
-        let mut word_ids = Vec::new();
-        for word in words {
-            let word_id = interner.get_or_intern(word);
-            word_ids.push(word_id);
-        }
+        let word_ids = words
+            .iter()
+            .map(|word| interner.get_or_intern(word))
+            .collect::<Vec<_>>();
         (interner, word_ids)
     }
 }

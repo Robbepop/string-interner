@@ -84,10 +84,12 @@ impl<S> Default for BucketBackend<S> {
     }
 }
 
-impl<S> Backend<S> for BucketBackend<S>
+impl<S> Backend for BucketBackend<S>
 where
     S: Symbol,
 {
+    type Symbol = S;
+
     #[cfg_attr(feature = "inline-more", inline)]
     fn with_capacity(cap: usize) -> Self {
         Self {
@@ -99,7 +101,7 @@ where
     }
 
     #[inline]
-    fn intern(&mut self, string: &str) -> S {
+    fn intern(&mut self, string: &str) -> Self::Symbol {
         // SAFETY: This is safe because we never hand out the returned
         //         interned string instance to the outside and only operate
         //         on it within this backend.
@@ -108,7 +110,7 @@ where
     }
 
     #[cfg_attr(feature = "inline-more", inline)]
-    fn intern_static(&mut self, string: &'static str) -> S {
+    fn intern_static(&mut self, string: &'static str) -> Self::Symbol {
         let interned = InternedStr::new(string);
         self.push_span(interned)
     }
@@ -120,12 +122,12 @@ where
     }
 
     #[inline]
-    fn resolve(&self, symbol: S) -> Option<&str> {
+    fn resolve(&self, symbol: Self::Symbol) -> Option<&str> {
         self.spans.get(symbol.to_usize()).map(InternedStr::as_str)
     }
 
     #[inline]
-    unsafe fn resolve_unchecked(&self, symbol: S) -> &str {
+    unsafe fn resolve_unchecked(&self, symbol: Self::Symbol) -> &str {
         // SAFETY: The function is marked unsafe so that the caller guarantees
         //         that required invariants are checked.
         unsafe { self.spans.get_unchecked(symbol.to_usize()).as_str() }

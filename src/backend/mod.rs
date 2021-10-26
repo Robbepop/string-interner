@@ -37,10 +37,10 @@ cfg_if::cfg_if! {
 /// The job of a backend is to actually store, manage and organize the interned
 /// strings. Different backends have different trade-offs. Users should pick
 /// their backend with hinsight of their personal use-case.
-pub trait Backend<S>: Default
-where
-    S: Symbol,
-{
+pub trait Backend: Default {
+    /// The symbol used by the string interner backend.
+    type Symbol: Symbol;
+
     /// Creates a new backend for the given capacity.
     ///
     /// The capacity denotes how many strings are expected to be interned.
@@ -52,7 +52,7 @@ where
     ///
     /// The backend must make sure that the returned symbol maps back to the
     /// original string in its [`resolve`](`Backend::resolve`) method.
-    fn intern(&mut self, string: &str) -> S;
+    fn intern(&mut self, string: &str) -> Self::Symbol;
 
     /// Interns the given static string and returns its interned ref and symbol.
     ///
@@ -61,7 +61,7 @@ where
     /// The backend must make sure that the returned symbol maps back to the
     /// original string in its [`resolve`](`Backend::resolve`) method.
     #[inline]
-    fn intern_static(&mut self, string: &'static str) -> S {
+    fn intern_static(&mut self, string: &'static str) -> Self::Symbol {
         // The default implementation simply forwards to the normal [`intern`]
         // implementation. Backends that can optimize for this use case should
         // implement this method.
@@ -72,7 +72,7 @@ where
     fn shrink_to_fit(&mut self);
 
     /// Resolves the given symbol to its original string contents.
-    fn resolve(&self, symbol: S) -> Option<&str>;
+    fn resolve(&self, symbol: Self::Symbol) -> Option<&str>;
 
     /// Resolves the given symbol to its original string contents.
     ///
@@ -83,5 +83,5 @@ where
     /// by the [`intern`](`Backend::intern`) or
     /// [`intern_static`](`Backend::intern_static`) methods of the same
     /// interner backend.
-    unsafe fn resolve_unchecked(&self, symbol: S) -> &str;
+    unsafe fn resolve_unchecked(&self, symbol: Self::Symbol) -> &str;
 }

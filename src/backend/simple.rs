@@ -61,10 +61,12 @@ impl<S> Default for SimpleBackend<S> {
     }
 }
 
-impl<S> Backend<S> for SimpleBackend<S>
+impl<S> Backend for SimpleBackend<S>
 where
     S: Symbol,
 {
+    type Symbol = S;
+
     #[cfg_attr(feature = "inline-more", inline)]
     fn with_capacity(cap: usize) -> Self {
         Self {
@@ -74,7 +76,7 @@ where
     }
 
     #[inline]
-    fn intern(&mut self, string: &str) -> S {
+    fn intern(&mut self, string: &str) -> Self::Symbol {
         let symbol = expect_valid_symbol(self.strings.len());
         let str = string.to_string().into_boxed_str();
         self.strings.push(str);
@@ -86,12 +88,12 @@ where
     }
 
     #[inline]
-    fn resolve(&self, symbol: S) -> Option<&str> {
+    fn resolve(&self, symbol: Self::Symbol) -> Option<&str> {
         self.strings.get(symbol.to_usize()).map(|pinned| &**pinned)
     }
 
     #[inline]
-    unsafe fn resolve_unchecked(&self, symbol: S) -> &str {
+    unsafe fn resolve_unchecked(&self, symbol: Self::Symbol) -> &str {
         // SAFETY: The function is marked unsafe so that the caller guarantees
         //         that required invariants are checked.
         unsafe { self.strings.get_unchecked(symbol.to_usize()) }

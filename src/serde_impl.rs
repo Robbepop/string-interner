@@ -23,11 +23,11 @@ use serde::{
     },
 };
 
-impl<S, B, H> Serialize for StringInterner<S, B, H>
+impl<B, H> Serialize for StringInterner<B, H>
 where
-    S: Symbol,
-    B: Backend<S>,
-    for<'a> &'a B: IntoIterator<Item = (S, &'a str)>,
+    B: Backend,
+    <B as Backend>::Symbol: Symbol,
+    for<'a> &'a B: IntoIterator<Item = (<B as Backend>::Symbol, &'a str)>,
     H: BuildHasher,
 {
     fn serialize<T>(&self, serializer: T) -> Result<T::Ok, T::Error>
@@ -42,13 +42,13 @@ where
     }
 }
 
-impl<'de, S, B, H> Deserialize<'de> for StringInterner<S, B, H>
+impl<'de, B, H> Deserialize<'de> for StringInterner<B, H>
 where
-    S: Symbol,
-    B: Backend<S>,
+    B: Backend,
+    <B as Backend>::Symbol: Symbol,
     H: BuildHasher + Default,
 {
-    fn deserialize<D>(deserializer: D) -> Result<StringInterner<S, B, H>, D::Error>
+    fn deserialize<D>(deserializer: D) -> Result<StringInterner<B, H>, D::Error>
     where
         D: Deserializer<'de>,
     {
@@ -56,19 +56,19 @@ where
     }
 }
 
-struct StringInternerVisitor<S, B, H>
+struct StringInternerVisitor<B, H>
 where
-    S: Symbol,
-    B: Backend<S>,
+    B: Backend,
+    <B as Backend>::Symbol: Symbol,
     H: BuildHasher,
 {
-    mark: marker::PhantomData<(S, B, H)>,
+    mark: marker::PhantomData<(<B as Backend>::Symbol, B, H)>,
 }
 
-impl<S, B, H> Default for StringInternerVisitor<S, B, H>
+impl<B, H> Default for StringInternerVisitor<B, H>
 where
-    S: Symbol,
-    B: Backend<S>,
+    B: Backend,
+    <B as Backend>::Symbol: Symbol,
     H: BuildHasher,
 {
     fn default() -> Self {
@@ -78,13 +78,13 @@ where
     }
 }
 
-impl<'de, S, B, H> Visitor<'de> for StringInternerVisitor<S, B, H>
+impl<'de, B, H> Visitor<'de> for StringInternerVisitor<B, H>
 where
-    S: Symbol,
-    B: Backend<S>,
+    B: Backend,
+    <B as Backend>::Symbol: Symbol,
     H: BuildHasher + Default,
 {
-    type Value = StringInterner<S, B, H>;
+    type Value = StringInterner<B, H>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         formatter.write_str("Expected a contiguous sequence of strings.")
@@ -94,11 +94,10 @@ where
     where
         A: SeqAccess<'de>,
     {
-        let mut interner: StringInterner<S, B, H> =
-            StringInterner::with_capacity_and_hasher(
-                seq.size_hint().unwrap_or(0),
-                H::default(),
-            );
+        let mut interner: StringInterner<B, H> = StringInterner::with_capacity_and_hasher(
+            seq.size_hint().unwrap_or(0),
+            H::default(),
+        );
         while let Some(s) = seq.next_element::<Box<str>>()? {
             interner.get_or_intern(s);
         }

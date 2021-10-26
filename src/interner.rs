@@ -43,23 +43,20 @@ where
 ///     - This maps from `string` type to `symbol` type.
 /// - [`StringInterner::resolve`]: To resolve your already interned strings.
 ///     - This maps from `symbol` type to `string` type.
-pub struct StringInterner<
-    S = DefaultSymbol,
-    B = DefaultBackend<S>,
-    H = DefaultHashBuilder,
-> where
-    S: Symbol,
+pub struct StringInterner<B = DefaultBackend<DefaultSymbol>, H = DefaultHashBuilder>
+where
+    B: Backend,
     H: BuildHasher,
 {
-    dedup: HashMap<S, (), ()>,
+    dedup: HashMap<<B as Backend>::Symbol, (), ()>,
     hasher: H,
     backend: B,
 }
 
-impl<S, B, H> Debug for StringInterner<S, B, H>
+impl<B, H> Debug for StringInterner<B, H>
 where
-    S: Symbol + Debug,
-    B: Backend<S> + Debug,
+    B: Backend + Debug,
+    <B as Backend>::Symbol: Symbol + Debug,
     H: BuildHasher,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -78,10 +75,10 @@ impl Default for StringInterner {
     }
 }
 
-impl<S, B, H> Clone for StringInterner<S, B, H>
+impl<B, H> Clone for StringInterner<B, H>
 where
-    S: Symbol,
-    B: Backend<S> + Clone,
+    B: Backend + Clone,
+    <B as Backend>::Symbol: Symbol,
     H: BuildHasher + Clone,
 {
     fn clone(&self) -> Self {
@@ -93,10 +90,10 @@ where
     }
 }
 
-impl<S, B, H> PartialEq for StringInterner<S, B, H>
+impl<B, H> PartialEq for StringInterner<B, H>
 where
-    S: Symbol,
-    B: Backend<S> + PartialEq,
+    B: Backend + PartialEq,
+    <B as Backend>::Symbol: Symbol,
     H: BuildHasher,
 {
     fn eq(&self, rhs: &Self) -> bool {
@@ -104,18 +101,18 @@ where
     }
 }
 
-impl<S, B, H> Eq for StringInterner<S, B, H>
+impl<B, H> Eq for StringInterner<B, H>
 where
-    S: Symbol,
-    B: Backend<S> + Eq,
+    B: Backend + Eq,
+    <B as Backend>::Symbol: Symbol,
     H: BuildHasher,
 {
 }
 
-impl<S, B, H> StringInterner<S, B, H>
+impl<B, H> StringInterner<B, H>
 where
-    S: Symbol,
-    B: Backend<S>,
+    B: Backend,
+    <B as Backend>::Symbol: Symbol,
     H: BuildHasher + Default,
 {
     /// Creates a new empty `StringInterner`.
@@ -139,10 +136,10 @@ where
     }
 }
 
-impl<S, B, H> StringInterner<S, B, H>
+impl<B, H> StringInterner<B, H>
 where
-    S: Symbol,
-    B: Backend<S>,
+    B: Backend,
+    <B as Backend>::Symbol: Symbol,
     H: BuildHasher,
 {
     /// Creates a new empty `StringInterner` with the given hasher.
@@ -181,7 +178,7 @@ where
     ///
     /// Can be used to query if a string has already been interned without interning.
     #[inline]
-    pub fn get<T>(&self, string: T) -> Option<S>
+    pub fn get<T>(&self, string: T) -> Option<<B as Backend>::Symbol>
     where
         T: AsRef<str>,
     {
@@ -209,7 +206,11 @@ where
     /// [1]: [`StringInterner::get_or_intern`]
     /// [2]: [`StringInterner::get_or_intern_static`]
     #[cfg_attr(feature = "inline-more", inline)]
-    fn get_or_intern_using<T>(&mut self, string: T, intern_fn: fn(&mut B, T) -> S) -> S
+    fn get_or_intern_using<T>(
+        &mut self,
+        string: T,
+        intern_fn: fn(&mut B, T) -> <B as Backend>::Symbol,
+    ) -> <B as Backend>::Symbol
     where
         T: Copy + Hash + AsRef<str> + for<'a> PartialEq<&'a str>,
     {
@@ -249,7 +250,7 @@ where
     /// If the interner already interns the maximum number of strings possible
     /// by the chosen symbol type.
     #[inline]
-    pub fn get_or_intern<T>(&mut self, string: T) -> S
+    pub fn get_or_intern<T>(&mut self, string: T) -> <B as Backend>::Symbol
     where
         T: AsRef<str>,
     {
@@ -270,7 +271,10 @@ where
     /// If the interner already interns the maximum number of strings possible
     /// by the chosen symbol type.
     #[inline]
-    pub fn get_or_intern_static(&mut self, string: &'static str) -> S {
+    pub fn get_or_intern_static(
+        &mut self,
+        string: &'static str,
+    ) -> <B as Backend>::Symbol {
         self.get_or_intern_using(string, B::intern_static)
     }
 
@@ -281,15 +285,15 @@ where
 
     /// Returns the string for the given symbol if any.
     #[inline]
-    pub fn resolve(&self, symbol: S) -> Option<&str> {
+    pub fn resolve(&self, symbol: <B as Backend>::Symbol) -> Option<&str> {
         self.backend.resolve(symbol)
     }
 }
 
-impl<S, B, H, T> FromIterator<T> for StringInterner<S, B, H>
+impl<B, H, T> FromIterator<T> for StringInterner<B, H>
 where
-    S: Symbol,
-    B: Backend<S>,
+    B: Backend,
+    <B as Backend>::Symbol: Symbol,
     H: BuildHasher + Default,
     T: AsRef<str>,
 {
@@ -305,10 +309,10 @@ where
     }
 }
 
-impl<S, B, H, T> Extend<T> for StringInterner<S, B, H>
+impl<B, H, T> Extend<T> for StringInterner<B, H>
 where
-    S: Symbol,
-    B: Backend<S>,
+    B: Backend,
+    <B as Backend>::Symbol: Symbol,
     H: BuildHasher,
     T: AsRef<str>,
 {
@@ -322,14 +326,14 @@ where
     }
 }
 
-impl<'a, S, B, H> IntoIterator for &'a StringInterner<S, B, H>
+impl<'a, B, H> IntoIterator for &'a StringInterner<B, H>
 where
-    S: Symbol,
-    B: Backend<S>,
-    &'a B: IntoIterator<Item = (S, &'a str)>,
+    B: Backend,
+    <B as Backend>::Symbol: Symbol,
+    &'a B: IntoIterator<Item = (<B as Backend>::Symbol, &'a str)>,
     H: BuildHasher,
 {
-    type Item = (S, &'a str);
+    type Item = (<B as Backend>::Symbol, &'a str);
     type IntoIter = <&'a B as IntoIterator>::IntoIter;
 
     #[cfg_attr(feature = "inline-more", inline)]

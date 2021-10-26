@@ -20,7 +20,7 @@ use criterion::{
     Criterion,
     Throughput,
 };
-use string_interner::DefaultSymbol;
+use string_interner::backend::Backend;
 
 criterion_group!(bench_resolve, bench_resolve_already_filled);
 criterion_group!(bench_get, bench_get_already_filled);
@@ -222,8 +222,12 @@ fn bench_iter_already_filled(c: &mut Criterion) {
     g.throughput(Throughput::Elements(BENCH_LEN_STRINGS as u64));
     fn bench_for_backend<BB: BackendBenchmark>(g: &mut BenchmarkGroup<WallTime>)
     where
-        for<'a> &'a <BB as BackendBenchmark>::Backend:
-            IntoIterator<Item = (DefaultSymbol, &'a str)>,
+        for<'a> &'a <BB as BackendBenchmark>::Backend: IntoIterator<
+            Item = (
+                <<BB as BackendBenchmark>::Backend as Backend>::Symbol,
+                &'a str,
+            ),
+        >,
     {
         g.bench_with_input(
             BB::NAME,

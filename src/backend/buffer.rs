@@ -164,10 +164,12 @@ where
     }
 }
 
-impl<S> Backend<S> for BufferBackend<S>
+impl<S> Backend for BufferBackend<S>
 where
     S: Symbol,
 {
+    type Symbol = S;
+
     #[cfg_attr(feature = "inline-more", inline)]
     fn with_capacity(capacity: usize) -> Self {
         /// We encode the `usize` string length into the buffer as well.
@@ -183,12 +185,12 @@ where
     }
 
     #[inline]
-    fn intern(&mut self, string: &str) -> S {
+    fn intern(&mut self, string: &str) -> Self::Symbol {
         self.push_string(string)
     }
 
     #[inline]
-    fn resolve(&self, symbol: S) -> Option<&str> {
+    fn resolve(&self, symbol: Self::Symbol) -> Option<&str> {
         self.resolve_index_to_str(symbol.to_usize())
             .map(|(string, _next_str_index)| string)
     }
@@ -198,7 +200,7 @@ where
     }
 
     #[inline]
-    unsafe fn resolve_unchecked(&self, symbol: S) -> &str {
+    unsafe fn resolve_unchecked(&self, symbol: Self::Symbol) -> &str {
         // SAFETY: The function is marked unsafe so that the caller guarantees
         //         that required invariants are checked.
         unsafe { self.resolve_index_to_str_unchecked(symbol.to_usize()) }

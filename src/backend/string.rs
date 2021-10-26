@@ -156,10 +156,12 @@ where
     }
 }
 
-impl<S> Backend<S> for StringBackend<S>
+impl<S> Backend for StringBackend<S>
 where
     S: Symbol,
 {
+    type Symbol = S;
+
     #[cfg_attr(feature = "inline-more", inline)]
     fn with_capacity(cap: usize) -> Self {
         // According to google the approx. word length is 5.
@@ -172,12 +174,12 @@ where
     }
 
     #[inline]
-    fn intern(&mut self, string: &str) -> S {
+    fn intern(&mut self, string: &str) -> Self::Symbol {
         self.push_string(string)
     }
 
     #[inline]
-    fn resolve(&self, symbol: S) -> Option<&str> {
+    fn resolve(&self, symbol: Self::Symbol) -> Option<&str> {
         self.symbol_to_span(symbol)
             .map(|span| self.span_to_str(span))
     }
@@ -188,7 +190,7 @@ where
     }
 
     #[inline]
-    unsafe fn resolve_unchecked(&self, symbol: S) -> &str {
+    unsafe fn resolve_unchecked(&self, symbol: Self::Symbol) -> &str {
         // SAFETY: The function is marked unsafe so that the caller guarantees
         //         that required invariants are checked.
         unsafe { self.span_to_str(self.symbol_to_span_unchecked(symbol)) }

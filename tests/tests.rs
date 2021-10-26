@@ -83,7 +83,7 @@ pub struct ProfilingStats {
 macro_rules! gen_tests_for_backend {
     ( $backend:ty ) => {
         type StringInterner =
-            string_interner::StringInterner<DefaultSymbol, $backend, DefaultHashBuilder>;
+            string_interner::StringInterner<$backend, DefaultHashBuilder>;
 
         fn profile_memory_usage(words: &[String]) -> ProfilingStats {
             ALLOCATOR.reset();
