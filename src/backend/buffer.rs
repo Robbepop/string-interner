@@ -230,7 +230,7 @@ fn encode_var_usize(buffer: &mut Vec<u8>, mut value: usize) -> usize {
 /// Returns the decoded value as first return value.
 /// Returns the number of decoded bytes as second return value.
 fn decode_var_usize(buffer: &[u8]) -> Option<(usize, usize)> {
-    if buffer.get(0)? <= &0x7F_u8 {
+    if !buffer.is_empty() && buffer[0] <= 0x7F_u8 {
         // Shortcut the common case for low values.
         return Some((buffer[0] as usize, 1))
     }
