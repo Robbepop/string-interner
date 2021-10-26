@@ -22,6 +22,10 @@ use core::{
 /// Implementation inspired by [CAD97's](https://github.com/CAD97) research
 /// project [`strena`](https://github.com/CAD97/strena).
 ///
+/// # Usage Hint
+///
+/// Use this backend if runtime performance is what matters most to you.
+///
 /// # Usage
 ///
 /// - **Fill:** Efficiency of filling an empty string interner.
