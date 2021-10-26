@@ -11,7 +11,7 @@ description = """Efficient string interner with minimal memory footprint
 and fast access to the underlying strings.
 """
 categories = ["data-structures"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 cfg-if = "1.0"
