@@ -63,10 +63,10 @@ impl BackendStats for backend::StringBackend<DefaultSymbol> {
 }
 
 impl BackendStats for backend::BufferBackend<DefaultSymbol> {
-    const MIN_OVERHEAD: f64 = 1.7;
-    const MAX_OVERHEAD: f64 = 1.93;
-    const MAX_ALLOCATIONS: usize = 42;
-    const MAX_DEALLOCATIONS: usize = 40;
+    const MIN_OVERHEAD: f64 = 1.35;
+    const MAX_OVERHEAD: f64 = 1.58;
+    const MAX_ALLOCATIONS: usize = 43;
+    const MAX_DEALLOCATIONS: usize = 41;
     const NAME: &'static str = "BufferBackend";
 }
 
@@ -290,7 +290,7 @@ macro_rules! gen_tests_for_backend {
             assert_eq!(interner.resolve(symbol_c), Some("c"));
             assert_eq!(interner.len(), 3);
             // Resolve invalid symbols:
-            let symbol_d = expect_valid_symbol(4);
+            let symbol_d = expect_valid_symbol(100);
             assert_ne!(symbol_a, symbol_d);
             assert_ne!(symbol_b, symbol_d);
             assert_ne!(symbol_c, symbol_d);

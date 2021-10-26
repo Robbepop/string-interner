@@ -88,16 +88,15 @@ where
     /// Returns the string from the given index if any as well
     /// as the index of the next string in the buffer.
     fn resolve_index_to_str(&self, index: usize) -> Option<(&str, usize)> {
-        const LEN_USIZE: usize = mem::size_of::<usize>();
-        let start_str = index + LEN_USIZE;
         self.buffer
-            .get(index..start_str)
+            .get(index..)
             .map(|slice| {
-                let mut bytes_len = [0; LEN_USIZE];
-                bytes_len.copy_from_slice(slice);
-                usize::from_le_bytes(bytes_len)
+                decode_var_usize(slice).unwrap_or_else(|| {
+                    panic!("could not decode variable `usize` from bytes: {:?}", slice)
+                })
             })
             .and_then(|str_len| {
+                let start_str = index + str_len;
                 let str_bytes = self.buffer.get(start_str..start_str + str_len)?;
                 // SAFETY: It is guaranteed by the backend that only valid strings
                 //         are stored in this portion of the buffer.
@@ -117,14 +116,16 @@ where
     /// The caller of the function has to ensure that calling this method
     /// is safe to do.
     unsafe fn resolve_index_to_str_unchecked(&self, index: usize) -> &str {
-        const LEN_USIZE: usize = mem::size_of::<usize>();
-        let start_str = index + LEN_USIZE;
         // SAFETY: The function is marked unsafe so that the caller guarantees
         //         that required invariants are checked.
-        let slice_len = unsafe { self.buffer.get_unchecked(index..start_str) };
-        let mut bytes_len = [0; LEN_USIZE];
-        bytes_len.copy_from_slice(slice_len);
-        let str_len = usize::from_le_bytes(bytes_len);
+        let slice_len = unsafe { self.buffer.get_unchecked(index..) };
+        let str_len = decode_var_usize(slice_len).unwrap_or_else(|| {
+            panic!(
+                "could not decode variable `usize` from bytes: {:?}",
+                slice_len
+            )
+        });
+        let start_str = index + str_len;
         let str_bytes =
             // SAFETY: The function is marked unsafe so that the caller guarantees
             //         that required invariants are checked.
@@ -134,6 +135,14 @@ where
         unsafe { str::from_utf8_unchecked(str_bytes) }
     }
 
+    /// Pushes the given value onto the buffer with `var7` encoding.
+    ///
+    /// Returns the amount of `var7` encoded bytes.
+    #[inline]
+    fn encode_var_usize(&mut self, value: usize) -> usize {
+        encode_var_usize(&mut self.buffer, value)
+    }
+
     /// Pushes the given string into the buffer and returns its span.
     ///
     /// # Panics
@@ -141,9 +150,10 @@ where
     /// If the backend ran out of symbols.
     fn push_string(&mut self, string: &str) -> S {
         let symbol = self.next_symbol();
-        let str_len = string.len().to_le_bytes();
+        let str_len = string.len();
         let str_bytes = string.as_bytes();
-        self.buffer.extend(str_len.iter().chain(str_bytes));
+        self.encode_var_usize(str_len);
+        self.buffer.extend(str_bytes);
         self.len_strings += 1;
         symbol
     }
@@ -187,6 +197,161 @@ where
         // SAFETY: The function is marked unsafe so that the caller guarantees
         //         that required invariants are checked.
         unsafe { self.resolve_index_to_str_unchecked(symbol.to_usize()) }
+    }
+}
+
+/// Encodes the value using variable length encoding into the buffer.
+///
+/// Returns the amount of bytes used for the encoding.
+fn encode_var_usize(buffer: &mut Vec<u8>, mut value: usize) -> usize {
+    let mut len_chunks = 0;
+    loop {
+        let mut chunk = (value as u8) & 0x7F_u8;
+        value >>= 7;
+        chunk |= ((value != 0) as u8) << 7;
+        buffer.push(chunk);
+        len_chunks += 1;
+        if value == 0 {
+            break
+        }
+    }
+    len_chunks
+}
+
+/// Decodes from a variable length encoded `usize` from the buffer.
+fn decode_var_usize(buffer: &[u8]) -> Option<usize> {
+    let mut result: usize = 0;
+    for i in 0.. {
+        let byte = *buffer.get(i)?;
+        let shifted = ((byte & 0x7F_u8) as usize).checked_shl((i * 7) as u32)?;
+        result = result.checked_add(shifted)?;
+        if (byte & 0x80) == 0 {
+            break
+        }
+    }
+    Some(result)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        decode_var_usize,
+        encode_var_usize,
+    };
+
+    #[test]
+    fn encode_var_usize_1_byte_works() {
+        let mut buffer = Vec::new();
+        for i in 0..2usize.pow(7) {
+            buffer.clear();
+            assert_eq!(encode_var_usize(&mut buffer, i), 1);
+            assert_eq!(buffer, [i as u8]);
+            assert_eq!(decode_var_usize(&buffer), Some(i));
+        }
+    }
+
+    #[test]
+    fn encode_var_usize_2_bytes_works() {
+        let mut buffer = Vec::new();
+        for i in 2usize.pow(7)..2usize.pow(14) {
+            buffer.clear();
+            assert_eq!(encode_var_usize(&mut buffer, i), 2);
+            assert_eq!(buffer, [0x80 | ((i & 0x7F) as u8), (0x7F & (i >> 7) as u8)]);
+            assert_eq!(decode_var_usize(&buffer), Some(i));
+        }
+    }
+
+    #[test]
+    fn encode_var_usize_3_bytes_works() {
+        let mut buffer = Vec::new();
+        for i in 2usize.pow(14)..2usize.pow(21) {
+            buffer.clear();
+            assert_eq!(encode_var_usize(&mut buffer, i), 3);
+            assert_eq!(
+                buffer,
+                [
+                    0x80 | ((i & 0x7F) as u8),
+                    0x80 | (0x7F & (i >> 7) as u8),
+                    (0x7F & (i >> 14) as u8),
+                ]
+            );
+            assert_eq!(decode_var_usize(&buffer), Some(i));
+        }
+    }
+
+    /// Allows to split up the test into multiple fragments that can run in parallel.
+    fn assert_encode_var_usize_4_bytes(range: core::ops::Range<usize>) {
+        let mut buffer = Vec::new();
+        for i in range {
+            buffer.clear();
+            assert_eq!(encode_var_usize(&mut buffer, i), 4);
+            assert_eq!(
+                buffer,
+                [
+                    0x80 | ((i & 0x7F) as u8),
+                    0x80 | (0x7F & (i >> 7) as u8),
+                    0x80 | (0x7F & (i >> 14) as u8),
+                    (0x7F & (i >> 21) as u8),
+                ]
+            );
+            assert_eq!(decode_var_usize(&buffer), Some(i));
+        }
+    }
+
+    #[test]
+    fn encode_var_usize_4_bytes_01_works() {
+        assert_encode_var_usize_4_bytes(2usize.pow(21)..2usize.pow(24));
+    }
+
+    #[test]
+    fn encode_var_usize_4_bytes_02_works() {
+        assert_encode_var_usize_4_bytes(2usize.pow(24)..2usize.pow(26));
+    }
+
+    #[test]
+    fn encode_var_usize_4_bytes_03_works() {
+        assert_encode_var_usize_4_bytes(2usize.pow(26)..2usize.pow(27));
+    }
+
+    #[test]
+    fn encode_var_usize_4_bytes_04_works() {
+        assert_encode_var_usize_4_bytes(2usize.pow(27)..2usize.pow(28));
+    }
+
+    #[test]
+    fn encode_var_u32_max_works() {
+        let mut buffer = Vec::new();
+        let i = u32::MAX as usize;
+        assert_eq!(encode_var_usize(&mut buffer, i), 5);
+        assert_eq!(buffer, [0xFF, 0xFF, 0xFF, 0xFF, 0x0F]);
+        assert_eq!(decode_var_usize(&buffer), Some(i));
+    }
+
+    #[test]
+    fn encode_var_u64_max_works() {
+        let mut buffer = Vec::new();
+        let i = u64::MAX as usize;
+        assert_eq!(encode_var_usize(&mut buffer, i), 10);
+        assert_eq!(
+            buffer,
+            [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01]
+        );
+        assert_eq!(decode_var_usize(&buffer), Some(i));
+    }
+
+    #[test]
+    fn decode_var_fail() {
+        // Empty buffer.
+        assert_eq!(decode_var_usize(&[]), None);
+        // Missing buffer bytes.
+        assert_eq!(decode_var_usize(&[0x80]), None);
+        // Out of range encoded value.
+        // assert_eq!(
+        //     decode_var_usize(&[
+        //         0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x03
+        //     ]),
+        //     None,
+        // );
     }
 }
 
