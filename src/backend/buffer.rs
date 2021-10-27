@@ -4,6 +4,7 @@ use super::Backend;
 use crate::{
     compat::Vec,
     symbol::expect_valid_symbol,
+    DefaultSymbol,
     Symbol,
 };
 use core::{
@@ -39,7 +40,7 @@ use core::{
 /// | `Send` + `Sync` | **yes** |
 /// | Contiguous  | **no**   |
 #[derive(Debug)]
-pub struct BufferBackend<S> {
+pub struct BufferBackend<S = DefaultSymbol> {
     len_strings: usize,
     buffer: Vec<u8>,
     marker: PhantomData<fn() -> S>,

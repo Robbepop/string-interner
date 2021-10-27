@@ -11,6 +11,7 @@ use super::Backend;
 use crate::{
     compat::Vec,
     symbol::expect_valid_symbol,
+    DefaultSymbol,
     Symbol,
 };
 use core::{
@@ -51,7 +52,7 @@ use core::{
 /// | `Send` + `Sync` | **yes** |
 /// | Contiguous  | **yes**  |
 #[derive(Debug)]
-pub struct BucketBackend<S> {
+pub struct BucketBackend<S = DefaultSymbol> {
     spans: Vec<InternedStr>,
     head: FixedString,
     full: Vec<String>,

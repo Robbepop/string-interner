@@ -8,6 +8,7 @@ use crate::{
         Vec,
     },
     symbol::expect_valid_symbol,
+    DefaultSymbol,
     Symbol,
 };
 use core::{
@@ -46,7 +47,7 @@ use core::{
 /// | `Send` + `Sync` | **yes** |
 /// | Contiguous  | **yes**  |
 #[derive(Debug)]
-pub struct SimpleBackend<S> {
+pub struct SimpleBackend<S = DefaultSymbol> {
     strings: Vec<Box<str>>,
     symbol_marker: PhantomData<fn() -> S>,
 }
