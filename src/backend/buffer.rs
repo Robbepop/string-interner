@@ -305,6 +305,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn encode_var_usize_3_bytes_works() {
         let mut buffer = Vec::new();
         for i in 2usize.pow(14)..2usize.pow(21) {
@@ -323,6 +324,7 @@ mod tests {
     }
 
     /// Allows to split up the test into multiple fragments that can run in parallel.
+    #[cfg_attr(miri, ignore)]
     fn assert_encode_var_usize_4_bytes(range: core::ops::Range<usize>) {
         let mut buffer = Vec::new();
         for i in range {
@@ -342,21 +344,25 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn encode_var_usize_4_bytes_01_works() {
         assert_encode_var_usize_4_bytes(2usize.pow(21)..2usize.pow(24));
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn encode_var_usize_4_bytes_02_works() {
         assert_encode_var_usize_4_bytes(2usize.pow(24)..2usize.pow(26));
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn encode_var_usize_4_bytes_03_works() {
         assert_encode_var_usize_4_bytes(2usize.pow(26)..2usize.pow(27));
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn encode_var_usize_4_bytes_04_works() {
         assert_encode_var_usize_4_bytes(2usize.pow(27)..2usize.pow(28));
     }
