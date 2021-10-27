@@ -37,7 +37,25 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --features test-allocations -- --test-threads 1
+          args: --release
+
+  test-memory:
+    name: Test Memory Consumption
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --release --features test-allocations -- --test-threads 1 test_memory_consumption
 
   fmt:
     name: Formatting
