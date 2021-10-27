@@ -1,5 +1,35 @@
 # Release Notes
 
+## 0.14.0 - (UNRELEASED)
+
+## Added
+
+- Added the new `BufferBackend` string interner backend.
+	- This backend focuses on minimum memory consumption and allocations
+	  at the costs of decreased symbol resolution performance.
+	- Use this when memory consumption is your main concern.
+- Added example of how to use a different string interner backend or symbol.
+- Added library docs comparing all the different string interner backends.
+
+## Changed
+
+- The `string_interner` crate now uses the Rust 2021 edition.
+- The `DefaultBackend` now is the `StringBackend` and no longer the `BucketBackend`.
+- The generic `S` symbol parameter of all string interner backends
+  now defaults to the `DefaultSymbol`.
+- The `Backend` trait is no longer generic over a symbol `S` but instead
+  has a `Symbol` associated type now.
+- The `StringInterner` no longer has a generic `S` symbol parameter and
+  now instead uses the `Symbol` associated type from its used backend `B`.
+
+## Dev. Note
+
+- The `memory_consumption` tests now shrink the string interners before querying
+  their memory consumption. This yields more stable numbers than before.
+- The `memory_consumption` test now also tests the total amount of allocations
+  and deallocations made by the string interner backends.
+- Add `README` section about benchmarking the crate.
+
 ## 0.13.0 - 2021/08/25
 
 - Update `hashbrown` dependency from version `0.9` to version `0.11`.
