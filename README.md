@@ -27,7 +27,7 @@ Also, iterating through the interned strings is cache efficient.
 
 Test the project using
 ```
-cargo test
+cargo test --release
 ```
 
 ### Memory Allocation Tests
@@ -35,7 +35,7 @@ cargo test
 To further test memory consumption and allocatios performed by the
 different string interner backends test the project as follows:
 ```
-cargo test --features test-allocations -- --test-threads 1
+cargo test --release --features test-allocations -- --test-threads 1
 ```
 
 - The `--features test-allocations` enables the memory allocations tests. 
