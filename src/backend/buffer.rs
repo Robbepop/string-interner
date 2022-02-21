@@ -104,7 +104,7 @@ impl<S, Sym> BufferBackend<S, Sym>
 where
     Sym: Symbol,
     S: ?Sized + Sliced,
-    S::Element: Unpin,
+    S::Element: Copy,
 {
     /// Returns the next available symbol.
     #[inline]
@@ -191,7 +191,7 @@ where
         let string = string.to_slice();
         let str_len = string.len();
 
-        // Safety: The `U: Unpin` bound ensures that only non-self-referential
+        // Safety: The `S::Element: Copy` bound ensures that only bit-copiable
         //         types are casted to bytes, making them valid for storing
         //         in our buffer.
         let str_bytes = unsafe {
@@ -209,7 +209,7 @@ impl<S, Sym> Backend for BufferBackend<S, Sym>
 where
     Sym: Symbol,
     S: ?Sized + Sliced,
-    S::Element: Unpin,
+    S::Element: Copy,
 {
     type Str = S;
     type Symbol = Sym;
@@ -460,7 +460,7 @@ impl<'a, S, Sym> IntoIterator for &'a BufferBackend<S, Sym>
 where
     Sym: Symbol,
     S: ?Sized + Sliced,
-    S::Element: Unpin,
+    S::Element: Copy,
 {
     type Item = (Sym, &'a S);
     type IntoIter = Iter<'a, S, Sym>;
@@ -500,7 +500,7 @@ impl<'a, S, Sym> Iterator for Iter<'a, S, Sym>
 where
     Sym: Symbol,
     S: ?Sized + Sliced,
-    S::Element: Unpin,
+    S::Element: Copy,
 {
     type Item = (Sym, &'a S);
 
@@ -527,7 +527,7 @@ impl<'a, S, Sym> ExactSizeIterator for Iter<'a, S, Sym>
 where
     Sym: Symbol,
     S: ?Sized + Sliced,
-    S::Element: Unpin,
+    S::Element: Copy,
 {
     fn len(&self) -> usize {
         self.backend.len_strings - self.yielded
