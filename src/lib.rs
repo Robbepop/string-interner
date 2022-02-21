@@ -9,9 +9,9 @@
 //! ### Example: Interning & Symbols
 //!
 //! ```
-//! use string_interner::StringInterner;
+//! use string_interner::{StringInterner, DefaultBackend};
 //!
-//! let mut interner = StringInterner::default();
+//! let mut interner: StringInterner<DefaultBackend> = StringInterner::default();
 //! let sym0 = interner.get_or_intern("Elephant");
 //! let sym1 = interner.get_or_intern("Tiger");
 //! let sym2 = interner.get_or_intern("Horse");
@@ -25,17 +25,17 @@
 //! ### Example: Creation by `FromIterator`
 //!
 //! ```
-//! # use string_interner::StringInterner;
+//! # use string_interner::{StringInterner, DefaultBackend};
 //! let interner = ["Elephant", "Tiger", "Horse", "Tiger"]
 //!     .into_iter()
-//!     .collect::<StringInterner>();
+//!     .collect::<StringInterner<DefaultBackend>>();
 //! ```
 //!
 //! ### Example: Look-up
 //!
 //! ```
-//! # use string_interner::StringInterner;
-//! let mut interner = StringInterner::default();
+//! # use string_interner::{StringInterner, DefaultBackend};
+//! let mut interner: StringInterner<DefaultBackend> = StringInterner::default();
 //! let sym = interner.get_or_intern("Banana");
 //! assert_eq!(interner.resolve(sym), Some("Banana"));
 //! ```
@@ -43,8 +43,8 @@
 //! ### Example: Iteration
 //!
 //! ```
-//! # use string_interner::{StringInterner, Symbol};
-//! let interner = <StringInterner>::from_iter(["Earth", "Water", "Fire", "Air"]);
+//! # use string_interner::{StringInterner, DefaultBackend, Symbol};
+//! let interner: StringInterner<DefaultBackend> = StringInterner::from_iter(["Earth", "Water", "Fire", "Air"]);
 //! for (sym, str) in &interner {
 //!     println!("{} = {}", sym.to_usize(), str);
 //! }
@@ -55,7 +55,7 @@
 //! ```
 //! # use string_interner::StringInterner;
 //! use string_interner::backend::BufferBackend;
-//! type Interner = StringInterner<BufferBackend>;
+//! type Interner = StringInterner<BufferBackend<str>>;
 //! let mut interner = Interner::new();
 //! let sym1 = interner.get_or_intern("Tiger");
 //! let sym2 = interner.get_or_intern("Horse");
@@ -68,8 +68,8 @@
 //!
 //! ```
 //! # use string_interner::StringInterner;
-//! use string_interner::{backend::BucketBackend, symbol::SymbolU16};
-//! type Interner = StringInterner<BucketBackend<SymbolU16>>;
+//! use string_interner::{backend::{bucket::FixedString, BucketBackend}, symbol::SymbolU16};
+//! type Interner = StringInterner<BucketBackend<FixedString, SymbolU16>>;
 //! let mut interner = Interner::new();
 //! let sym1 = interner.get_or_intern("Tiger");
 //! let sym2 = interner.get_or_intern("Horse");

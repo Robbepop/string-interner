@@ -1,6 +1,36 @@
 #![cfg(feature = "backends")]
 
-use super::Backend;
+//! An interner backend that appends all interned string information in a single buffer.
+//!
+//! # Usage Hint
+//!
+//! Use this backend if memory consumption is what matters most to you.
+//! Note though that unlike all other backends symbol values are not contigous!
+//!
+//! # Usage
+//!
+//! - **Fill:** Efficiency of filling an empty string interner.
+//! - **Resolve:** Efficiency of interned string look-up given a symbol.
+//! - **Allocations:** The number of allocations performed by the backend.
+//! - **Footprint:** The total heap memory consumed by the backend.
+//! - **Contiguous:** True if the returned symbols have contiguous values.
+//!
+//! Rating varies between **bad**, **ok**, **good** and **best**.
+//!
+//! | Scenario    |  Rating  |
+//! |:------------|:--------:|
+//! | Fill        | **best** |
+//! | Resolve     | **bad**  |
+//! | Allocations | **best** |
+//! | Footprint   | **best** |
+//! | Supports `get_or_intern_static` | **no** |
+//! | `Send` + `Sync` | **yes** |
+//! | Contiguous  | **no**   |
+
+use super::{
+    Backend,
+    Sliced,
+};
 use crate::{
     compat::Vec,
     symbol::expect_valid_symbol,
@@ -10,54 +40,43 @@ use crate::{
 use core::{
     marker::PhantomData,
     mem,
-    str,
+    slice,
 };
 
 /// An interner backend that appends all interned string information in a single buffer.
 ///
-/// # Usage Hint
-///
-/// Use this backend if memory consumption is what matters most to you.
-/// Note though that unlike all other backends symbol values are not contigous!
-///
-/// # Usage
-///
-/// - **Fill:** Efficiency of filling an empty string interner.
-/// - **Resolve:** Efficiency of interned string look-up given a symbol.
-/// - **Allocations:** The number of allocations performed by the backend.
-/// - **Footprint:** The total heap memory consumed by the backend.
-/// - **Contiguous:** True if the returned symbols have contiguous values.
-///
-/// Rating varies between **bad**, **ok**, **good** and **best**.
-///
-/// | Scenario    |  Rating  |
-/// |:------------|:--------:|
-/// | Fill        | **best** |
-/// | Resolve     | **bad**  |
-/// | Allocations | **best** |
-/// | Footprint   | **best** |
-/// | Supports `get_or_intern_static` | **no** |
-/// | `Send` + `Sync` | **yes** |
-/// | Contiguous  | **no**   |
+/// See the [module-level documentation](self) for more.
 #[derive(Debug)]
-pub struct BufferBackend<S = DefaultSymbol> {
+pub struct BufferBackend<S, Sym = DefaultSymbol>
+where
+    S: ?Sized + Sliced,
+{
     len_strings: usize,
     buffer: Vec<u8>,
-    marker: PhantomData<fn() -> S>,
+    marker: PhantomData<fn(&S) -> Sym>,
 }
 
-impl<S> PartialEq for BufferBackend<S>
+impl<S, Sym> PartialEq for BufferBackend<S, Sym>
 where
-    S: Symbol,
+    Sym: Symbol,
+    S: ?Sized + Sliced,
 {
     fn eq(&self, other: &Self) -> bool {
         self.len_strings.eq(&other.len_strings) && self.buffer.eq(&other.buffer)
     }
 }
 
-impl<S> Eq for BufferBackend<S> where S: Symbol {}
+impl<S, Sym> Eq for BufferBackend<S, Sym>
+where
+    Sym: Symbol,
+    S: ?Sized + Sliced,
+{
+}
 
-impl<S> Clone for BufferBackend<S> {
+impl<S, Sym> Clone for BufferBackend<S, Sym>
+where
+    S: ?Sized + Sliced,
+{
     fn clone(&self) -> Self {
         Self {
             len_strings: self.len_strings,
@@ -67,7 +86,10 @@ impl<S> Clone for BufferBackend<S> {
     }
 }
 
-impl<S> Default for BufferBackend<S> {
+impl<S, Sym> Default for BufferBackend<S, Sym>
+where
+    S: ?Sized + Sliced,
+{
     #[cfg_attr(feature = "inline-more", inline)]
     fn default() -> Self {
         Self {
@@ -78,13 +100,15 @@ impl<S> Default for BufferBackend<S> {
     }
 }
 
-impl<S> BufferBackend<S>
+impl<S, Sym> BufferBackend<S, Sym>
 where
-    S: Symbol,
+    Sym: Symbol,
+    S: ?Sized + Sliced,
+    S::Element: Unpin,
 {
     /// Returns the next available symbol.
     #[inline]
-    fn next_symbol(&self) -> S {
+    fn next_symbol(&self) -> Sym {
         expect_valid_symbol(self.buffer.len())
     }
 
@@ -94,15 +118,20 @@ where
     ///
     /// Returns the string from the given index if any as well
     /// as the index of the next string in the buffer.
-    fn resolve_index_to_str(&self, index: usize) -> Option<(&str, usize)> {
-        let bytes = self.buffer.get(index..)?;
-        let (str_len, str_len_bytes) = decode_var_usize(bytes)?;
-        let index_str = index + str_len_bytes;
-        let str_bytes = self.buffer.get(index_str..index_str + str_len)?;
+    fn resolve_index_to_str(&self, index: usize) -> Option<(&S, usize)> {
+        let buffer = self.buffer.get(index..)?;
+        let (str_len, decoded_bytes) = decode_var_usize(buffer)?;
+        let str_bytes_len = str_len * mem::size_of::<S::Element>();
+        let index_str = index + decoded_bytes;
+        let str_bytes = self.buffer.get(index_str..index_str + str_bytes_len)?;
+
         // SAFETY: It is guaranteed by the backend that only valid strings
         //         are stored in this portion of the buffer.
-        let string = unsafe { str::from_utf8_unchecked(str_bytes) };
-        Some((string, index_str + str_len))
+        unsafe {
+            let string =
+                slice::from_raw_parts(str_bytes.as_ptr().cast::<S::Element>(), str_len);
+            Some((S::from_slice(string), index_str + str_bytes_len))
+        }
     }
 
     /// Resolves the string for the given symbol.
@@ -115,21 +144,33 @@ where
     ///
     /// The caller of the function has to ensure that calling this method
     /// is safe to do.
-    unsafe fn resolve_index_to_str_unchecked(&self, index: usize) -> &str {
+    unsafe fn resolve_index_to_str_unchecked(&self, index: usize) -> &S {
         // SAFETY: The function is marked unsafe so that the caller guarantees
         //         that required invariants are checked.
-        let slice_len = unsafe { self.buffer.get_unchecked(index..) };
+        let buffer = unsafe { self.buffer.get_unchecked(index..) };
+
         // SAFETY: The function is marked unsafe so that the caller guarantees
         //         that required invariants are checked.
-        let (str_len, str_len_bytes) = unsafe { decode_var_usize_unchecked(slice_len) };
-        let start_str = index + str_len_bytes;
-        let str_bytes =
-            // SAFETY: The function is marked unsafe so that the caller guarantees
-            //         that required invariants are checked.
-            unsafe { self.buffer.get_unchecked(start_str..start_str + str_len) };
+        let (str_len, decoded_bytes) = unsafe { decode_var_usize_unchecked(buffer) };
+
+        let str_bytes_len = str_len * mem::size_of::<S::Element>();
+
+        let start_str = index + decoded_bytes;
+
+        // SAFETY: The function is marked unsafe so that the caller guarantees
+        //         that required invariants are checked.
+        let str_bytes = unsafe {
+            self.buffer
+                .get_unchecked(start_str..start_str + str_bytes_len)
+        };
+
         // SAFETY: It is guaranteed by the backend that only valid strings
         //         are stored in this portion of the buffer.
-        unsafe { str::from_utf8_unchecked(str_bytes) }
+        unsafe {
+            let string =
+                slice::from_raw_parts(str_bytes.as_ptr().cast::<S::Element>(), str_len);
+            S::from_slice(string)
+        }
     }
 
     /// Pushes the given value onto the buffer with `var7` encoding.
@@ -145,22 +186,33 @@ where
     /// # Panics
     ///
     /// If the backend ran out of symbols.
-    fn push_string(&mut self, string: &str) -> S {
+    fn push_string(&mut self, string: &S) -> Sym {
         let symbol = self.next_symbol();
+        let string = string.to_slice();
         let str_len = string.len();
-        let str_bytes = string.as_bytes();
+
+        // Safety: The `U: Unpin` bound ensures that only non-self-referential
+        //         types are casted to bytes, making them valid for storing
+        //         in our buffer.
+        let str_bytes = unsafe {
+            let n_bytes = str_len * mem::size_of::<S::Element>();
+            slice::from_raw_parts(string.as_ptr().cast::<u8>(), n_bytes)
+        };
         self.encode_var_usize(str_len);
-        self.buffer.extend(str_bytes);
+        self.buffer.extend_from_slice(str_bytes);
         self.len_strings += 1;
         symbol
     }
 }
 
-impl<S> Backend for BufferBackend<S>
+impl<S, Sym> Backend for BufferBackend<S, Sym>
 where
-    S: Symbol,
+    Sym: Symbol,
+    S: ?Sized + Sliced,
+    S::Element: Unpin,
 {
-    type Symbol = S;
+    type Str = S;
+    type Symbol = Sym;
 
     #[cfg_attr(feature = "inline-more", inline)]
     fn with_capacity(capacity: usize) -> Self {
@@ -168,7 +220,7 @@ where
         const LEN_USIZE: usize = mem::size_of::<usize>();
         /// According to google the approx. word length is 5.
         const DEFAULT_STR_LEN: usize = 5;
-        let bytes_per_string = DEFAULT_STR_LEN * LEN_USIZE;
+        let bytes_per_string = DEFAULT_STR_LEN * LEN_USIZE * mem::size_of::<S::Element>();
         Self {
             len_strings: 0,
             buffer: Vec::with_capacity(capacity * bytes_per_string),
@@ -177,12 +229,12 @@ where
     }
 
     #[inline]
-    fn intern(&mut self, string: &str) -> Self::Symbol {
+    fn intern(&mut self, string: &S) -> Self::Symbol {
         self.push_string(string)
     }
 
     #[inline]
-    fn resolve(&self, symbol: Self::Symbol) -> Option<&str> {
+    fn resolve(&self, symbol: Self::Symbol) -> Option<&S> {
         self.resolve_index_to_str(symbol.to_usize())
             .map(|(string, _next_str_index)| string)
     }
@@ -192,7 +244,7 @@ where
     }
 
     #[inline]
-    unsafe fn resolve_unchecked(&self, symbol: Self::Symbol) -> &str {
+    unsafe fn resolve_unchecked(&self, symbol: Self::Symbol) -> &S {
         // SAFETY: The function is marked unsafe so that the caller guarantees
         //         that required invariants are checked.
         unsafe { self.resolve_index_to_str_unchecked(symbol.to_usize()) }
@@ -404,12 +456,14 @@ mod tests {
     }
 }
 
-impl<'a, S> IntoIterator for &'a BufferBackend<S>
+impl<'a, S, Sym> IntoIterator for &'a BufferBackend<S, Sym>
 where
-    S: Symbol,
+    Sym: Symbol,
+    S: ?Sized + Sliced,
+    S::Element: Unpin,
 {
-    type Item = (S, &'a str);
-    type IntoIter = Iter<'a, S>;
+    type Item = (Sym, &'a S);
+    type IntoIter = Iter<'a, S, Sym>;
 
     #[cfg_attr(feature = "inline-more", inline)]
     fn into_iter(self) -> Self::IntoIter {
@@ -417,15 +471,23 @@ where
     }
 }
 
-pub struct Iter<'a, S> {
-    backend: &'a BufferBackend<S>,
+/// Iterator for a [`BufferBackend`](crate::backend::buffer::BufferBackend)
+/// that returns all of its interned strings.
+pub struct Iter<'a, S, Sym>
+where
+    S: ?Sized + Sliced,
+{
+    backend: &'a BufferBackend<S, Sym>,
     yielded: usize,
     current: usize,
 }
 
-impl<'a, S> Iter<'a, S> {
+impl<'a, S, Sym> Iter<'a, S, Sym>
+where
+    S: ?Sized + Sliced,
+{
     #[cfg_attr(feature = "inline-more", inline)]
-    pub fn new(backend: &'a BufferBackend<S>) -> Self {
+    pub(super) fn new(backend: &'a BufferBackend<S, Sym>) -> Self {
         Self {
             backend,
             yielded: 0,
@@ -434,11 +496,13 @@ impl<'a, S> Iter<'a, S> {
     }
 }
 
-impl<'a, S> Iterator for Iter<'a, S>
+impl<'a, S, Sym> Iterator for Iter<'a, S, Sym>
 where
-    S: Symbol,
+    Sym: Symbol,
+    S: ?Sized + Sliced,
+    S::Element: Unpin,
 {
-    type Item = (S, &'a str);
+    type Item = (Sym, &'a S);
 
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -450,7 +514,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         self.backend.resolve_index_to_str(self.current).and_then(
             |(string, next_string_index)| {
-                let symbol = S::try_from_usize(self.current)?;
+                let symbol = Sym::try_from_usize(self.current)?;
                 self.current = next_string_index;
                 self.yielded += 1;
                 Some((symbol, string))
@@ -459,9 +523,11 @@ where
     }
 }
 
-impl<'a, S> ExactSizeIterator for Iter<'a, S>
+impl<'a, S, Sym> ExactSizeIterator for Iter<'a, S, Sym>
 where
-    S: Symbol,
+    Sym: Symbol,
+    S: ?Sized + Sliced,
+    S::Element: Unpin,
 {
     fn len(&self) -> usize {
         self.backend.len_strings - self.yielded

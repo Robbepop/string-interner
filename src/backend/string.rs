@@ -1,11 +1,47 @@
 #![cfg(feature = "backends")]
 
-use super::Backend;
+//! An interner backend that accumulates all interned string contents into one string.
+//!
+//! # Note
+//!
+//! Implementation inspired by [CAD97's](https://github.com/CAD97) research
+//! project [`strena`](https://github.com/CAD97/strena).
+//!
+//! # Usage Hint
+//!
+//! Use this backend if runtime performance is what matters most to you.
+//!
+//! # Usage
+//!
+//! - **Fill:** Efficiency of filling an empty string interner.
+//! - **Resolve:** Efficiency of interned string look-up given a symbol.
+//! - **Allocations:** The number of allocations performed by the backend.
+//! - **Footprint:** The total heap memory consumed by the backend.
+//! - **Contiguous:** True if the returned symbols have contiguous values.
+//!
+//! Rating varies between **bad**, **ok**, **good** and **best**.
+//!
+//! | Scenario    |  Rating  |
+//! |:------------|:--------:|
+//! | Fill        | **good** |
+//! | Resolve     | **ok**   |
+//! | Allocations | **good** |
+//! | Footprint   | **good** |
+//! | Supports `get_or_intern_static` | **no** |
+//! | `Send` + `Sync` | **yes** |
+//! | Contiguous  | **yes**  |
+
+use len_trait::{
+    CapacityMut,
+    WithCapacity,
+};
+
+use super::{
+    Backend,
+    Sliced,
+};
 use crate::{
-    compat::{
-        String,
-        Vec,
-    },
+    compat::Vec,
     symbol::expect_valid_symbol,
     DefaultSymbol,
     Symbol,
@@ -18,39 +54,15 @@ use core::{
 
 /// An interner backend that accumulates all interned string contents into one string.
 ///
-/// # Note
-///
-/// Implementation inspired by [CAD97's](https://github.com/CAD97) research
-/// project [`strena`](https://github.com/CAD97/strena).
-///
-/// # Usage Hint
-///
-/// Use this backend if runtime performance is what matters most to you.
-///
-/// # Usage
-///
-/// - **Fill:** Efficiency of filling an empty string interner.
-/// - **Resolve:** Efficiency of interned string look-up given a symbol.
-/// - **Allocations:** The number of allocations performed by the backend.
-/// - **Footprint:** The total heap memory consumed by the backend.
-/// - **Contiguous:** True if the returned symbols have contiguous values.
-///
-/// Rating varies between **bad**, **ok**, **good** and **best**.
-///
-/// | Scenario    |  Rating  |
-/// |:------------|:--------:|
-/// | Fill        | **good** |
-/// | Resolve     | **ok**   |
-/// | Allocations | **good** |
-/// | Footprint   | **good** |
-/// | Supports `get_or_intern_static` | **no** |
-/// | `Send` + `Sync` | **yes** |
-/// | Contiguous  | **yes**  |
+/// See the [module-level documentation](self) for more.
 #[derive(Debug)]
-pub struct StringBackend<S = DefaultSymbol> {
+pub struct StringBackend<S, Sym = DefaultSymbol>
+where
+    S: ?Sized + Sliced + ToOwned,
+{
     ends: Vec<usize>,
-    buffer: String,
-    marker: PhantomData<fn() -> S>,
+    buffer: S::Owned,
+    marker: PhantomData<fn(&S) -> Sym>,
 }
 
 /// Represents a `[from, to)` index into the `StringBackend` buffer.
@@ -60,9 +72,11 @@ pub struct Span {
     to: usize,
 }
 
-impl<S> PartialEq for StringBackend<S>
+impl<S, Sym> PartialEq for StringBackend<S, Sym>
 where
-    S: Symbol,
+    Sym: Symbol,
+    S: ?Sized + Sliced + PartialEq + ToOwned,
+    S::Owned: AsRef<S> + for<'e> Extend<&'e S>,
 {
     fn eq(&self, other: &Self) -> bool {
         if self.ends.len() != other.ends.len() {
@@ -77,9 +91,20 @@ where
     }
 }
 
-impl<S> Eq for StringBackend<S> where S: Symbol {}
+impl<S, Sym> Eq for StringBackend<S, Sym>
+where
+    Sym: Symbol,
+    S: ?Sized + Sliced + Eq + ToOwned,
+    S::Owned: AsRef<S> + for<'e> Extend<&'e S>,
+{
+}
 
-impl<S> Clone for StringBackend<S> {
+impl<S, Sym> Clone for StringBackend<S, Sym>
+where
+    S::Owned: AsRef<S>,
+    S: ?Sized + Sliced + ToOwned,
+    S::Owned: Clone,
+{
     fn clone(&self) -> Self {
         Self {
             ends: self.ends.clone(),
@@ -89,43 +114,41 @@ impl<S> Clone for StringBackend<S> {
     }
 }
 
-impl<S> Default for StringBackend<S> {
+impl<S, Sym> Default for StringBackend<S, Sym>
+where
+    S: ?Sized + Sliced + ToOwned,
+    S::Owned: Default,
+{
     #[cfg_attr(feature = "inline-more", inline)]
     fn default() -> Self {
         Self {
             ends: Vec::default(),
-            buffer: String::default(),
+            buffer: S::Owned::default(),
             marker: Default::default(),
         }
     }
 }
 
-impl<S> StringBackend<S>
+impl<S, Sym> StringBackend<S, Sym>
 where
-    S: Symbol,
+    Sym: Symbol,
+    S: ?Sized + Sliced + ToOwned,
+    S::Owned: AsRef<S> + for<'a> Extend<&'a S>,
 {
     /// Returns the next available symbol.
-    fn next_symbol(&self) -> S {
+    fn next_symbol(&self) -> Sym {
         expect_valid_symbol(self.ends.len())
     }
 
     /// Returns the string associated to the span.
-    fn span_to_str(&self, span: Span) -> &str {
-        // SAFETY: - We convert a `String` into its underlying bytes and then
-        //           directly reinterpret it as `&str` again which is safe.
-        //         - Nothing mutates the string in between since this is a `&self`
-        //           method.
-        //         - The spans we use for `(start..end]` ranges are always
-        //           constructed in accordance to valid utf8 byte ranges.
-        unsafe {
-            core::str::from_utf8_unchecked(
-                &self.buffer.as_bytes()[(span.from as usize)..(span.to as usize)],
-            )
-        }
+    fn span_to_str(&self, span: Span) -> &S {
+        S::from_slice(
+            &self.buffer.as_ref().to_slice()[(span.from as usize)..(span.to as usize)],
+        )
     }
 
     /// Returns the span for the given symbol if any.
-    fn symbol_to_span(&self, symbol: S) -> Option<Span> {
+    fn symbol_to_span(&self, symbol: Sym) -> Option<Span> {
         let index = symbol.to_usize();
         self.ends.get(index).copied().map(|to| {
             let from = self.ends.get(index.wrapping_sub(1)).copied().unwrap_or(0);
@@ -134,7 +157,7 @@ where
     }
 
     /// Returns the span for the given symbol if any.
-    unsafe fn symbol_to_span_unchecked(&self, symbol: S) -> Span {
+    unsafe fn symbol_to_span_unchecked(&self, symbol: Sym) -> Span {
         let index = symbol.to_usize();
         // SAFETY: The function is marked unsafe so that the caller guarantees
         //         that required invariants are checked.
@@ -148,20 +171,23 @@ where
     /// # Panics
     ///
     /// If the backend ran out of symbols.
-    fn push_string(&mut self, string: &str) -> S {
-        self.buffer.push_str(string);
-        let to = self.buffer.as_bytes().len();
+    fn push_string(&mut self, string: &S) -> Sym {
+        self.buffer.extend(core::iter::once(string));
+        let to = self.buffer.as_ref().to_slice().len();
         let symbol = self.next_symbol();
         self.ends.push(to);
         symbol
     }
 }
 
-impl<S> Backend for StringBackend<S>
+impl<S, Sym> Backend for StringBackend<S, Sym>
 where
-    S: Symbol,
+    Sym: Symbol,
+    S: ?Sized + Sliced + ToOwned,
+    S::Owned: AsRef<S> + for<'a> Extend<&'a S> + CapacityMut,
 {
-    type Symbol = S;
+    type Str = S;
+    type Symbol = Sym;
 
     #[cfg_attr(feature = "inline-more", inline)]
     fn with_capacity(cap: usize) -> Self {
@@ -169,18 +195,18 @@ where
         let default_word_len = 5;
         Self {
             ends: Vec::with_capacity(cap),
-            buffer: String::with_capacity(cap * default_word_len),
+            buffer: <S::Owned as WithCapacity>::with_capacity(cap * default_word_len),
             marker: Default::default(),
         }
     }
 
     #[inline]
-    fn intern(&mut self, string: &str) -> Self::Symbol {
+    fn intern(&mut self, string: &S) -> Self::Symbol {
         self.push_string(string)
     }
 
     #[inline]
-    fn resolve(&self, symbol: Self::Symbol) -> Option<&str> {
+    fn resolve(&self, symbol: Self::Symbol) -> Option<&S> {
         self.symbol_to_span(symbol)
             .map(|span| self.span_to_str(span))
     }
@@ -191,19 +217,21 @@ where
     }
 
     #[inline]
-    unsafe fn resolve_unchecked(&self, symbol: Self::Symbol) -> &str {
+    unsafe fn resolve_unchecked(&self, symbol: Self::Symbol) -> &S {
         // SAFETY: The function is marked unsafe so that the caller guarantees
         //         that required invariants are checked.
         unsafe { self.span_to_str(self.symbol_to_span_unchecked(symbol)) }
     }
 }
 
-impl<'a, S> IntoIterator for &'a StringBackend<S>
+impl<'a, S, Sym> IntoIterator for &'a StringBackend<S, Sym>
 where
-    S: Symbol,
+    Sym: Symbol,
+    S: ?Sized + Sliced + ToOwned,
+    S::Owned: AsRef<S> + for<'e> Extend<&'e S>,
 {
-    type Item = (S, &'a str);
-    type IntoIter = Iter<'a, S>;
+    type Item = (Sym, &'a S);
+    type IntoIter = Iter<'a, S, Sym>;
 
     #[cfg_attr(feature = "inline-more", inline)]
     fn into_iter(self) -> Self::IntoIter {
@@ -211,15 +239,25 @@ where
     }
 }
 
-pub struct Iter<'a, S> {
-    backend: &'a StringBackend<S>,
+/// Iterator for a [`StringBackend`](crate::backend::string::StringBackend)
+/// that returns all of its interned strings.
+pub struct Iter<'a, S, Sym>
+where
+    S: ?Sized + Sliced + ToOwned,
+    S::Owned: AsRef<S>,
+{
+    backend: &'a StringBackend<S, Sym>,
     start: usize,
     ends: Enumerate<slice::Iter<'a, usize>>,
 }
 
-impl<'a, S> Iter<'a, S> {
+impl<'a, S, Sym> Iter<'a, S, Sym>
+where
+    S: ?Sized + Sliced + ToOwned,
+    S::Owned: AsRef<S>,
+{
     #[cfg_attr(feature = "inline-more", inline)]
-    pub fn new(backend: &'a StringBackend<S>) -> Self {
+    pub(super) fn new(backend: &'a StringBackend<S, Sym>) -> Self {
         Self {
             backend,
             start: 0,
@@ -228,11 +266,13 @@ impl<'a, S> Iter<'a, S> {
     }
 }
 
-impl<'a, S> Iterator for Iter<'a, S>
+impl<'a, S, Sym> Iterator for Iter<'a, S, Sym>
 where
-    S: Symbol,
+    Sym: Symbol,
+    S: ?Sized + Sliced + ToOwned,
+    S::Owned: AsRef<S> + for<'e> Extend<&'e S>,
 {
-    type Item = (S, &'a str);
+    type Item = (Sym, &'a S);
 
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {

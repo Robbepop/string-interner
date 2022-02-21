@@ -1,5 +1,6 @@
 use string_interner::{
     backend::{
+        bucket::FixedString,
         Backend,
         BucketBackend,
         BufferBackend,
@@ -90,7 +91,7 @@ type StringInternerWith<B> = StringInterner<B, FxBuildHasher>;
 
 pub trait BackendBenchmark {
     const NAME: &'static str;
-    type Backend: Backend;
+    type Backend: Backend<Str = str>;
 
     fn setup() -> StringInternerWith<Self::Backend> {
         <StringInternerWith<Self::Backend>>::new()
@@ -122,23 +123,23 @@ pub trait BackendBenchmark {
 pub struct BenchBucket;
 impl BackendBenchmark for BenchBucket {
     const NAME: &'static str = "BucketBackend";
-    type Backend = BucketBackend<DefaultSymbol>;
+    type Backend = BucketBackend<FixedString, DefaultSymbol>;
 }
 
 pub struct BenchSimple;
 impl BackendBenchmark for BenchSimple {
     const NAME: &'static str = "SimpleBackend";
-    type Backend = SimpleBackend<DefaultSymbol>;
+    type Backend = SimpleBackend<str, DefaultSymbol>;
 }
 
 pub struct BenchString;
 impl BackendBenchmark for BenchString {
     const NAME: &'static str = "StringBackend";
-    type Backend = StringBackend<DefaultSymbol>;
+    type Backend = StringBackend<str, DefaultSymbol>;
 }
 
 pub struct BenchBuffer;
 impl BackendBenchmark for BenchBuffer {
     const NAME: &'static str = "BufferBackend";
-    type Backend = BufferBackend<DefaultSymbol>;
+    type Backend = BufferBackend<str, DefaultSymbol>;
 }

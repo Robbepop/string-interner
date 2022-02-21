@@ -2,7 +2,10 @@ mod allocator;
 
 use allocator::TracingAllocator;
 use string_interner::{
-    backend,
+    backend::{
+        self,
+        bucket::FixedString,
+    },
     DefaultHashBuilder,
     DefaultSymbol,
     Symbol,
@@ -38,7 +41,7 @@ pub trait BackendStats {
     const NAME: &'static str;
 }
 
-impl BackendStats for backend::BucketBackend<DefaultSymbol> {
+impl BackendStats for backend::BucketBackend<FixedString, DefaultSymbol> {
     const MIN_OVERHEAD: f64 = 2.1;
     const MAX_OVERHEAD: f64 = 2.33;
     const MAX_ALLOCATIONS: usize = 66;
@@ -46,7 +49,7 @@ impl BackendStats for backend::BucketBackend<DefaultSymbol> {
     const NAME: &'static str = "BucketBackend";
 }
 
-impl BackendStats for backend::SimpleBackend<DefaultSymbol> {
+impl BackendStats for backend::SimpleBackend<str, DefaultSymbol> {
     const MIN_OVERHEAD: f64 = 2.1;
     const MAX_OVERHEAD: f64 = 2.33;
     const MAX_ALLOCATIONS: usize = 1000040;
@@ -54,7 +57,7 @@ impl BackendStats for backend::SimpleBackend<DefaultSymbol> {
     const NAME: &'static str = "SimpleBackend";
 }
 
-impl BackendStats for backend::StringBackend<DefaultSymbol> {
+impl BackendStats for backend::StringBackend<str, DefaultSymbol> {
     const MIN_OVERHEAD: f64 = 1.7;
     const MAX_OVERHEAD: f64 = 1.93;
     const MAX_ALLOCATIONS: usize = 62;
@@ -62,7 +65,7 @@ impl BackendStats for backend::StringBackend<DefaultSymbol> {
     const NAME: &'static str = "StringBackend";
 }
 
-impl BackendStats for backend::BufferBackend<DefaultSymbol> {
+impl BackendStats for backend::buffer::BufferBackend<str, DefaultSymbol> {
     const MIN_OVERHEAD: f64 = 1.35;
     const MAX_OVERHEAD: f64 = 1.58;
     const MAX_ALLOCATIONS: usize = 43;
@@ -379,23 +382,23 @@ macro_rules! gen_tests_for_backend {
 mod bucket_backend {
     use super::*;
 
-    gen_tests_for_backend!(backend::BucketBackend<DefaultSymbol>);
+    gen_tests_for_backend!(backend::BucketBackend<FixedString, DefaultSymbol>);
 }
 
 mod simple_backend {
     use super::*;
 
-    gen_tests_for_backend!(backend::SimpleBackend<DefaultSymbol>);
+    gen_tests_for_backend!(backend::SimpleBackend<str,DefaultSymbol>);
 }
 
 mod string_backend {
     use super::*;
 
-    gen_tests_for_backend!(backend::StringBackend<DefaultSymbol>);
+    gen_tests_for_backend!(backend::StringBackend<str,DefaultSymbol>);
 }
 
 mod buffer_backend {
     use super::*;
 
-    gen_tests_for_backend!(backend::BufferBackend<DefaultSymbol>);
+    gen_tests_for_backend!(backend::BufferBackend<str,DefaultSymbol>);
 }

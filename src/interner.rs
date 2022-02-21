@@ -4,8 +4,6 @@ use crate::{
         DefaultHashBuilder,
         HashMap,
     },
-    DefaultBackend,
-    DefaultSymbol,
     Symbol,
 };
 use core::{
@@ -43,12 +41,12 @@ where
 ///     - This maps from `string` type to `symbol` type.
 /// - [`StringInterner::resolve`]: To resolve your already interned strings.
 ///     - This maps from `symbol` type to `string` type.
-pub struct StringInterner<B = DefaultBackend<DefaultSymbol>, H = DefaultHashBuilder>
+pub struct StringInterner<B, H = DefaultHashBuilder>
 where
     B: Backend,
     H: BuildHasher,
 {
-    dedup: HashMap<<B as Backend>::Symbol, (), ()>,
+    dedup: HashMap<B::Symbol, (), ()>,
     hasher: H,
     backend: B,
 }
@@ -56,7 +54,7 @@ where
 impl<B, H> Debug for StringInterner<B, H>
 where
     B: Backend + Debug,
-    <B as Backend>::Symbol: Symbol + Debug,
+    B::Symbol: Symbol + Debug,
     H: BuildHasher,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -68,7 +66,12 @@ where
 }
 
 #[cfg(feature = "backends")]
-impl Default for StringInterner {
+impl<B, H> Default for StringInterner<B, H>
+where
+    B: Backend,
+    B::Symbol: Symbol,
+    H: BuildHasher + Default,
+{
     #[cfg_attr(feature = "inline-more", inline)]
     fn default() -> Self {
         StringInterner::new()
@@ -78,7 +81,7 @@ impl Default for StringInterner {
 impl<B, H> Clone for StringInterner<B, H>
 where
     B: Backend + Clone,
-    <B as Backend>::Symbol: Symbol,
+    B::Symbol: Symbol,
     H: BuildHasher + Clone,
 {
     fn clone(&self) -> Self {
@@ -93,7 +96,7 @@ where
 impl<B, H> PartialEq for StringInterner<B, H>
 where
     B: Backend + PartialEq,
-    <B as Backend>::Symbol: Symbol,
+    B::Symbol: Symbol,
     H: BuildHasher,
 {
     fn eq(&self, rhs: &Self) -> bool {
@@ -104,7 +107,8 @@ where
 impl<B, H> Eq for StringInterner<B, H>
 where
     B: Backend + Eq,
-    <B as Backend>::Symbol: Symbol,
+    B::Str: Hash,
+    B::Symbol: Symbol,
     H: BuildHasher,
 {
 }
@@ -112,7 +116,26 @@ where
 impl<B, H> StringInterner<B, H>
 where
     B: Backend,
-    <B as Backend>::Symbol: Symbol,
+    B::Symbol: Symbol,
+    H: BuildHasher,
+{
+    /// Returns the number of strings interned by the interner.
+    #[cfg_attr(feature = "inline-more", inline)]
+    pub fn len(&self) -> usize {
+        self.dedup.len()
+    }
+
+    /// Returns `true` if the string interner has no interned strings.
+    #[cfg_attr(feature = "inline-more", inline)]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+}
+
+impl<B, H> StringInterner<B, H>
+where
+    B: Backend,
+    B::Symbol: Symbol,
     H: BuildHasher + Default,
 {
     /// Creates a new empty `StringInterner`.
@@ -139,7 +162,8 @@ where
 impl<B, H> StringInterner<B, H>
 where
     B: Backend,
-    <B as Backend>::Symbol: Symbol,
+    B::Str: Hash + PartialEq,
+    B::Symbol: Symbol,
     H: BuildHasher,
 {
     /// Creates a new empty `StringInterner` with the given hasher.
@@ -162,25 +186,13 @@ where
         }
     }
 
-    /// Returns the number of strings interned by the interner.
-    #[cfg_attr(feature = "inline-more", inline)]
-    pub fn len(&self) -> usize {
-        self.dedup.len()
-    }
-
-    /// Returns `true` if the string interner has no interned strings.
-    #[cfg_attr(feature = "inline-more", inline)]
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
     /// Returns the symbol for the given string if any.
     ///
     /// Can be used to query if a string has already been interned without interning.
     #[inline]
-    pub fn get<T>(&self, string: T) -> Option<<B as Backend>::Symbol>
+    pub fn get<T>(&self, string: T) -> Option<B::Symbol>
     where
-        T: AsRef<str>,
+        T: AsRef<B::Str>,
     {
         let string = string.as_ref();
         let Self {
@@ -206,20 +218,17 @@ where
     /// [1]: [`StringInterner::get_or_intern`]
     /// [2]: [`StringInterner::get_or_intern_static`]
     #[cfg_attr(feature = "inline-more", inline)]
-    fn get_or_intern_using<T>(
+    fn get_or_intern_using<'a>(
         &mut self,
-        string: T,
-        intern_fn: fn(&mut B, T) -> <B as Backend>::Symbol,
-    ) -> <B as Backend>::Symbol
-    where
-        T: Copy + Hash + AsRef<str> + for<'a> PartialEq<&'a str>,
-    {
+        string: &'a B::Str,
+        intern_fn: fn(&mut B, &'a B::Str) -> B::Symbol,
+    ) -> B::Symbol {
         let Self {
             dedup,
             hasher,
             backend,
         } = self;
-        let hash = make_hash(hasher, string.as_ref());
+        let hash = make_hash(hasher, string);
         let entry = dedup.raw_entry_mut().from_hash(hash, |symbol| {
             // SAFETY: This is safe because we only operate on symbols that
             //         we receive from our backend making them valid.
@@ -250,9 +259,9 @@ where
     /// If the interner already interns the maximum number of strings possible
     /// by the chosen symbol type.
     #[inline]
-    pub fn get_or_intern<T>(&mut self, string: T) -> <B as Backend>::Symbol
+    pub fn get_or_intern<T>(&mut self, string: T) -> B::Symbol
     where
-        T: AsRef<str>,
+        T: AsRef<B::Str>,
     {
         self.get_or_intern_using(string.as_ref(), B::intern)
     }
@@ -271,10 +280,7 @@ where
     /// If the interner already interns the maximum number of strings possible
     /// by the chosen symbol type.
     #[inline]
-    pub fn get_or_intern_static(
-        &mut self,
-        string: &'static str,
-    ) -> <B as Backend>::Symbol {
+    pub fn get_or_intern_static(&mut self, string: &'static B::Str) -> B::Symbol {
         self.get_or_intern_using(string, B::intern_static)
     }
 
@@ -285,7 +291,7 @@ where
 
     /// Returns the string for the given symbol if any.
     #[inline]
-    pub fn resolve(&self, symbol: <B as Backend>::Symbol) -> Option<&str> {
+    pub fn resolve(&self, symbol: B::Symbol) -> Option<&B::Str> {
         self.backend.resolve(symbol)
     }
 }
@@ -293,9 +299,10 @@ where
 impl<B, H, T> FromIterator<T> for StringInterner<B, H>
 where
     B: Backend,
-    <B as Backend>::Symbol: Symbol,
+    B::Str: Hash + PartialEq,
+    B::Symbol: Symbol,
     H: BuildHasher + Default,
-    T: AsRef<str>,
+    T: AsRef<B::Str>,
 {
     fn from_iter<I>(iter: I) -> Self
     where
@@ -312,16 +319,17 @@ where
 impl<B, H, T> Extend<T> for StringInterner<B, H>
 where
     B: Backend,
-    <B as Backend>::Symbol: Symbol,
+    B::Str: Hash + PartialEq,
+    B::Symbol: Symbol,
     H: BuildHasher,
-    T: AsRef<str>,
+    T: AsRef<B::Str>,
 {
     fn extend<I>(&mut self, iter: I)
     where
         I: IntoIterator<Item = T>,
     {
         for s in iter {
-            self.get_or_intern(s.as_ref());
+            self.get_or_intern(s);
         }
     }
 }
@@ -329,11 +337,10 @@ where
 impl<'a, B, H> IntoIterator for &'a StringInterner<B, H>
 where
     B: Backend,
-    <B as Backend>::Symbol: Symbol,
-    &'a B: IntoIterator<Item = (<B as Backend>::Symbol, &'a str)>,
+    &'a B: IntoIterator<Item = (B::Symbol, &'a B::Str)>,
     H: BuildHasher,
 {
-    type Item = (<B as Backend>::Symbol, &'a str);
+    type Item = (B::Symbol, &'a B::Str);
     type IntoIter = <&'a B as IntoIterator>::IntoIter;
 
     #[cfg_attr(feature = "inline-more", inline)]

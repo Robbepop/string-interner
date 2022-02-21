@@ -1,10 +1,39 @@
 #![cfg(feature = "backends")]
 
+//! A simple backend that stores a separate allocation for every interned string.
+//!
+//! Use this if you can afford many small allocations and if you want to have
+//! especially decent performance for look-ups when the string interner is
+//! already filled to some extend.
+//!
+//! # Usage Hint
+//!
+//! Never actually use this interner backend since it only acts as a trivial baseline.
+//!
+//! # Usage
+//!
+//! - **Fill:** Efficiency of filling an empty string interner.
+//! - **Resolve:** Efficiency of interned string look-up given a symbol.
+//! - **Allocations:** The number of allocations performed by the backend.
+//! - **Footprint:** The total heap memory consumed by the backend.
+//! - **Contiguous:** True if the returned symbols have contiguous values.
+//!
+//! Rating varies between **bad**, **ok**, **good** and **best**.
+//!
+//! | Scenario    |  Rating  |
+//! |:------------|:--------:|
+//! | Fill        | **bad**  |
+//! | Resolve     | **good** |
+//! | Allocations | **bad**  |
+//! | Footprint   | **bad**  |
+//! | Supports `get_or_intern_static` | **no** |
+//! | `Send` + `Sync` | **yes** |
+//! | Contiguous  | **yes**  |
+
 use super::Backend;
 use crate::{
     compat::{
         Box,
-        ToString,
         Vec,
     },
     symbol::expect_valid_symbol,
@@ -19,40 +48,20 @@ use core::{
 
 /// A simple backend that stores a separate allocation for every interned string.
 ///
-/// Use this if you can afford many small allocations and if you want to have
-/// especially decent performance for look-ups when the string interner is
-/// already filled to some extend.
-///
-/// # Usage Hint
-///
-/// Never actually use this interner backend since it only acts as a trivial baseline.
-///
-/// # Usage
-///
-/// - **Fill:** Efficiency of filling an empty string interner.
-/// - **Resolve:** Efficiency of interned string look-up given a symbol.
-/// - **Allocations:** The number of allocations performed by the backend.
-/// - **Footprint:** The total heap memory consumed by the backend.
-/// - **Contiguous:** True if the returned symbols have contiguous values.
-///
-/// Rating varies between **bad**, **ok**, **good** and **best**.
-///
-/// | Scenario    |  Rating  |
-/// |:------------|:--------:|
-/// | Fill        | **bad**  |
-/// | Resolve     | **good** |
-/// | Allocations | **bad**  |
-/// | Footprint   | **bad**  |
-/// | Supports `get_or_intern_static` | **no** |
-/// | `Send` + `Sync` | **yes** |
-/// | Contiguous  | **yes**  |
+/// See the [module-level documentation](self) for more.
 #[derive(Debug)]
-pub struct SimpleBackend<S = DefaultSymbol> {
-    strings: Vec<Box<str>>,
-    symbol_marker: PhantomData<fn() -> S>,
+pub struct SimpleBackend<S, Sym = DefaultSymbol>
+where
+    S: ?Sized,
+{
+    strings: Vec<Box<S>>,
+    symbol_marker: PhantomData<fn() -> Sym>,
 }
 
-impl<S> Default for SimpleBackend<S> {
+impl<S, Sym> Default for SimpleBackend<S, Sym>
+where
+    S: ?Sized,
+{
     #[cfg_attr(feature = "inline-more", inline)]
     fn default() -> Self {
         Self {
@@ -62,11 +71,14 @@ impl<S> Default for SimpleBackend<S> {
     }
 }
 
-impl<S> Backend for SimpleBackend<S>
+impl<S, Sym> Backend for SimpleBackend<S, Sym>
 where
-    S: Symbol,
+    Sym: Symbol,
+    S: ?Sized + ToOwned,
+    S::Owned: ToOwned + Into<Box<S>>,
 {
-    type Symbol = S;
+    type Str = S;
+    type Symbol = Sym;
 
     #[cfg_attr(feature = "inline-more", inline)]
     fn with_capacity(cap: usize) -> Self {
@@ -77,9 +89,10 @@ where
     }
 
     #[inline]
-    fn intern(&mut self, string: &str) -> Self::Symbol {
+    fn intern(&mut self, string: &S) -> Self::Symbol
+where {
         let symbol = expect_valid_symbol(self.strings.len());
-        let str = string.to_string().into_boxed_str();
+        let str = string.to_owned().into();
         self.strings.push(str);
         symbol
     }
@@ -89,33 +102,47 @@ where
     }
 
     #[inline]
-    fn resolve(&self, symbol: Self::Symbol) -> Option<&str> {
+    fn resolve(&self, symbol: Self::Symbol) -> Option<&S> {
         self.strings.get(symbol.to_usize()).map(|pinned| &**pinned)
     }
 
     #[inline]
-    unsafe fn resolve_unchecked(&self, symbol: Self::Symbol) -> &str {
+    unsafe fn resolve_unchecked(&self, symbol: Self::Symbol) -> &S {
         // SAFETY: The function is marked unsafe so that the caller guarantees
         //         that required invariants are checked.
         unsafe { self.strings.get_unchecked(symbol.to_usize()) }
     }
 }
 
-impl<S> Clone for SimpleBackend<S> {
+impl<S, Sym> Clone for SimpleBackend<S, Sym>
+where
+    S: ?Sized + ToOwned,
+    S::Owned: ToOwned + Into<Box<S>>,
+{
     #[cfg_attr(feature = "inline-more", inline)]
     fn clone(&self) -> Self {
         Self {
-            strings: self.strings.clone(),
+            strings: self
+                .strings
+                .iter()
+                .map(|s| s.as_ref().to_owned().into())
+                .collect(),
             symbol_marker: Default::default(),
         }
     }
 }
 
-impl<S> Eq for SimpleBackend<S> where S: Symbol {}
-
-impl<S> PartialEq for SimpleBackend<S>
+impl<S, Sym> Eq for SimpleBackend<S, Sym>
 where
-    S: Symbol,
+    Sym: Symbol,
+    S: ?Sized + Eq,
+{
+}
+
+impl<S, Sym> PartialEq for SimpleBackend<S, Sym>
+where
+    Sym: Symbol,
+    S: ?Sized + PartialEq,
 {
     #[cfg_attr(feature = "inline-more", inline)]
     fn eq(&self, other: &Self) -> bool {
@@ -123,12 +150,13 @@ where
     }
 }
 
-impl<'a, S> IntoIterator for &'a SimpleBackend<S>
+impl<'a, S, Sym> IntoIterator for &'a SimpleBackend<S, Sym>
 where
-    S: Symbol,
+    Sym: Symbol,
+    S: ?Sized,
 {
-    type Item = (S, &'a str);
-    type IntoIter = Iter<'a, S>;
+    type Item = (Sym, &'a S);
+    type IntoIter = Iter<'a, S, Sym>;
 
     #[cfg_attr(feature = "inline-more", inline)]
     fn into_iter(self) -> Self::IntoIter {
@@ -136,14 +164,22 @@ where
     }
 }
 
-pub struct Iter<'a, S> {
-    iter: Enumerate<slice::Iter<'a, Box<str>>>,
-    symbol_marker: PhantomData<fn() -> S>,
+/// Iterator for a [`SimpleBackend`](crate::backend::simple::SimpleBackend)
+/// that returns all of its interned strings.
+pub struct Iter<'a, S, Sym>
+where
+    S: ?Sized,
+{
+    iter: Enumerate<slice::Iter<'a, Box<S>>>,
+    symbol_marker: PhantomData<fn() -> Sym>,
 }
 
-impl<'a, S> Iter<'a, S> {
+impl<'a, S, Sym> Iter<'a, S, Sym>
+where
+    S: ?Sized,
+{
     #[cfg_attr(feature = "inline-more", inline)]
-    pub fn new(backend: &'a SimpleBackend<S>) -> Self {
+    pub(super) fn new(backend: &'a SimpleBackend<S, Sym>) -> Self {
         Self {
             iter: backend.strings.iter().enumerate(),
             symbol_marker: Default::default(),
@@ -151,11 +187,12 @@ impl<'a, S> Iter<'a, S> {
     }
 }
 
-impl<'a, S> Iterator for Iter<'a, S>
+impl<'a, S, Sym> Iterator for Iter<'a, S, Sym>
 where
-    S: Symbol,
+    Sym: Symbol,
+    S: ?Sized,
 {
-    type Item = (S, &'a str);
+    type Item = (Sym, &'a S);
 
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
