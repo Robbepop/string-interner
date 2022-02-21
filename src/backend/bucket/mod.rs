@@ -34,13 +34,12 @@
 
 mod fixed;
 
-pub use fixed::{
-    FixedContainer,
-    FixedString,
-    FixedVec,
-};
+pub use fixed::FixedContainer;
 
-use super::Backend;
+use super::{
+    Backend,
+    Internable,
+};
 use crate::{
     compat::Vec,
     symbol::expect_valid_symbol,
@@ -52,20 +51,26 @@ use core::{
     marker::PhantomData,
     slice,
 };
-use len_trait::Len;
+use len_trait::{
+    Capacity,
+    Empty,
+    Len,
+    WithCapacity,
+};
 use std::ptr::NonNull;
 
 /// An interner backend that reduces memory allocations by using string buckets.
 ///
 /// See the [module-level documentation](self) for more.
 #[derive(Debug)]
-pub struct BucketBackend<C, Sym = DefaultSymbol>
+pub struct BucketBackend<S = str, Sym = DefaultSymbol>
 where
-    C: FixedContainer,
+    S: ?Sized + Internable,
+    S::Container: FixedContainer<S>,
 {
-    spans: Vec<NonNull<C::Target>>,
-    head: C,
-    full: Vec<C>,
+    spans: Vec<NonNull<S>>,
+    head: S::Container,
+    full: Vec<S::Container>,
     _marker: PhantomData<fn() -> Sym>,
 }
 
@@ -74,11 +79,11 @@ where
 /// The bucket backend requires a manual [`Send`] impl because it is self
 /// referential. When cloning a bucket backend a deep clone is performed and
 /// all references to itself are updated for the clone.
-unsafe impl<C, Sym> Send for BucketBackend<C, Sym>
+unsafe impl<S, Sym> Send for BucketBackend<S, Sym>
 where
     Sym: Symbol,
-    C: FixedContainer + Send,
-    C::Target: Send,
+    S: ?Sized + Internable,
+    S::Container: FixedContainer<S>,
 {
 }
 
@@ -87,50 +92,51 @@ where
 /// The bucket backend requires a manual [`Send`] impl because it is self
 /// referential. Those references won't escape its own scope and also
 /// the bucket backend has no interior mutability.
-unsafe impl<C, Sym> Sync for BucketBackend<C, Sym>
+unsafe impl<S, Sym> Sync for BucketBackend<S, Sym>
 where
     Sym: Symbol,
-    C: FixedContainer + Send,
-    C::Target: Send,
+    S: ?Sized + Internable,
+    S::Container: FixedContainer<S>,
 {
 }
 
-impl<C, Sym> Default for BucketBackend<C, Sym>
+impl<S, Sym> Default for BucketBackend<S, Sym>
 where
-    C: FixedContainer,
+    S: ?Sized + Internable,
+    S::Container: FixedContainer<S>,
 {
     #[cfg_attr(feature = "inline-more", inline)]
     fn default() -> Self {
         Self {
             spans: Vec::new(),
-            head: C::default(),
+            head: S::Container::default(),
             full: Vec::new(),
             _marker: Default::default(),
         }
     }
 }
 
-impl<C, Sym> Backend for BucketBackend<C, Sym>
+impl<S, Sym> Backend for BucketBackend<S, Sym>
 where
     Sym: Symbol,
-    C: FixedContainer,
-    C::Target: Len,
+    S: ?Sized + Internable,
+    S::Container: FixedContainer<S>,
 {
-    type Str = C::Target;
+    type Str = S;
     type Symbol = Sym;
 
     #[cfg_attr(feature = "inline-more", inline)]
     fn with_capacity(cap: usize) -> Self {
         Self {
             spans: Vec::with_capacity(cap),
-            head: C::with_capacity(cap),
+            head: S::Container::with_capacity(cap),
             full: Vec::new(),
             _marker: Default::default(),
         }
     }
 
     #[inline]
-    fn intern(&mut self, string: &C::Target) -> Self::Symbol {
+    fn intern(&mut self, string: &S) -> Self::Symbol {
         // SAFETY: This is safe because we never hand out the returned
         //         interned string instance to the outside and only operate
         //         on it within this backend.
@@ -139,7 +145,7 @@ where
     }
 
     #[cfg_attr(feature = "inline-more", inline)]
-    fn intern_static(&mut self, string: &'static C::Target) -> Self::Symbol {
+    fn intern_static(&mut self, string: &'static S) -> Self::Symbol {
         let interned = NonNull::from(string);
         self.push_span(interned)
     }
@@ -150,25 +156,25 @@ where
     }
 
     #[inline]
-    fn resolve(&self, symbol: Self::Symbol) -> Option<&C::Target> {
+    fn resolve(&self, symbol: Self::Symbol) -> Option<&S> {
         // SAFETY: A `FixedContainer` cannot invalidate pointers to its interned
         //         strings, making its spans always valid.
         unsafe { self.spans.get(symbol.to_usize()).map(|p| p.as_ref()) }
     }
 
     #[inline]
-    unsafe fn resolve_unchecked(&self, symbol: Self::Symbol) -> &C::Target {
+    unsafe fn resolve_unchecked(&self, symbol: Self::Symbol) -> &S {
         // SAFETY: The function is marked unsafe so that the caller guarantees
         //         that required invariants are checked.
         unsafe { self.spans.get_unchecked(symbol.to_usize()).as_ref() }
     }
 }
 
-impl<C, Sym> BucketBackend<C, Sym>
+impl<S, Sym> BucketBackend<S, Sym>
 where
     Sym: Symbol,
-    C: FixedContainer,
-    C::Target: Len,
+    S: ?Sized + Internable,
+    S::Container: FixedContainer<S>,
 {
     /// Returns the next available symbol.
     fn next_symbol(&self) -> Sym {
@@ -176,18 +182,18 @@ where
     }
 
     /// Pushes the given interned string into the spans and returns its symbol.
-    fn push_span(&mut self, interned: NonNull<C::Target>) -> Sym {
+    fn push_span(&mut self, interned: NonNull<S>) -> Sym {
         let symbol = self.next_symbol();
         self.spans.push(interned);
         symbol
     }
 
     /// Interns a new string into the backend and returns a reference to it.
-    unsafe fn alloc(&mut self, string: &C::Target) -> NonNull<C::Target> {
+    unsafe fn alloc(&mut self, string: &S) -> NonNull<S> {
         let cap = self.head.capacity();
         if cap < self.head.len() + string.len() {
             let new_cap = (usize::max(cap, string.len()) + 1).next_power_of_two();
-            let new_head = C::with_capacity(new_cap);
+            let new_head = S::Container::with_capacity(new_cap);
             let old_head = core::mem::replace(&mut self.head, new_head);
             if !old_head.is_empty() {
                 self.full.push(old_head);
@@ -199,17 +205,17 @@ where
     }
 }
 
-impl<C, Sym> Clone for BucketBackend<C, Sym>
+impl<S, Sym> Clone for BucketBackend<S, Sym>
 where
-    C: FixedContainer,
-    C::Target: Len,
+    S: ?Sized + Internable,
+    S::Container: FixedContainer<S>,
 {
     fn clone(&self) -> Self {
         // For performance reasons we copy all cloned strings into a single cloned
         // head string leaving the cloned `full` empty.
         let new_head_cap =
             self.head.capacity() + self.full.iter().fold(0, |lhs, rhs| lhs + rhs.len());
-        let mut head = C::with_capacity(new_head_cap);
+        let mut head = S::Container::with_capacity(new_head_cap);
         let mut spans = Vec::with_capacity(self.spans.len());
         for span in &self.spans {
             // SAFETY: This is safe because a `FixedContainer` cannot invalidate pointers
@@ -231,19 +237,19 @@ where
     }
 }
 
-impl<C, Sym> Eq for BucketBackend<C, Sym>
+impl<S, Sym> Eq for BucketBackend<S, Sym>
 where
     Sym: Symbol,
-    C: FixedContainer,
-    C::Target: Eq,
+    S: ?Sized + Internable + Eq,
+    S::Container: FixedContainer<S>,
 {
 }
 
-impl<C, Sym> PartialEq for BucketBackend<C, Sym>
+impl<S, Sym> PartialEq for BucketBackend<S, Sym>
 where
     Sym: Symbol,
-    C: FixedContainer,
-    C::Target: PartialEq,
+    S: ?Sized + Internable + PartialEq,
+    S::Container: FixedContainer<S>,
 {
     #[cfg_attr(feature = "inline-more", inline)]
     fn eq(&self, other: &Self) -> bool {
@@ -262,13 +268,14 @@ where
     }
 }
 
-impl<'a, C, Sym> IntoIterator for &'a BucketBackend<C, Sym>
+impl<'a, S, Sym> IntoIterator for &'a BucketBackend<S, Sym>
 where
     Sym: Symbol,
-    C: FixedContainer,
+    S: ?Sized + Internable,
+    S::Container: FixedContainer<S>,
 {
-    type Item = (Sym, &'a C::Target);
-    type IntoIter = Iter<'a, C, Sym>;
+    type Item = (Sym, &'a S);
+    type IntoIter = Iter<'a, S, Sym>;
 
     #[cfg_attr(feature = "inline-more", inline)]
     fn into_iter(self) -> Self::IntoIter {
@@ -278,20 +285,22 @@ where
 
 /// Iterator for a [`BucketBackend`](crate::backend::bucket::BucketBackend)
 /// that returns all of its interned strings.
-pub struct Iter<'a, C, Sym>
+pub struct Iter<'a, S, Sym>
 where
-    C: FixedContainer,
+    S: ?Sized + Internable,
+    S::Container: FixedContainer<S>,
 {
-    iter: Enumerate<slice::Iter<'a, NonNull<C::Target>>>,
-    marker: PhantomData<fn(&C::Target) -> Sym>,
+    iter: Enumerate<slice::Iter<'a, NonNull<S>>>,
+    marker: PhantomData<fn(&S) -> Sym>,
 }
 
-impl<'a, C, Sym> Iter<'a, C, Sym>
+impl<'a, S, Sym> Iter<'a, S, Sym>
 where
-    C: FixedContainer,
+    S: ?Sized + Internable,
+    S::Container: FixedContainer<S>,
 {
     #[cfg_attr(feature = "inline-more", inline)]
-    pub(super) fn new(backend: &'a BucketBackend<C, Sym>) -> Self {
+    pub(super) fn new(backend: &'a BucketBackend<S, Sym>) -> Self {
         Self {
             iter: backend.spans.iter().enumerate(),
             marker: Default::default(),
@@ -299,12 +308,13 @@ where
     }
 }
 
-impl<'a, C, Sym> Iterator for Iter<'a, C, Sym>
+impl<'a, S, Sym> Iterator for Iter<'a, S, Sym>
 where
     Sym: Symbol,
-    C: FixedContainer,
+    S: ?Sized + Internable,
+    S::Container: FixedContainer<S>,
 {
-    type Item = (Sym, &'a C::Target);
+    type Item = (Sym, &'a S);
 
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {

@@ -38,7 +38,7 @@ use len_trait::{
 
 use super::{
     Backend,
-    Sliced,
+    Internable,
 };
 use crate::{
     compat::Vec,
@@ -56,18 +56,18 @@ use core::{
 ///
 /// See the [module-level documentation](self) for more.
 #[derive(Debug)]
-pub struct StringBackend<S, Sym = DefaultSymbol>
+pub struct StringBackend<S = str, Sym = DefaultSymbol>
 where
-    S: ?Sized + Sliced + ToOwned,
+    S: ?Sized + Internable,
 {
     ends: Vec<usize>,
-    buffer: S::Owned,
+    buffer: S::Container,
     marker: PhantomData<fn(&S) -> Sym>,
 }
 
 /// Represents a `[from, to)` index into the `StringBackend` buffer.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct Span {
+struct Span {
     from: usize,
     to: usize,
 }
@@ -75,8 +75,8 @@ pub struct Span {
 impl<S, Sym> PartialEq for StringBackend<S, Sym>
 where
     Sym: Symbol,
-    S: ?Sized + Sliced + PartialEq + ToOwned,
-    S::Owned: AsRef<S> + for<'e> Extend<&'e S>,
+    S: ?Sized + Internable + PartialEq,
+    S::Container: AsRef<S> + for<'e> Extend<&'e S>,
 {
     fn eq(&self, other: &Self) -> bool {
         if self.ends.len() != other.ends.len() {
@@ -94,16 +94,15 @@ where
 impl<S, Sym> Eq for StringBackend<S, Sym>
 where
     Sym: Symbol,
-    S: ?Sized + Sliced + Eq + ToOwned,
-    S::Owned: AsRef<S> + for<'e> Extend<&'e S>,
+    S: ?Sized + Internable + Eq,
+    S::Container: AsRef<S> + for<'e> Extend<&'e S>,
 {
 }
 
 impl<S, Sym> Clone for StringBackend<S, Sym>
 where
-    S::Owned: AsRef<S>,
-    S: ?Sized + Sliced + ToOwned,
-    S::Owned: Clone,
+    S: ?Sized + Internable,
+    S::Container: Clone,
 {
     fn clone(&self) -> Self {
         Self {
@@ -116,14 +115,14 @@ where
 
 impl<S, Sym> Default for StringBackend<S, Sym>
 where
-    S: ?Sized + Sliced + ToOwned,
-    S::Owned: Default,
+    S: ?Sized + Internable,
+    S::Container: Default,
 {
     #[cfg_attr(feature = "inline-more", inline)]
     fn default() -> Self {
         Self {
             ends: Vec::default(),
-            buffer: S::Owned::default(),
+            buffer: S::Container::default(),
             marker: Default::default(),
         }
     }
@@ -132,8 +131,7 @@ where
 impl<S, Sym> StringBackend<S, Sym>
 where
     Sym: Symbol,
-    S: ?Sized + Sliced + ToOwned,
-    S::Owned: AsRef<S> + for<'a> Extend<&'a S>,
+    S: ?Sized + Internable,
 {
     /// Returns the next available symbol.
     fn next_symbol(&self) -> Sym {
@@ -172,7 +170,7 @@ where
     ///
     /// If the backend ran out of symbols.
     fn push_string(&mut self, string: &S) -> Sym {
-        self.buffer.extend(core::iter::once(string));
+        S::push_str(&mut self.buffer, string);
         let to = self.buffer.as_ref().to_slice().len();
         let symbol = self.next_symbol();
         self.ends.push(to);
@@ -183,8 +181,7 @@ where
 impl<S, Sym> Backend for StringBackend<S, Sym>
 where
     Sym: Symbol,
-    S: ?Sized + Sliced + ToOwned,
-    S::Owned: AsRef<S> + for<'a> Extend<&'a S> + CapacityMut,
+    S: ?Sized + Internable,
 {
     type Str = S;
     type Symbol = Sym;
@@ -195,7 +192,7 @@ where
         let default_word_len = 5;
         Self {
             ends: Vec::with_capacity(cap),
-            buffer: <S::Owned as WithCapacity>::with_capacity(cap * default_word_len),
+            buffer: <S::Container as WithCapacity>::with_capacity(cap * default_word_len),
             marker: Default::default(),
         }
     }
@@ -227,8 +224,7 @@ where
 impl<'a, S, Sym> IntoIterator for &'a StringBackend<S, Sym>
 where
     Sym: Symbol,
-    S: ?Sized + Sliced + ToOwned,
-    S::Owned: AsRef<S> + for<'e> Extend<&'e S>,
+    S: ?Sized + Internable,
 {
     type Item = (Sym, &'a S);
     type IntoIter = Iter<'a, S, Sym>;
@@ -243,8 +239,7 @@ where
 /// that returns all of its interned strings.
 pub struct Iter<'a, S, Sym>
 where
-    S: ?Sized + Sliced + ToOwned,
-    S::Owned: AsRef<S>,
+    S: ?Sized + Internable,
 {
     backend: &'a StringBackend<S, Sym>,
     start: usize,
@@ -253,8 +248,7 @@ where
 
 impl<'a, S, Sym> Iter<'a, S, Sym>
 where
-    S: ?Sized + Sliced + ToOwned,
-    S::Owned: AsRef<S>,
+    S: ?Sized + Internable,
 {
     #[cfg_attr(feature = "inline-more", inline)]
     pub(super) fn new(backend: &'a StringBackend<S, Sym>) -> Self {
@@ -269,8 +263,7 @@ where
 impl<'a, S, Sym> Iterator for Iter<'a, S, Sym>
 where
     Sym: Symbol,
-    S: ?Sized + Sliced + ToOwned,
-    S::Owned: AsRef<S> + for<'e> Extend<&'e S>,
+    S: ?Sized + Internable,
 {
     type Item = (Sym, &'a S);
 

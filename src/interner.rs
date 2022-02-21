@@ -4,6 +4,7 @@ use crate::{
         DefaultHashBuilder,
         HashMap,
     },
+    DefaultBackend,
     Symbol,
 };
 use core::{
@@ -41,7 +42,7 @@ where
 ///     - This maps from `string` type to `symbol` type.
 /// - [`StringInterner::resolve`]: To resolve your already interned strings.
 ///     - This maps from `symbol` type to `string` type.
-pub struct StringInterner<B, H = DefaultHashBuilder>
+pub struct StringInterner<B = DefaultBackend, H = DefaultHashBuilder>
 where
     B: Backend,
     H: BuildHasher,

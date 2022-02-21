@@ -9,6 +9,12 @@ pub mod buffer;
 pub mod simple;
 pub mod string;
 
+use len_trait::{
+    CapacityMut,
+    Len,
+    WithCapacity,
+};
+
 #[cfg(feature = "backends")]
 pub use self::{
     bucket::BucketBackend,
@@ -16,10 +22,7 @@ pub use self::{
     simple::SimpleBackend,
     string::StringBackend,
 };
-use crate::{
-    DefaultSymbol,
-    Symbol,
-};
+use crate::Symbol;
 
 #[cfg(not(feature = "backends"))]
 /// Indicates that no proper backend is in use.
@@ -28,7 +31,7 @@ pub struct NoBackend;
 cfg_if::cfg_if! {
     if #[cfg(feature = "backends")] {
         /// The default backend recommended for general use.
-        pub type DefaultBackend = StringBackend<str, DefaultSymbol>;
+        pub type DefaultBackend = StringBackend;
     } else {
         /// The `backends` crate feature is disabled thus there is no default backend.
         pub type DefaultBackend = NoBackend;
@@ -42,7 +45,7 @@ cfg_if::cfg_if! {
 /// their backend with hinsight of their personal use-case.
 pub trait Backend: Default {
     /// The type of the interned strings
-    type Str: ?Sized;
+    type Str: Internable + ?Sized;
     /// The symbol used by the string interner backend.
     type Symbol: Symbol;
 
@@ -91,23 +94,35 @@ pub trait Backend: Default {
     unsafe fn resolve_unchecked(&self, symbol: Self::Symbol) -> &Self::Str;
 }
 
-/// Represents a type that is effectively supported by a slice `&[Self::Element]`
+/// Represents a type that is internable within all backends.
+/// This type must be supported by a slice `&[Self::Element]`.
 ///
 /// This trait is the only bound needed for a type to be compatible
-/// with the [`BufferBackend`](crate::backend::buffer::BufferBackend)
-/// and one of the required bounds for the
-/// [`StringBackend`](crate::backend::string::StringBackend).
-pub trait Sliced {
+/// with almost all backends implemented in this crate, with the exception
+/// of [`BucketBackend`](crate::backend::BucketBackend), which also requires a
+/// [`FixedContainer`](crate::backend::bucket::FixedContainer) implementation
+/// for `<Self as ToOwned>::Owned`
+pub trait Internable: Len {
+    /// The container type used as a buffer for storing `Self`
+    type Container: Into<Box<Self>> + AsRef<Self> + CapacityMut;
     /// The element type of the slice view
-    type Element;
+    type Element: Copy;
     /// Convert from a slice `&[U]` to `Self`
     fn from_slice(input: &[Self::Element]) -> &Self;
-
     /// Convert `Self` to a slice `&[U]`
     fn to_slice(&self) -> &[Self::Element];
+    /// Push the contents of Self into a `Self::Container`.
+    fn push_str(buffer: &mut Self::Container, str: &Self);
+    /// Create a new `Box<Self>` from the data of `Self`.
+    fn to_boxed(&self) -> Box<Self> {
+        let mut c = <Self::Container>::with_capacity(self.len());
+        Self::push_str(&mut c, self);
+        c.into()
+    }
 }
 
-impl Sliced for str {
+impl Internable for str {
+    type Container = String;
     type Element = u8;
     fn from_slice(input: &[Self::Element]) -> &Self {
         // SAFETY: Internally the backends only manipulate `&[u8]` slices
@@ -118,9 +133,17 @@ impl Sliced for str {
     fn to_slice(&self) -> &[Self::Element] {
         self.as_bytes()
     }
+
+    fn push_str(buffer: &mut <Self as ToOwned>::Owned, str: &Self) {
+        buffer.push_str(str)
+    }
 }
 
-impl<T> Sliced for [T] {
+impl<T> Internable for [T]
+where
+    T: Copy,
+{
+    type Container = Vec<T>;
     type Element = T;
     fn from_slice(input: &[Self::Element]) -> &Self {
         input
@@ -128,5 +151,9 @@ impl<T> Sliced for [T] {
 
     fn to_slice(&self) -> &[Self::Element] {
         self
+    }
+
+    fn push_str(buffer: &mut <Self as ToOwned>::Owned, str: &Self) {
+        buffer.extend_from_slice(str)
     }
 }

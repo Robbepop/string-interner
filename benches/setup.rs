@@ -1,13 +1,11 @@
 use string_interner::{
     backend::{
-        bucket::FixedString,
         Backend,
         BucketBackend,
         BufferBackend,
         SimpleBackend,
         StringBackend,
     },
-    DefaultSymbol,
     StringInterner,
 };
 
@@ -123,23 +121,23 @@ pub trait BackendBenchmark {
 pub struct BenchBucket;
 impl BackendBenchmark for BenchBucket {
     const NAME: &'static str = "BucketBackend";
-    type Backend = BucketBackend<FixedString, DefaultSymbol>;
+    type Backend = BucketBackend;
 }
 
 pub struct BenchSimple;
 impl BackendBenchmark for BenchSimple {
     const NAME: &'static str = "SimpleBackend";
-    type Backend = SimpleBackend<str, DefaultSymbol>;
+    type Backend = SimpleBackend;
 }
 
 pub struct BenchString;
 impl BackendBenchmark for BenchString {
     const NAME: &'static str = "StringBackend";
-    type Backend = StringBackend<str, DefaultSymbol>;
+    type Backend = StringBackend;
 }
 
 pub struct BenchBuffer;
 impl BackendBenchmark for BenchBuffer {
     const NAME: &'static str = "BufferBackend";
-    type Backend = BufferBackend<str, DefaultSymbol>;
+    type Backend = BufferBackend;
 }

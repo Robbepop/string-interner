@@ -29,7 +29,7 @@
 
 use super::{
     Backend,
-    Sliced,
+    Internable,
 };
 use crate::{
     compat::Vec,
@@ -47,9 +47,9 @@ use core::{
 ///
 /// See the [module-level documentation](self) for more.
 #[derive(Debug)]
-pub struct BufferBackend<S, Sym = DefaultSymbol>
+pub struct BufferBackend<S = str, Sym = DefaultSymbol>
 where
-    S: ?Sized + Sliced,
+    S: ?Sized + Internable,
 {
     len_strings: usize,
     buffer: Vec<u8>,
@@ -59,7 +59,7 @@ where
 impl<S, Sym> PartialEq for BufferBackend<S, Sym>
 where
     Sym: Symbol,
-    S: ?Sized + Sliced,
+    S: ?Sized + Internable,
 {
     fn eq(&self, other: &Self) -> bool {
         self.len_strings.eq(&other.len_strings) && self.buffer.eq(&other.buffer)
@@ -69,13 +69,13 @@ where
 impl<S, Sym> Eq for BufferBackend<S, Sym>
 where
     Sym: Symbol,
-    S: ?Sized + Sliced,
+    S: ?Sized + Internable,
 {
 }
 
 impl<S, Sym> Clone for BufferBackend<S, Sym>
 where
-    S: ?Sized + Sliced,
+    S: ?Sized + Internable,
 {
     fn clone(&self) -> Self {
         Self {
@@ -88,7 +88,7 @@ where
 
 impl<S, Sym> Default for BufferBackend<S, Sym>
 where
-    S: ?Sized + Sliced,
+    S: ?Sized + Internable,
 {
     #[cfg_attr(feature = "inline-more", inline)]
     fn default() -> Self {
@@ -103,7 +103,7 @@ where
 impl<S, Sym> BufferBackend<S, Sym>
 where
     Sym: Symbol,
-    S: ?Sized + Sliced,
+    S: ?Sized + Internable,
     S::Element: Copy,
 {
     /// Returns the next available symbol.
@@ -208,7 +208,7 @@ where
 impl<S, Sym> Backend for BufferBackend<S, Sym>
 where
     Sym: Symbol,
-    S: ?Sized + Sliced,
+    S: ?Sized + Internable,
     S::Element: Copy,
 {
     type Str = S;
@@ -459,7 +459,7 @@ mod tests {
 impl<'a, S, Sym> IntoIterator for &'a BufferBackend<S, Sym>
 where
     Sym: Symbol,
-    S: ?Sized + Sliced,
+    S: ?Sized + Internable,
     S::Element: Copy,
 {
     type Item = (Sym, &'a S);
@@ -475,7 +475,7 @@ where
 /// that returns all of its interned strings.
 pub struct Iter<'a, S, Sym>
 where
-    S: ?Sized + Sliced,
+    S: ?Sized + Internable,
 {
     backend: &'a BufferBackend<S, Sym>,
     yielded: usize,
@@ -484,7 +484,7 @@ where
 
 impl<'a, S, Sym> Iter<'a, S, Sym>
 where
-    S: ?Sized + Sliced,
+    S: ?Sized + Internable,
 {
     #[cfg_attr(feature = "inline-more", inline)]
     pub(super) fn new(backend: &'a BufferBackend<S, Sym>) -> Self {
@@ -499,7 +499,7 @@ where
 impl<'a, S, Sym> Iterator for Iter<'a, S, Sym>
 where
     Sym: Symbol,
-    S: ?Sized + Sliced,
+    S: ?Sized + Internable,
     S::Element: Copy,
 {
     type Item = (Sym, &'a S);
@@ -526,7 +526,7 @@ where
 impl<'a, S, Sym> ExactSizeIterator for Iter<'a, S, Sym>
 where
     Sym: Symbol,
-    S: ?Sized + Sliced,
+    S: ?Sized + Internable,
     S::Element: Copy,
 {
     fn len(&self) -> usize {

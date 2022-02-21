@@ -30,7 +30,10 @@
 //! | `Send` + `Sync` | **yes** |
 //! | Contiguous  | **yes**  |
 
-use super::Backend;
+use super::{
+    Backend,
+    Internable,
+};
 use crate::{
     compat::{
         Box,
@@ -50,9 +53,9 @@ use core::{
 ///
 /// See the [module-level documentation](self) for more.
 #[derive(Debug)]
-pub struct SimpleBackend<S, Sym = DefaultSymbol>
+pub struct SimpleBackend<S = str, Sym = DefaultSymbol>
 where
-    S: ?Sized,
+    S: ?Sized + Internable,
 {
     strings: Vec<Box<S>>,
     symbol_marker: PhantomData<fn() -> Sym>,
@@ -60,7 +63,7 @@ where
 
 impl<S, Sym> Default for SimpleBackend<S, Sym>
 where
-    S: ?Sized,
+    S: ?Sized + Internable,
 {
     #[cfg_attr(feature = "inline-more", inline)]
     fn default() -> Self {
@@ -74,8 +77,7 @@ where
 impl<S, Sym> Backend for SimpleBackend<S, Sym>
 where
     Sym: Symbol,
-    S: ?Sized + ToOwned,
-    S::Owned: ToOwned + Into<Box<S>>,
+    S: ?Sized + Internable,
 {
     type Str = S;
     type Symbol = Sym;
@@ -92,8 +94,7 @@ where
     fn intern(&mut self, string: &S) -> Self::Symbol
 where {
         let symbol = expect_valid_symbol(self.strings.len());
-        let str = string.to_owned().into();
-        self.strings.push(str);
+        self.strings.push(string.to_boxed());
         symbol
     }
 
@@ -116,17 +117,12 @@ where {
 
 impl<S, Sym> Clone for SimpleBackend<S, Sym>
 where
-    S: ?Sized + ToOwned,
-    S::Owned: ToOwned + Into<Box<S>>,
+    S: ?Sized + Internable,
 {
     #[cfg_attr(feature = "inline-more", inline)]
     fn clone(&self) -> Self {
         Self {
-            strings: self
-                .strings
-                .iter()
-                .map(|s| s.as_ref().to_owned().into())
-                .collect(),
+            strings: self.strings.iter().map(|s| s.as_ref().to_boxed()).collect(),
             symbol_marker: Default::default(),
         }
     }
@@ -135,14 +131,14 @@ where
 impl<S, Sym> Eq for SimpleBackend<S, Sym>
 where
     Sym: Symbol,
-    S: ?Sized + Eq,
+    S: ?Sized + Internable + Eq,
 {
 }
 
 impl<S, Sym> PartialEq for SimpleBackend<S, Sym>
 where
     Sym: Symbol,
-    S: ?Sized + PartialEq,
+    S: ?Sized + Internable + PartialEq,
 {
     #[cfg_attr(feature = "inline-more", inline)]
     fn eq(&self, other: &Self) -> bool {
@@ -153,7 +149,7 @@ where
 impl<'a, S, Sym> IntoIterator for &'a SimpleBackend<S, Sym>
 where
     Sym: Symbol,
-    S: ?Sized,
+    S: ?Sized + Internable,
 {
     type Item = (Sym, &'a S);
     type IntoIter = Iter<'a, S, Sym>;
@@ -168,7 +164,7 @@ where
 /// that returns all of its interned strings.
 pub struct Iter<'a, S, Sym>
 where
-    S: ?Sized,
+    S: ?Sized + Internable,
 {
     iter: Enumerate<slice::Iter<'a, Box<S>>>,
     symbol_marker: PhantomData<fn() -> Sym>,
@@ -176,7 +172,7 @@ where
 
 impl<'a, S, Sym> Iter<'a, S, Sym>
 where
-    S: ?Sized,
+    S: ?Sized + Internable,
 {
     #[cfg_attr(feature = "inline-more", inline)]
     pub(super) fn new(backend: &'a SimpleBackend<S, Sym>) -> Self {
@@ -190,7 +186,7 @@ where
 impl<'a, S, Sym> Iterator for Iter<'a, S, Sym>
 where
     Sym: Symbol,
-    S: ?Sized,
+    S: ?Sized + Internable,
 {
     type Item = (Sym, &'a S);
 
