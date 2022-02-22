@@ -9,6 +9,8 @@ pub mod buffer;
 pub mod simple;
 pub mod string;
 
+use std::ops::Deref;
+
 use len_trait::{
     CapacityMut,
     Len,
@@ -103,39 +105,87 @@ pub trait Backend: Default {
 /// [`FixedContainer`](crate::backend::bucket::FixedContainer) implementation
 /// for `<Self as ToOwned>::Owned`
 pub trait Internable: Len {
-    /// The container type used as a buffer for storing `Self`
-    type Container: Into<Box<Self>> + AsRef<Self> + CapacityMut;
-    /// The element type of the slice view
+    /// The container type used as a buffer for storing `Self`.
+    type Container: Into<Box<Self>> + Deref<Target = Self> + CapacityMut;
+    /// The element type of the slice view.
     type Element: Copy;
-    /// Convert from a slice `&[U]` to `Self`
+    /// Convert from a slice `[Self::Element]` to `Self`.
     fn from_slice(input: &[Self::Element]) -> &Self;
-    /// Convert `Self` to a slice `&[U]`
+    /// Convert `Self` to a slice `[Self::Element]`.
     fn to_slice(&self) -> &[Self::Element];
     /// Push the contents of Self into a `Self::Container`.
     fn push_str(buffer: &mut Self::Container, str: &Self);
     /// Create a new `Box<Self>` from the data of `Self`.
+    #[inline(always)]
     fn to_boxed(&self) -> Box<Self> {
-        let mut c = <Self::Container>::with_capacity(self.len());
+        let mut c = Self::Container::with_capacity(self.len());
         Self::push_str(&mut c, self);
         c.into()
+    }
+    /// Convert from a slice of bits `[u8]` to `Self`.
+    ///
+    /// For performance reasons,
+    /// the default implementation should be overriden for types where it's
+    /// trivial to transform between `Self` and `[u8]`.
+    #[inline]
+    fn from_bytes(buffer: &[u8]) -> &Self {
+        let count = buffer.len() / core::mem::size_of::<Self::Element>();
+        // SAFETY: It is guaranteed by the backend that only valid strings
+        //         are stored.
+        unsafe {
+            Self::from_slice(core::slice::from_raw_parts(
+                buffer.as_ptr().cast::<Self::Element>(),
+                count,
+            ))
+        }
+    }
+    /// Convert from `Self` to a slice of bits `[u8]`.
+    ///
+    /// For performance reasons,
+    /// the default implementation should be overriden for types where it's
+    /// trivial to transform between `Self` and `[u8]`.
+    #[inline]
+    fn to_bytes(&self) -> &[u8] {
+        let elems = self.to_slice();
+        // SAFETY: A conversion from an own slice to its byte representation
+        // must always be valid.
+        unsafe {
+            core::slice::from_raw_parts(
+                elems.as_ptr().cast::<u8>(),
+                elems.len() * core::mem::size_of::<Self::Element>(),
+            )
+        }
     }
 }
 
 impl Internable for str {
     type Container = String;
     type Element = u8;
+    #[inline(always)]
     fn from_slice(input: &[Self::Element]) -> &Self {
         // SAFETY: Internally the backends only manipulate `&[u8]` slices
         //         which are valid utf-8.
         unsafe { std::str::from_utf8_unchecked(input) }
     }
-
+    #[inline(always)]
     fn to_slice(&self) -> &[Self::Element] {
         self.as_bytes()
     }
-
-    fn push_str(buffer: &mut <Self as ToOwned>::Owned, str: &Self) {
+    #[inline(always)]
+    fn push_str(buffer: &mut Self::Container, str: &Self) {
         buffer.push_str(str)
+    }
+    #[inline(always)]
+    fn to_boxed(&self) -> Box<Self> {
+        self.to_owned().into_boxed_str()
+    }
+    #[inline(always)]
+    fn from_bytes(buffer: &[u8]) -> &Self {
+        Self::from_slice(buffer)
+    }
+    #[inline(always)]
+    fn to_bytes(&self) -> &[u8] {
+        self.to_slice()
     }
 }
 
@@ -145,15 +195,16 @@ where
 {
     type Container = Vec<T>;
     type Element = T;
+    #[inline(always)]
     fn from_slice(input: &[Self::Element]) -> &Self {
         input
     }
-
+    #[inline(always)]
     fn to_slice(&self) -> &[Self::Element] {
         self
     }
-
-    fn push_str(buffer: &mut <Self as ToOwned>::Owned, str: &Self) {
+    #[inline(always)]
+    fn push_str(buffer: &mut Self::Container, str: &Self) {
         buffer.extend_from_slice(str)
     }
 }

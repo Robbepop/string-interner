@@ -40,7 +40,6 @@ use crate::{
 use core::{
     marker::PhantomData,
     mem,
-    slice,
 };
 
 /// An interner backend that appends all interned string information in a single buffer.
@@ -104,7 +103,6 @@ impl<S, Sym> BufferBackend<S, Sym>
 where
     Sym: Symbol,
     S: ?Sized + Internable,
-    S::Element: Copy,
 {
     /// Returns the next available symbol.
     #[inline]
@@ -121,17 +119,9 @@ where
     fn resolve_index_to_str(&self, index: usize) -> Option<(&S, usize)> {
         let buffer = self.buffer.get(index..)?;
         let (str_len, decoded_bytes) = decode_var_usize(buffer)?;
-        let str_bytes_len = str_len * mem::size_of::<S::Element>();
         let index_str = index + decoded_bytes;
-        let str_bytes = self.buffer.get(index_str..index_str + str_bytes_len)?;
-
-        // SAFETY: It is guaranteed by the backend that only valid strings
-        //         are stored in this portion of the buffer.
-        unsafe {
-            let string =
-                slice::from_raw_parts(str_bytes.as_ptr().cast::<S::Element>(), str_len);
-            Some((S::from_slice(string), index_str + str_bytes_len))
-        }
+        let str_bytes = self.buffer.get(index_str..index_str + str_len)?;
+        Some((S::from_bytes(str_bytes), index_str + str_len))
     }
 
     /// Resolves the string for the given symbol.
@@ -153,24 +143,14 @@ where
         //         that required invariants are checked.
         let (str_len, decoded_bytes) = unsafe { decode_var_usize_unchecked(buffer) };
 
-        let str_bytes_len = str_len * mem::size_of::<S::Element>();
-
         let start_str = index + decoded_bytes;
 
         // SAFETY: The function is marked unsafe so that the caller guarantees
         //         that required invariants are checked.
-        let str_bytes = unsafe {
-            self.buffer
-                .get_unchecked(start_str..start_str + str_bytes_len)
-        };
+        let str_bytes =
+            unsafe { self.buffer.get_unchecked(start_str..start_str + str_len) };
 
-        // SAFETY: It is guaranteed by the backend that only valid strings
-        //         are stored in this portion of the buffer.
-        unsafe {
-            let string =
-                slice::from_raw_parts(str_bytes.as_ptr().cast::<S::Element>(), str_len);
-            S::from_slice(string)
-        }
+        S::from_bytes(str_bytes)
     }
 
     /// Pushes the given value onto the buffer with `var7` encoding.
@@ -188,18 +168,10 @@ where
     /// If the backend ran out of symbols.
     fn push_string(&mut self, string: &S) -> Sym {
         let symbol = self.next_symbol();
-        let string = string.to_slice();
-        let str_len = string.len();
+        let string = string.to_bytes();
 
-        // Safety: The `S::Element: Copy` bound ensures that only bit-copiable
-        //         types are casted to bytes, making them valid for storing
-        //         in our buffer.
-        let str_bytes = unsafe {
-            let n_bytes = str_len * mem::size_of::<S::Element>();
-            slice::from_raw_parts(string.as_ptr().cast::<u8>(), n_bytes)
-        };
-        self.encode_var_usize(str_len);
-        self.buffer.extend_from_slice(str_bytes);
+        self.encode_var_usize(string.len());
+        self.buffer.extend_from_slice(string);
         self.len_strings += 1;
         symbol
     }
@@ -209,7 +181,6 @@ impl<S, Sym> Backend for BufferBackend<S, Sym>
 where
     Sym: Symbol,
     S: ?Sized + Internable,
-    S::Element: Copy,
 {
     type Str = S;
     type Symbol = Sym;

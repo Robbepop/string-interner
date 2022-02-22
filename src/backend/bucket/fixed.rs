@@ -1,4 +1,7 @@
-use std::ptr::NonNull;
+use std::{
+    ops::Deref,
+    ptr::NonNull,
+};
 
 use len_trait::{
     Len,
@@ -16,17 +19,19 @@ use len_trait::{
 ///
 /// In other words, implementations must guarantee that no reallocations
 /// occur after creating the container.
-pub unsafe trait FixedContainer<S: ?Sized>: AsRef<S> + WithCapacity + Len {
+pub unsafe trait FixedContainer<S: ?Sized>:
+    Deref<Target = S> + WithCapacity + Len
+{
     /// Push the given string into the fixed string if there is enough capacity.
     ///
     /// Returns a reference to the pushed string if there was enough capacity to
     /// perform the operation. Otherwise returns `None`.
-    fn push_str(&mut self, string: &S) -> Option<NonNull<S>>;
+    fn try_push_str(&mut self, string: &S) -> Option<NonNull<S>>;
 }
 
 unsafe impl FixedContainer<str> for String {
     #[inline]
-    fn push_str(&mut self, string: &str) -> Option<NonNull<str>> {
+    fn try_push_str(&mut self, string: &str) -> Option<NonNull<str>> {
         let len = self.len();
         if self.capacity() < len + string.len() {
             return None
@@ -48,7 +53,7 @@ where
     T: Clone,
 {
     #[inline]
-    fn push_str(&mut self, string: &[T]) -> Option<NonNull<[T]>> {
+    fn try_push_str(&mut self, string: &[T]) -> Option<NonNull<[T]>> {
         let len = self.len();
         if self.capacity() < len + string.len() {
             return None

@@ -200,7 +200,7 @@ where
             }
         }
         self.head
-            .push_str(string)
+            .try_push_str(string)
             .expect("encountered invalid head capacity (2)")
     }
 }
@@ -223,7 +223,7 @@ where
             unsafe {
                 let string = span.as_ref();
                 let interned = head
-                    .push_str(string)
+                    .try_push_str(string)
                     .expect("encountered invalid head capacity");
                 spans.push(interned);
             }

@@ -76,7 +76,6 @@ impl<S, Sym> PartialEq for StringBackend<S, Sym>
 where
     Sym: Symbol,
     S: ?Sized + Internable + PartialEq,
-    S::Container: AsRef<S> + for<'e> Extend<&'e S>,
 {
     fn eq(&self, other: &Self) -> bool {
         if self.ends.len() != other.ends.len() {
@@ -95,7 +94,6 @@ impl<S, Sym> Eq for StringBackend<S, Sym>
 where
     Sym: Symbol,
     S: ?Sized + Internable + Eq,
-    S::Container: AsRef<S> + for<'e> Extend<&'e S>,
 {
 }
 
@@ -141,7 +139,7 @@ where
     /// Returns the string associated to the span.
     fn span_to_str(&self, span: Span) -> &S {
         S::from_slice(
-            &self.buffer.as_ref().to_slice()[(span.from as usize)..(span.to as usize)],
+            &(*self.buffer).to_slice()[(span.from as usize)..(span.to as usize)],
         )
     }
 
@@ -171,7 +169,7 @@ where
     /// If the backend ran out of symbols.
     fn push_string(&mut self, string: &S) -> Sym {
         S::push_str(&mut self.buffer, string);
-        let to = self.buffer.as_ref().to_slice().len();
+        let to = (*self.buffer).to_slice().len();
         let symbol = self.next_symbol();
         self.ends.push(to);
         symbol
