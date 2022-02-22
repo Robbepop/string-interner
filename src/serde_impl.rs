@@ -22,12 +22,14 @@ use serde::{
         Serializer,
     },
 };
+use std::hash::Hash;
 
 impl<B, H> Serialize for StringInterner<B, H>
 where
     B: Backend,
-    <B as Backend>::Symbol: Symbol,
-    for<'a> &'a B: IntoIterator<Item = (<B as Backend>::Symbol, &'a str)>,
+    B::Symbol: Symbol,
+    B::Str: Serialize,
+    for<'a> &'a B: IntoIterator<Item = (B::Symbol, &'a B::Str)>,
     H: BuildHasher,
 {
     fn serialize<T>(&self, serializer: T) -> Result<T::Ok, T::Error>
@@ -45,7 +47,8 @@ where
 impl<'de, B, H> Deserialize<'de> for StringInterner<B, H>
 where
     B: Backend,
-    <B as Backend>::Symbol: Symbol,
+    B::Symbol: Symbol,
+    B::Str: Deserialize<'de> + Hash + PartialEq,
     H: BuildHasher + Default,
 {
     fn deserialize<D>(deserializer: D) -> Result<StringInterner<B, H>, D::Error>
@@ -59,16 +62,16 @@ where
 struct StringInternerVisitor<B, H>
 where
     B: Backend,
-    <B as Backend>::Symbol: Symbol,
+    B::Symbol: Symbol,
     H: BuildHasher,
 {
-    mark: marker::PhantomData<(<B as Backend>::Symbol, B, H)>,
+    mark: marker::PhantomData<(B::Symbol, B, H, *const B::Str)>,
 }
 
 impl<B, H> Default for StringInternerVisitor<B, H>
 where
     B: Backend,
-    <B as Backend>::Symbol: Symbol,
+    B::Symbol: Symbol,
     H: BuildHasher,
 {
     fn default() -> Self {
@@ -81,7 +84,8 @@ where
 impl<'de, B, H> Visitor<'de> for StringInternerVisitor<B, H>
 where
     B: Backend,
-    <B as Backend>::Symbol: Symbol,
+    B::Str: Deserialize<'de> + Hash + PartialEq,
+    B::Symbol: Symbol,
     H: BuildHasher + Default,
 {
     type Value = StringInterner<B, H>;
@@ -98,8 +102,8 @@ where
             seq.size_hint().unwrap_or(0),
             H::default(),
         );
-        while let Some(s) = seq.next_element::<Box<str>>()? {
-            interner.get_or_intern(s);
+        while let Some(s) = seq.next_element::<Box<B::Str>>()? {
+            interner.get_or_intern(&s);
         }
         Ok(interner)
     }
