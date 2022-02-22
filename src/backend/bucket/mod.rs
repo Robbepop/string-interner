@@ -53,7 +53,6 @@ use core::{
 };
 use len_trait::{
     Capacity,
-    Empty,
     Len,
     WithCapacity,
 };
@@ -195,9 +194,7 @@ where
             let new_cap = (usize::max(cap, string.len()) + 1).next_power_of_two();
             let new_head = S::Container::with_capacity(new_cap);
             let old_head = core::mem::replace(&mut self.head, new_head);
-            if !old_head.is_empty() {
-                self.full.push(old_head);
-            }
+            self.full.push(old_head);
         }
         self.head
             .try_push_str(string)

@@ -39,10 +39,10 @@ pub trait BackendStats {
 }
 
 impl BackendStats for backend::BucketBackend {
-    const MIN_OVERHEAD: f64 = 2.1;
-    const MAX_OVERHEAD: f64 = 2.33;
-    const MAX_ALLOCATIONS: usize = 66;
-    const MAX_DEALLOCATIONS: usize = 43;
+    const MIN_OVERHEAD: f64 = 2.18;
+    const MAX_OVERHEAD: f64 = 3.01;
+    const MAX_ALLOCATIONS: usize = 65;
+    const MAX_DEALLOCATIONS: usize = 42;
     const NAME: &'static str = "BucketBackend";
 }
 
