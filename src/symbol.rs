@@ -73,13 +73,29 @@ macro_rules! gen_symbol_for {
         impl Symbol for $name {
             #[inline]
             fn try_from_usize(index: usize) -> Option<Self> {
-                <$non_zero>::new((index as $base_ty).wrapping_add(1))
-                    .map(|value| Self { value })
+                <$name>::try_from(index as $base_ty).ok()
             }
 
             #[inline]
             fn to_usize(self) -> usize {
-                self.value.get() as usize - 1
+                <$name as Into<$base_ty>>::into(self) as usize
+            }
+        }
+
+        impl TryFrom<$base_ty> for $name {
+            type Error = std::num::TryFromIntError;
+
+            #[inline]
+            fn try_from(value: $base_ty) -> Result<Self, Self::Error> {
+                <$non_zero>::try_from(value.wrapping_add(1))
+                    .map(|value| Self { value })
+            }
+        }
+
+        impl Into<$base_ty> for $name {
+            #[inline]
+            fn into(self) -> $base_ty {
+                self.value.get() - 1
             }
         }
     };
@@ -144,13 +160,24 @@ mod tests {
             #[test]
             fn $test_name() {
                 for val in 0..10 {
+                    let symbol = <$name>::try_from_usize(val).unwrap();
                     assert_eq!(
-                        <$name>::try_from_usize(val),
-                        Some($name {
+                        symbol,
+                        $name {
                             value: <$non_zero>::new(val as $base_ty + 1).unwrap()
-                        })
+                        }
+                    );
+                    assert_eq!(
+                        <$name as Into<$base_ty>>::into(symbol),
+                        val as $base_ty
+                    );
+                    assert_eq!(
+                        symbol,
+                        <$name>::try_from(val as $base_ty).unwrap()
                     );
                 }
+
+                // try_from_usize
                 assert_eq!(
                     <$name>::try_from_usize(<$base_ty>::MAX as usize - 1),
                     Some($name {
@@ -159,6 +186,15 @@ mod tests {
                 );
                 assert_eq!(<$name>::try_from_usize(<$base_ty>::MAX as usize), None);
                 assert_eq!(<$name>::try_from_usize(<usize>::MAX), None);
+
+                // try_from
+                assert_eq!(
+                    <$name>::try_from(<$base_ty>::MAX - 1),
+                    Ok($name {
+                        value: <$non_zero>::new(<$base_ty>::MAX).unwrap()
+                    })
+                );
+                assert!(matches!(<$name>::try_from(<$base_ty>::MAX), Err(_)));
             }
         };
     }
