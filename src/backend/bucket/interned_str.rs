@@ -50,7 +50,7 @@ mod tests {
 
     #[test]
     fn size_of() {
-        use std::mem;
+        use core::mem;
         assert_eq!(mem::size_of::<InternedStr>(), mem::size_of::<&str>());
     }
 }
