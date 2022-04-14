@@ -121,6 +121,9 @@
 //!
 //! Never use this one for real use cases!
 
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+
 #[cfg(feature = "serde-1")]
 mod serde_impl;
 

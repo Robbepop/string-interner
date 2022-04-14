@@ -3,6 +3,8 @@ use crate::{
     StringInterner,
     Symbol,
 };
+#[cfg(not(feature = "std"))]
+use alloc::boxed::Box;
 use core::{
     default::Default,
     fmt,

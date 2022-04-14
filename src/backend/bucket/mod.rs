@@ -14,12 +14,13 @@ use crate::{
     DefaultSymbol,
     Symbol,
 };
+#[cfg(not(feature = "std"))]
+use alloc::string::String;
 use core::{
     iter::Enumerate,
     marker::PhantomData,
     slice,
 };
-
 /// An interner backend that reduces memory allocations by using string buckets.
 ///
 /// # Note
