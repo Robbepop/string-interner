@@ -29,7 +29,7 @@ impl InternedStr {
     #[inline]
     pub(super) fn as_str(&self) -> &str {
         // SAFETY: This is safe since we only ever operate on interned `str`
-        //         that are never moved around in memory to avoid danling
+        //         that are never moved around in memory to avoid dangling
         //         references.
         unsafe { self.ptr.as_ref() }
     }

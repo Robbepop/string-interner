@@ -373,6 +373,34 @@ macro_rules! gen_tests_for_backend {
             let expected_iter = symbols.into_iter().zip(strings);
             assert!(Iterator::eq(expected_iter, &interner));
         }
+
+        #[test]
+        fn shrink_to_fit_works() {
+            let mut interner = StringInterner::with_capacity(100);
+            // Insert 3 unique strings:
+            let aa = interner.get_or_intern("aa").to_usize();
+            let bb = interner.get_or_intern("bb").to_usize();
+            let cc = interner.get_or_intern("cc").to_usize();
+
+            interner.shrink_to_fit();
+
+            assert_eq!(
+                interner.get_or_intern("aa").to_usize(),
+                aa,
+                "'aa' did not produce the same symbol",
+            );
+            assert_eq!(
+                interner.get_or_intern("bb").to_usize(),
+                bb,
+                "'bb' did not produce the same symbol",
+            );
+            assert_eq!(
+                interner.get_or_intern("cc").to_usize(),
+                cc,
+                "'cc' did not produce the same symbol",
+            );
+            assert_eq!(interner.len(), 3);
+        }
     };
 }
 

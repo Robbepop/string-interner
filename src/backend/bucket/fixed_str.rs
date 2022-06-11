@@ -63,4 +63,9 @@ impl FixedString {
     pub fn shrink_to_fit(&mut self) {
         self.contents.shrink_to_fit();
     }
+
+    /// Return a reference to the inner str
+    pub fn as_str(&self) -> &str {
+        self.contents.as_str()
+    }
 }

@@ -55,6 +55,7 @@ use core::{
 #[derive(Debug)]
 pub struct BucketBackend<S = DefaultSymbol> {
     spans: Vec<InternedStr>,
+    unpinned: Vec<usize>,
     head: FixedString,
     full: Vec<String>,
     marker: PhantomData<fn() -> S>,
@@ -79,6 +80,7 @@ impl<S> Default for BucketBackend<S> {
     fn default() -> Self {
         Self {
             spans: Vec::new(),
+            unpinned: Vec::new(),
             head: FixedString::default(),
             full: Vec::new(),
             marker: Default::default(),
@@ -96,6 +98,7 @@ where
     fn with_capacity(cap: usize) -> Self {
         Self {
             spans: Vec::with_capacity(cap),
+            unpinned: Vec::new(),
             head: FixedString::with_capacity(cap),
             full: Vec::new(),
             marker: Default::default(),
@@ -104,11 +107,21 @@ where
 
     #[inline]
     fn intern(&mut self, string: &str) -> Self::Symbol {
-        // SAFETY: This is safe because we never hand out the returned
-        //         interned string instance to the outside and only operate
-        //         on it within this backend.
-        let interned = unsafe { self.alloc(string) };
-        self.push_span(interned)
+        let cap = self.head.capacity();
+        if cap < self.head.len() + string.len() {
+            let new_cap = (usize::max(cap, string.len()) + 1).next_power_of_two();
+            let new_head = FixedString::with_capacity(new_cap);
+            let old_head = core::mem::replace(&mut self.head, new_head);
+            self.full.push(old_head.finish());
+            self.unpinned.clear();
+        }
+        let interned = self
+            .head
+            .push_str(string)
+            .expect("encountered invalid head capacity (2)");
+        let symbol = self.push_span(interned);
+        self.unpinned.push(symbol.to_usize());
+        symbol
     }
 
     #[cfg_attr(feature = "inline-more", inline)]
@@ -118,9 +131,66 @@ where
     }
 
     fn shrink_to_fit(&mut self) {
+        struct SpanInfo {
+            index: usize,
+            address: usize,
+            length: usize,
+        }
+
         self.spans.shrink_to_fit();
-        self.head.shrink_to_fit();
         self.full.shrink_to_fit();
+
+        // `self.head.shrink_to_fit()` could reallocate, so we
+        // save the span info to reassign the spans if that's
+        // the case.
+        // We could store pointers instead of the raw info,
+        // but that could be misused as a pointer. Also, we would have to
+        // modify `self.spans` while accessing the info from the pointers taken
+        // from `self.spans`, and that's pretty unsafe...
+        let unpinned_spans = self
+            .unpinned
+            .iter()
+            .copied()
+            .map(|index| {
+                // SAFETY: The indices in `unpinned` are always created
+                //         by the backend, so they must be always valid.
+                let span = unsafe { self.spans.get_unchecked(index).as_str() };
+                SpanInfo {
+                    index,
+                    address: span.as_ptr() as usize,
+                    length: span.len(),
+                }
+            })
+            .collect::<Vec<_>>();
+        self.head.shrink_to_fit();
+
+        // `head` could be empty if `self` is a new, empty `BucketBackend`,
+        // so we skip doing all these shenanigans in that case.
+        if let Some((first, _)) = unpinned_spans.split_first() {
+            // Could be possible that shrinking didn't reallocate, so
+            // we can skip rewriting the spans.
+            if self.head.as_str().as_ptr() as usize == first.address {
+                return
+            }
+
+            let mut start = 0;
+            let head = &self.head.as_str();
+            for span_info in unpinned_spans {
+                // SAFETY: `start + span_info.length` should be within
+                //         the new head, since shrinking it should
+                //         not change its filled length.
+                let new_span =
+                    unsafe { head.get_unchecked(start..start + span_info.length) };
+                start += span_info.length;
+
+                // SAFETY: The indices in `unpinned` are always created
+                //         by the backend, so they must be always valid.
+                unsafe {
+                    *self.spans.get_unchecked_mut(span_info.index) =
+                        InternedStr::new(new_span)
+                };
+            }
+        }
     }
 
     #[inline]
@@ -151,20 +221,6 @@ where
         self.spans.push(interned);
         symbol
     }
-
-    /// Interns a new string into the backend and returns a reference to it.
-    unsafe fn alloc(&mut self, string: &str) -> InternedStr {
-        let cap = self.head.capacity();
-        if cap < self.head.len() + string.len() {
-            let new_cap = (usize::max(cap, string.len()) + 1).next_power_of_two();
-            let new_head = FixedString::with_capacity(new_cap);
-            let old_head = core::mem::replace(&mut self.head, new_head);
-            self.full.push(old_head.finish());
-        }
-        self.head
-            .push_str(string)
-            .expect("encountered invalid head capacity (2)")
-    }
 }
 
 impl<S> Clone for BucketBackend<S> {
@@ -184,6 +240,7 @@ impl<S> Clone for BucketBackend<S> {
         }
         Self {
             spans,
+            unpinned: self.unpinned.clone(),
             head,
             full: Vec::new(),
             marker: Default::default(),
