@@ -231,16 +231,18 @@ impl<S> Clone for BucketBackend<S> {
             self.head.capacity() + self.full.iter().fold(0, |lhs, rhs| lhs + rhs.len());
         let mut head = FixedString::with_capacity(new_head_cap);
         let mut spans = Vec::with_capacity(self.spans.len());
-        for span in &self.spans {
+        let mut unpinned = Vec::with_capacity(self.spans.len());
+        for (index, span) in self.spans.iter().enumerate() {
             let string = span.as_str();
             let interned = head
                 .push_str(string)
                 .expect("encountered invalid head capacity");
             spans.push(interned);
+            unpinned.push(index)
         }
         Self {
             spans,
-            unpinned: self.unpinned.clone(),
+            unpinned,
             head,
             full: Vec::new(),
             marker: Default::default(),

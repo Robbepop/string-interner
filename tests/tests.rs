@@ -379,8 +379,10 @@ macro_rules! gen_tests_for_backend {
             let mut interner = StringInterner::with_capacity(100);
             // Insert 3 unique strings:
             let aa = interner.get_or_intern("aa").to_usize();
-            let bb = interner.get_or_intern("bb").to_usize();
+            let bb = interner.get_or_intern_static("bb").to_usize();
             let cc = interner.get_or_intern("cc").to_usize();
+            let dd = interner.get_or_intern_static("dd").to_usize();
+            let ee = interner.get_or_intern("ee").to_usize();
 
             interner.shrink_to_fit();
 
@@ -399,7 +401,59 @@ macro_rules! gen_tests_for_backend {
                 cc,
                 "'cc' did not produce the same symbol",
             );
-            assert_eq!(interner.len(), 3);
+            assert_eq!(
+                interner.get_or_intern("dd").to_usize(),
+                dd,
+                "'dd' did not produce the same symbol",
+            );
+            assert_eq!(
+                interner.get_or_intern("ee").to_usize(),
+                ee,
+                "'ee' did not produce the same symbol",
+            );
+            assert_eq!(interner.len(), 5);
+        }
+
+        #[test]
+        fn shrink_to_fit_cloned_works() {
+            let mut interner = StringInterner::with_capacity(100);
+            // Insert 3 unique strings:
+            let aa = interner.get_or_intern("aa").to_usize();
+            let bb = interner.get_or_intern_static("bb").to_usize();
+            let cc = interner.get_or_intern("cc").to_usize();
+            let dd = interner.get_or_intern_static("dd").to_usize();
+            let ee = interner.get_or_intern("ee").to_usize();
+
+            let mut interner = interner.clone();
+
+            interner.shrink_to_fit();
+
+            assert_eq!(
+                interner.get_or_intern("aa").to_usize(),
+                aa,
+                "'aa' did not produce the same symbol",
+            );
+            assert_eq!(
+                interner.get_or_intern("bb").to_usize(),
+                bb,
+                "'bb' did not produce the same symbol",
+            );
+            assert_eq!(
+                interner.get_or_intern("cc").to_usize(),
+                cc,
+                "'cc' did not produce the same symbol",
+            );
+            assert_eq!(
+                interner.get_or_intern("dd").to_usize(),
+                dd,
+                "'dd' did not produce the same symbol",
+            );
+            assert_eq!(
+                interner.get_or_intern("ee").to_usize(),
+                ee,
+                "'ee' did not produce the same symbol",
+            );
+            assert_eq!(interner.len(), 5);
         }
     };
 }
