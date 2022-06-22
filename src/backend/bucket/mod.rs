@@ -55,7 +55,7 @@ use core::{
 #[derive(Debug)]
 pub struct BucketBackend<S = DefaultSymbol> {
     spans: Vec<InternedStr>,
-    unpinned: Vec<usize>,
+    unpinned: Vec<S>,
     head: FixedString,
     full: Vec<String>,
     marker: PhantomData<fn() -> S>,
@@ -120,7 +120,7 @@ where
             .push_str(string)
             .expect("encountered invalid head capacity (2)");
         let symbol = self.push_span(interned);
-        self.unpinned.push(symbol.to_usize());
+        self.unpinned.push(symbol);
         symbol
     }
 
@@ -154,9 +154,9 @@ where
             .map(|index| {
                 // SAFETY: The indices in `unpinned` are always created
                 //         by the backend, so they must be always valid.
-                let span = unsafe { self.spans.get_unchecked(index).as_str() };
+                let span = unsafe { self.spans.get_unchecked(index.to_usize()).as_str() };
                 SpanInfo {
-                    index,
+                    index: index.to_usize(),
                     address: span.as_ptr() as usize,
                     length: span.len(),
                 }
@@ -223,30 +223,27 @@ where
     }
 }
 
-impl<S> Clone for BucketBackend<S> {
+impl<S> Clone for BucketBackend<S>
+where
+    S: Symbol,
+{
     fn clone(&self) -> Self {
         // For performance reasons we copy all cloned strings into a single cloned
         // head string leaving the cloned `full` empty.
         let new_head_cap =
             self.head.capacity() + self.full.iter().fold(0, |lhs, rhs| lhs + rhs.len());
-        let mut head = FixedString::with_capacity(new_head_cap);
-        let mut spans = Vec::with_capacity(self.spans.len());
-        let mut unpinned = Vec::with_capacity(self.spans.len());
-        for (index, span) in self.spans.iter().enumerate() {
-            let string = span.as_str();
-            let interned = head
-                .push_str(string)
-                .expect("encountered invalid head capacity");
-            spans.push(interned);
-            unpinned.push(index)
-        }
-        Self {
-            spans,
-            unpinned,
-            head,
+        let mut cloned = Self {
+            spans: Vec::with_capacity(self.spans.len()),
+            unpinned: Vec::with_capacity(self.spans.len()),
+            head: FixedString::with_capacity(new_head_cap),
             full: Vec::new(),
             marker: Default::default(),
+        };
+        for span in self.spans.iter() {
+            let string = span.as_str();
+            cloned.intern(string);
         }
+        cloned
     }
 }
 
