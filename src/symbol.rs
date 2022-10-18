@@ -5,11 +5,7 @@
 //! method returns `Symbol` types that allow to look-up the original string
 //! using [`StringInterner::resolve`](`crate::StringInterner::resolve`).
 
-use core::num::{
-    NonZeroU16,
-    NonZeroU32,
-    NonZeroUsize,
-};
+use core::num::{NonZeroU16, NonZeroU32, NonZeroUsize};
 
 /// Types implementing this trait can be used as symbols for string interners.
 ///
@@ -66,6 +62,8 @@ macro_rules! gen_symbol_for {
     ) => {
         $( #[$doc] )*
         #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+        #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+        #[cfg_attr(feature = "serde", serde(transparent))]
         pub struct $name {
             value: $non_zero,
         }

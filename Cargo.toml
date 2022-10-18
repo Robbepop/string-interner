@@ -16,7 +16,7 @@ edition = "2021"
 [dependencies]
 cfg-if = "1.0"
 hashbrown = { version = "0.12.0", default-features = false, features = ["ahash"] }
-serde = { version = "1.0", default-features = false, features = ["alloc"], optional = true }
+serde = { version = "1.0", default-features = false, features = ["alloc", "derive"], optional = true }
 
 [dev-dependencies]
 serde_json = "1.0"
