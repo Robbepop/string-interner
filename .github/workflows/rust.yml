@@ -2,7 +2,7 @@ name: Rust - Continuous Integration
 
 on:
   push:
-    branches: [ master ]
+    branches: [ add-publish-pipe ]
   pull_request:
     branches: [ master ]
 
@@ -180,3 +180,26 @@ jobs:
         with:
           name: code-coverage-report
           path: cobertura.xml
+
+  release:
+    needs:
+      - check
+      - test
+      - test-memory
+      - fmt
+      - doc
+      - clippy
+      - audit
+      - miri
+      - coverage
+    uses: ForesightMiningSoftwareCorporation/github/.github/workflows/publish-rust-crate.yml@v1.0.0
+    if: github.event_name == 'push'
+    with:
+      private-registry-host: ssh.shipyard.rs
+      private-registry-name: foresight-mining-software-corporation
+      skip-test: true
+      initial_event_name: ${{ github.event_name }}
+    secrets:
+      github-token: ${{ secrets.GITHUB_TOKEN }}
+      private-registry-private-key: ${{ secrets.CARGO_PRIVATE_REGISTRY_SSH_PRIVATE_KEY }}
+      private-registry-token: ${{ secrets.CARGO_PRIVATE_REGISTRY_TOKEN }}
