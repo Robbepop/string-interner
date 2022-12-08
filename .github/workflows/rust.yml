@@ -2,7 +2,7 @@ name: Rust - Continuous Integration
 
 on:
   push:
-    branches: [ add-publish-pipe ]
+    branches: [ master ]
   pull_request:
     branches: [ master ]
 
