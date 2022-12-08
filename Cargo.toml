@@ -12,6 +12,7 @@ and fast access to the underlying strings.
 """
 categories = ["data-structures"]
 edition = "2021"
+publish = ["foresight-mining-software-corporation"]
 
 [dependencies]
 cfg-if = "1.0"

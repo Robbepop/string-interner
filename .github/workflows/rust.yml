@@ -2,181 +2,203 @@ name: Rust - Continuous Integration
 
 on:
   push:
-    branches: [ master ]
+    branches: [ add-publish-pipe ]
   pull_request:
     branches: [ master ]
 
 jobs:
-  check:
-    name: Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: check
+#  check:
+#    name: Check
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v2
+#      - uses: actions-rs/toolchain@v1
+#        with:
+#          profile: minimal
+#          toolchain: stable
+#          override: true
+#      - uses: actions-rs/cargo@v1
+#        with:
+#          command: check
+#
+#  test:
+#    name: Test
+#    strategy:
+#      matrix:
+#        os: [ubuntu-latest, windows-latest, macos-latest]
+#    runs-on: ${{ matrix.os }}
+#    steps:
+#      - uses: actions/checkout@v2
+#      - uses: actions-rs/toolchain@v1
+#        with:
+#          profile: minimal
+#          toolchain: stable
+#          override: true
+#      - uses: actions-rs/cargo@v1
+#        with:
+#          command: test
+#          args: --release
+#
+#  test-memory:
+#    name: Test Memory Consumption
+#    strategy:
+#      matrix:
+#        os: [ubuntu-latest, windows-latest, macos-latest]
+#    runs-on: ${{ matrix.os }}
+#    steps:
+#      - uses: actions/checkout@v2
+#      - uses: actions-rs/toolchain@v1
+#        with:
+#          profile: minimal
+#          toolchain: stable
+#          override: true
+#      - uses: actions-rs/cargo@v1
+#        with:
+#          command: test
+#          args: --release --features test-allocations -- --test-threads 1 test_memory_consumption
+#
+#  fmt:
+#    name: Formatting
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v2
+#      - uses: actions-rs/toolchain@v1
+#        with:
+#          profile: minimal
+#          toolchain: nightly
+#          override: true
+#          components: rustfmt
+#      - uses: actions-rs/cargo@v1
+#        with:
+#          command: fmt
+#          args: --all -- --check
+#
+#  doc:
+#    name: Documentation
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v2
+#      - uses: actions-rs/toolchain@v1
+#        with:
+#          profile: minimal
+#          toolchain: stable
+#          override: true
+#          components: rust-docs, rust-src
+#      - uses: actions-rs/cargo@v1
+#        env:
+#          RUSTDOCFLAGS: '-D warnings'
+#        with:
+#          command: doc
+#          args: --workspace --no-deps --document-private-items
+#
+#  clippy:
+#    name: Clippy
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v2
+#      - uses: actions-rs/toolchain@v1
+#        with:
+#          profile: minimal
+#          toolchain: stable
+#          override: true
+#          components: clippy
+#      - uses: actions-rs/cargo@v1
+#        with:
+#          command: clippy
+#          args: -- -D warnings
+#
+#  # Currently not working because cargo-outdated is ... outdated
+#  # with respect to Rust edition 2021. (State: 2021-10-27)
+#  #
+#  # outdated:
+#  #   name: Outdated
+#  #   runs-on: ubuntu-latest
+#  #   steps:
+#  #     - uses: actions/checkout@v2
+#  #     - uses: actions-rs/toolchain@v1
+#  #       with:
+#  #         profile: minimal
+#  #         toolchain: stable
+#  #         override: true
+#  #     - uses: actions-rs/cargo@v1
+#  #       with:
+#  #         command: outdated
+#  #         args: --root-deps-only --workspace --exit-code 1
+#
+#  audit:
+#    name: Audit
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v2
+#      - uses: actions-rs/toolchain@v1
+#        with:
+#          profile: minimal
+#          toolchain: stable
+#          override: true
+#      - uses: actions-rs/cargo@v1
+#        with:
+#          command: audit
+#          args: --deny warnings
+#
+#  miri:
+#    name: Miri
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v2
+#      - uses: actions-rs/toolchain@v1
+#        with:
+#          profile: minimal
+#          toolchain: nightly
+#          override: true
+#          components: miri
+#      - uses: actions-rs/cargo@v1
+#        with:
+#          command: miri
+#          args: test
 
-  test:
-    name: Test
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --release
+#  coverage:
+#    name: Coverage
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Checkout repository
+#        uses: actions/checkout@v2
+#      - name: Install stable toolchain
+#        uses: actions-rs/toolchain@v1
+#        with:
+#          toolchain: stable
+#          override: true
+#      - name: Run cargo-tarpaulin
+#        uses: actions-rs/tarpaulin@v0.1
+#        with:
+#          args: '--features test-allocations -- --test-threads 1'
+#      - name: Upload to codecov.io
+#        uses: codecov/codecov-action@v1.0.2
+#        with:
+#          token: ${{secrets.CODECOV_TOKEN}}
+#      - name: Archive code coverage results
+#        uses: actions/upload-artifact@v1
+#        with:
+#          name: code-coverage-report
+#          path: cobertura.xml
 
-  test-memory:
-    name: Test Memory Consumption
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --release --features test-allocations -- --test-threads 1 test_memory_consumption
-
-  fmt:
-    name: Formatting
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
-          override: true
-          components: rustfmt
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
-
-  doc:
-    name: Documentation
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-          components: rust-docs, rust-src
-      - uses: actions-rs/cargo@v1
-        env:
-          RUSTDOCFLAGS: '-D warnings'
-        with:
-          command: doc
-          args: --workspace --no-deps --document-private-items
-
-  clippy:
-    name: Clippy
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-          components: clippy
-      - uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: -- -D warnings
-
-  # Currently not working because cargo-outdated is ... outdated
-  # with respect to Rust edition 2021. (State: 2021-10-27)
-  #
-  # outdated:
-  #   name: Outdated
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions-rs/toolchain@v1
-  #       with:
-  #         profile: minimal
-  #         toolchain: stable
-  #         override: true
-  #     - uses: actions-rs/cargo@v1
-  #       with:
-  #         command: outdated
-  #         args: --root-deps-only --workspace --exit-code 1
-
-  audit:
-    name: Audit
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: audit
-          args: --deny warnings
-
-  miri:
-    name: Miri
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
-          override: true
-          components: miri
-      - uses: actions-rs/cargo@v1
-        with:
-          command: miri
-          args: test
-
-  coverage:
-    name: Coverage
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-      - name: Run cargo-tarpaulin
-        uses: actions-rs/tarpaulin@v0.1
-        with:
-          args: '--features test-allocations -- --test-threads 1'
-      - name: Upload to codecov.io
-        uses: codecov/codecov-action@v1.0.2
-        with:
-          token: ${{secrets.CODECOV_TOKEN}}
-      - name: Archive code coverage results
-        uses: actions/upload-artifact@v1
-        with:
-          name: code-coverage-report
-          path: cobertura.xml
+  release:
+#    needs:
+#      - check
+#      - test
+#      - test-memory
+#      - fmt
+#      - doc
+#      - clippy
+#      - audit
+#      - miri
+    uses: ForesightMiningSoftwareCorporation/github/.github/workflows/publish-rust-crate.yml@v1.0.0
+    if: github.event_name == 'push'
+    with:
+      private-registry-host: ssh.shipyard.rs
+      private-registry-name: foresight-mining-software-corporation
+      skip-test: true
+      initial_event_name: ${{ github.event_name }}
+    secrets:
+      github-token: ${{ secrets.GITHUB_TOKEN }}
+      private-registry-private-key: ${{ secrets.CARGO_PRIVATE_REGISTRY_SSH_PRIVATE_KEY }}
+      private-registry-token: ${{ secrets.CARGO_PRIVATE_REGISTRY_TOKEN }}
