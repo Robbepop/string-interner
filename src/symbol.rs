@@ -5,7 +5,11 @@
 //! method returns `Symbol` types that allow to look-up the original string
 //! using [`StringInterner::resolve`](`crate::StringInterner::resolve`).
 
-use core::num::{NonZeroU16, NonZeroU32, NonZeroUsize};
+use core::num::{
+    NonZeroU16,
+    NonZeroU32,
+    NonZeroUsize,
+};
 
 /// Types implementing this trait can be used as symbols for string interners.
 ///
