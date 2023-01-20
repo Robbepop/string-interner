@@ -1,0 +1,19 @@
+name: Rust - Continuous Integration
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  release:
+    uses: ForesightMiningSoftwareCorporation/github/.github/workflows/publish-rust-crate.yml@v1.0.0
+    with:
+      private-registry-host: ssh.shipyard.rs
+      private-registry-name: foresight-mining-software-corporation
+      initial_event_name: ${{ github.event_name }}
+      skip-test: true
+    secrets:
+      github-token: ${{ secrets.GITHUB_TOKEN }}
+      private-registry-private-key: ${{ secrets.CARGO_PRIVATE_REGISTRY_SSH_PRIVATE_KEY }}
+      private-registry-token: ${{ secrets.CARGO_PRIVATE_REGISTRY_TOKEN }}
