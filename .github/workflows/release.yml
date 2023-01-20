@@ -17,3 +17,4 @@ jobs:
       github-token: ${{ secrets.GITHUB_TOKEN }}
       private-registry-private-key: ${{ secrets.CARGO_PRIVATE_REGISTRY_SSH_PRIVATE_KEY }}
       private-registry-token: ${{ secrets.CARGO_PRIVATE_REGISTRY_TOKEN }}
+      discord-webhook: ${{ secrets.DISCORD_WEBHOOK }}
