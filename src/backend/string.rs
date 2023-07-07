@@ -119,7 +119,7 @@ where
         //           constructed in accordance to valid utf8 byte ranges.
         unsafe {
             core::str::from_utf8_unchecked(
-                &self.buffer.as_bytes()[(span.from as usize)..(span.to as usize)],
+                &self.buffer.as_bytes()[span.from..span.to],
             )
         }
     }
