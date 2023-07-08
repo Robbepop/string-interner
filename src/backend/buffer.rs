@@ -168,7 +168,7 @@ where
         const LEN_USIZE: usize = mem::size_of::<usize>();
         /// According to google the approx. word length is 5.
         const DEFAULT_STR_LEN: usize = 5;
-        let bytes_per_string = DEFAULT_STR_LEN * LEN_USIZE;
+        let bytes_per_string = DEFAULT_STR_LEN + LEN_USIZE;
         Self {
             len_strings: 0,
             buffer: Vec::with_capacity(capacity * bytes_per_string),
