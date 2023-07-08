@@ -118,9 +118,7 @@ where
         //         - The spans we use for `(start..end]` ranges are always
         //           constructed in accordance to valid utf8 byte ranges.
         unsafe {
-            core::str::from_utf8_unchecked(
-                &self.buffer.as_bytes()[span.from..span.to],
-            )
+            core::str::from_utf8_unchecked(&self.buffer.as_bytes()[span.from..span.to])
         }
     }
 
