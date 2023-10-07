@@ -70,6 +70,20 @@ macro_rules! gen_symbol_for {
             value: $non_zero,
         }
 
+        impl $name {
+            /// Creates an invalid symbol that can be used as a placeholder.
+            ///
+            /// # Safety
+            ///
+            /// Trying to resolve returned symbol is always undefined behavior.
+            #[inline]
+            pub const unsafe fn new_uninit() -> Self {
+                unsafe {
+                    Self { value: <$non_zero>::new_unchecked(0) }
+                }
+            }
+        }
+
         impl Symbol for $name {
             #[inline]
             fn try_from_usize(index: usize) -> Option<Self> {
