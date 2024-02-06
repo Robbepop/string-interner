@@ -1,14 +1,6 @@
 use std::{
-    alloc::{
-        GlobalAlloc,
-        Layout,
-        System,
-    },
-    sync::atomic::{
-        AtomicBool,
-        AtomicUsize,
-        Ordering,
-    },
+    alloc::{GlobalAlloc, Layout, System},
+    sync::atomic::{AtomicBool, AtomicUsize, Ordering},
 };
 
 pub struct TracingAllocator {
@@ -112,7 +104,7 @@ impl TracedStats {
     fn push_allocations(&self, layout: Layout) {
         let size = layout.size();
         if !self.is_active() || size == 0 {
-            return
+            return;
         }
         self.len_allocations.fetch_add(1, Ordering::SeqCst);
         self.current_memory_usage.fetch_add(size, Ordering::SeqCst);
@@ -122,7 +114,7 @@ impl TracedStats {
     fn push_deallocations(&self, layout: Layout) {
         let size = layout.size();
         if !self.is_active() || size == 0 {
-            return
+            return;
         }
         self.len_deallocations.fetch_add(1, Ordering::SeqCst);
         self.current_memory_usage.fetch_sub(size, Ordering::SeqCst);

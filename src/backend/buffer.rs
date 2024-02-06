@@ -1,17 +1,8 @@
 #![cfg(feature = "backends")]
 
 use super::Backend;
-use crate::{
-    compat::Vec,
-    symbol::expect_valid_symbol,
-    DefaultSymbol,
-    Symbol,
-};
-use core::{
-    marker::PhantomData,
-    mem,
-    str,
-};
+use crate::{compat::Vec, symbol::expect_valid_symbol, DefaultSymbol, Symbol};
+use core::{marker::PhantomData, mem, str};
 
 /// An interner backend that appends all interned string information in a single buffer.
 ///
@@ -207,7 +198,7 @@ fn encode_var_usize(buffer: &mut Vec<u8>, mut value: usize) -> usize {
     if value <= 0x7F {
         // Shortcut the common case for low value.
         buffer.push(value as u8);
-        return 1
+        return 1;
     }
     let mut len_chunks = 0;
     loop {
@@ -217,7 +208,7 @@ fn encode_var_usize(buffer: &mut Vec<u8>, mut value: usize) -> usize {
         buffer.push(chunk);
         len_chunks += 1;
         if value == 0 {
-            break
+            break;
         }
     }
     len_chunks
@@ -236,7 +227,7 @@ fn encode_var_usize(buffer: &mut Vec<u8>, mut value: usize) -> usize {
 unsafe fn decode_var_usize_unchecked(buffer: &[u8]) -> (usize, usize) {
     let first = unsafe { *buffer.get_unchecked(0) };
     if first <= 0x7F_u8 {
-        return (first as usize, 1)
+        return (first as usize, 1);
     }
     let mut result: usize = 0;
     let mut i = 0;
@@ -245,7 +236,7 @@ unsafe fn decode_var_usize_unchecked(buffer: &[u8]) -> (usize, usize) {
         let shifted = ((byte & 0x7F_u8) as usize) << ((i * 7) as u32);
         result += shifted;
         if (byte & 0x80) == 0 {
-            break
+            break;
         }
         i += 1;
     }
@@ -259,7 +250,7 @@ unsafe fn decode_var_usize_unchecked(buffer: &[u8]) -> (usize, usize) {
 fn decode_var_usize(buffer: &[u8]) -> Option<(usize, usize)> {
     if !buffer.is_empty() && buffer[0] <= 0x7F_u8 {
         // Shortcut the common case for low values.
-        return Some((buffer[0] as usize, 1))
+        return Some((buffer[0] as usize, 1));
     }
     let mut result: usize = 0;
     let mut i = 0;
@@ -268,7 +259,7 @@ fn decode_var_usize(buffer: &[u8]) -> Option<(usize, usize)> {
         let shifted = ((byte & 0x7F_u8) as usize).checked_shl((i * 7) as u32)?;
         result = result.checked_add(shifted)?;
         if (byte & 0x80) == 0 {
-            break
+            break;
         }
         i += 1;
     }
@@ -277,10 +268,7 @@ fn decode_var_usize(buffer: &[u8]) -> Option<(usize, usize)> {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        decode_var_usize,
-        encode_var_usize,
-    };
+    use super::{decode_var_usize, encode_var_usize};
     #[cfg(not(feature = "std"))]
     use alloc::vec::Vec;
 
@@ -450,14 +438,14 @@ where
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.backend.resolve_index_to_str(self.current).and_then(
-            |(string, next_string_index)| {
+        self.backend
+            .resolve_index_to_str(self.current)
+            .and_then(|(string, next_string_index)| {
                 let symbol = S::try_from_usize(self.current)?;
                 self.current = next_string_index;
                 self.yielded += 1;
                 Some((symbol, string))
-            },
-        )
+            })
     }
 }
 

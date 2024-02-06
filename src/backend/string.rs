@@ -2,19 +2,12 @@
 
 use super::Backend;
 use crate::{
-    compat::{
-        String,
-        Vec,
-    },
+    compat::{String, Vec},
     symbol::expect_valid_symbol,
     DefaultSymbol,
     Symbol,
 };
-use core::{
-    iter::Enumerate,
-    marker::PhantomData,
-    slice,
-};
+use core::{iter::Enumerate, marker::PhantomData, slice};
 
 /// An interner backend that accumulates all interned string contents into one string.
 ///
@@ -66,11 +59,11 @@ where
 {
     fn eq(&self, other: &Self) -> bool {
         if self.ends.len() != other.ends.len() {
-            return false
+            return false;
         }
         for ((_, lhs), (_, rhs)) in self.into_iter().zip(other) {
             if lhs != rhs {
-                return false
+                return false;
             }
         }
         true
@@ -117,9 +110,7 @@ where
         //           method.
         //         - The spans we use for `(start..end]` ranges are always
         //           constructed in accordance to valid utf8 byte ranges.
-        unsafe {
-            core::str::from_utf8_unchecked(&self.buffer.as_bytes()[span.from..span.to])
-        }
+        unsafe { core::str::from_utf8_unchecked(&self.buffer.as_bytes()[span.from..span.to]) }
     }
 
     /// Returns the span for the given symbol if any.
