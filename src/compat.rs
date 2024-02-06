@@ -10,7 +10,6 @@ pub use ::hashbrown::{
 cfg_if! {
     if #[cfg(feature = "std")] {
         pub use ::std::{
-            vec,
             vec::Vec,
             string::{String, ToString},
             boxed::Box,
