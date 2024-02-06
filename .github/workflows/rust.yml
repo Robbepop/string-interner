@@ -7,19 +7,39 @@ on:
     branches: [ master ]
 
 jobs:
-  check:
-    name: Check
-    runs-on: ubuntu-latest
+  build:
+    name: Build
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - uses: actions-rs/cargo@v1
+          targets: wasm32-unknown-unknown, thumbv7em-none-eabi
+      - name: Set up Cargo cache
+        uses: actions/cache@v4
+        continue-on-error: false
         with:
-          command: check
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            ~/target/
+          key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-test-
+      - name: Checkout Submodules
+        run: git submodule update --init --recursive
+      - name: Build
+        run: cargo build
+      - name: Build (All Features)
+        run: cargo build --all-features
+      - name: Build (no_std)
+        run: cargo build --no-default-features --target thumbv7em-none-eabi
+      - name: Build (Wasm)
+        run: cargo build --no-default-features --target wasm32-unknown-unknown
 
   test:
     name: Test
