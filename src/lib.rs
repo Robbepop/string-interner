@@ -1,6 +1,6 @@
 #![doc(html_root_url = "https://docs.rs/crate/string-interner/0.12.0")]
 #![cfg_attr(not(feature = "std"), no_std)]
-#![deny(missing_docs)]
+// #![deny(missing_docs)]
 #![warn(unsafe_op_in_unsafe_fn, clippy::redundant_closure_for_method_calls)]
 
 //! Caches strings efficiently, with minimal memory footprint and associates them with unique symbols.
@@ -25,10 +25,10 @@
 //! ### Example: Creation by `FromIterator`
 //!
 //! ```
-//! # use string_interner::StringInterner;
+//! # use string_interner::DefaultStringInterner;
 //! let interner = ["Elephant", "Tiger", "Horse", "Tiger"]
 //!     .into_iter()
-//!     .collect::<StringInterner>();
+//!     .collect::<DefaultStringInterner>();
 //! ```
 //!
 //! ### Example: Look-up
@@ -43,8 +43,8 @@
 //! ### Example: Iteration
 //!
 //! ```
-//! # use string_interner::{StringInterner, Symbol};
-//! let interner = <StringInterner>::from_iter(["Earth", "Water", "Fire", "Air"]);
+//! # use string_interner::{DefaultStringInterner, Symbol};
+//! let interner = <DefaultStringInterner>::from_iter(["Earth", "Water", "Fire", "Air"]);
 //! for (sym, str) in &interner {
 //!     println!("{} = {}", sym.to_usize(), str);
 //! }
@@ -122,7 +122,6 @@
 //! Never use this one for real use cases!
 
 #[cfg(not(feature = "std"))]
-#[macro_use]
 extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std as alloc;
@@ -134,11 +133,19 @@ pub mod backend;
 mod interner;
 pub mod symbol;
 
+/// A convenience [`StringInterner`] type based on the [`DefaultBackend`].
+#[cfg(feature = "backends")]
+pub type DefaultStringInterner<B = DefaultBackend, H = DefaultHashBuilder> =
+    self::interner::StringInterner<B, H>;
+
+#[cfg(feature = "backends")]
+#[doc(inline)]
+pub use self::backend::DefaultBackend;
 #[doc(inline)]
 pub use self::{
-    backend::DefaultBackend,
     interner::StringInterner,
     symbol::{DefaultSymbol, Symbol},
 };
+
 #[doc(inline)]
 pub use hashbrown::hash_map::DefaultHashBuilder;

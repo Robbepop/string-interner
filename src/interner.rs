@@ -1,4 +1,4 @@
-use crate::{backend::Backend, DefaultBackend, DefaultSymbol, Symbol};
+use crate::{backend::Backend, Symbol};
 use core::{
     fmt,
     fmt::{Debug, Formatter},
@@ -28,10 +28,9 @@ where
 ///     - This maps from `string` type to `symbol` type.
 /// - [`StringInterner::resolve`]: To resolve your already interned strings.
 ///     - This maps from `symbol` type to `string` type.
-pub struct StringInterner<B = DefaultBackend<DefaultSymbol>, H = DefaultHashBuilder>
+pub struct StringInterner<B, H = DefaultHashBuilder>
 where
     B: Backend,
-    H: BuildHasher,
 {
     dedup: HashMap<<B as Backend>::Symbol, (), ()>,
     hasher: H,
@@ -53,7 +52,7 @@ where
 }
 
 #[cfg(feature = "backends")]
-impl Default for StringInterner {
+impl Default for StringInterner<crate::DefaultBackend> {
     #[cfg_attr(feature = "inline-more", inline)]
     fn default() -> Self {
         StringInterner::new()
