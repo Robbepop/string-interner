@@ -1,4 +1,4 @@
-use crate::{backend::Backend, DefaultBackend, Symbol};
+use crate::{backend::Backend, Symbol};
 use core::{
     fmt,
     fmt::{Debug, Formatter},
@@ -52,7 +52,7 @@ where
 }
 
 #[cfg(feature = "backends")]
-impl Default for StringInterner<DefaultBackend> {
+impl Default for StringInterner<crate::DefaultBackend> {
     #[cfg_attr(feature = "inline-more", inline)]
     fn default() -> Self {
         StringInterner::new()

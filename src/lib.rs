@@ -140,9 +140,12 @@ pub type DefaultStringInterner<B = DefaultBackend, H = DefaultHashBuilder> =
 
 #[doc(inline)]
 pub use self::{
-    backend::DefaultBackend,
     interner::StringInterner,
     symbol::{DefaultSymbol, Symbol},
 };
+#[cfg(feature = "backends")]
+#[doc(inline)]
+pub use self::backend::DefaultBackend;
+
 #[doc(inline)]
 pub use hashbrown::hash_map::DefaultHashBuilder;

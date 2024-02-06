@@ -16,11 +16,11 @@ pub use self::{
     simple::SimpleBackend,
     string::StringBackend,
 };
-use crate::{DefaultSymbol, Symbol};
+use crate::Symbol;
 
 /// The default backend recommended for general use.
 #[cfg(feature = "backends")]
-pub type DefaultBackend = StringBackend<DefaultSymbol>;
+pub type DefaultBackend = StringBackend<crate::DefaultSymbol>;
 
 /// Types implementing this trait may act as backends for the string interner.
 ///
