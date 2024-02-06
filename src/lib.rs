@@ -138,14 +138,14 @@ pub mod symbol;
 pub type DefaultStringInterner<B = DefaultBackend, H = DefaultHashBuilder> =
     self::interner::StringInterner<B, H>;
 
+#[cfg(feature = "backends")]
+#[doc(inline)]
+pub use self::backend::DefaultBackend;
 #[doc(inline)]
 pub use self::{
     interner::StringInterner,
     symbol::{DefaultSymbol, Symbol},
 };
-#[cfg(feature = "backends")]
-#[doc(inline)]
-pub use self::backend::DefaultBackend;
 
 #[doc(inline)]
 pub use hashbrown::hash_map::DefaultHashBuilder;
