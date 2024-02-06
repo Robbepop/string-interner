@@ -29,15 +29,25 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Set up Cargo cache
+        uses: actions/cache@v4
+        continue-on-error: false
         with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --release
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            ~/target/
+          key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-test-
+      - name: Checkout Submodules
+        run: git submodule update --init --recursive
+      - name: Test (Release)
+        env:
+          RUSTFLAGS: "--cfg debug_assertions"
+        run: cargo test --release
 
   test-memory:
     name: Test Memory Consumption
