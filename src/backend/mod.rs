@@ -16,21 +16,11 @@ pub use self::{
     simple::SimpleBackend,
     string::StringBackend,
 };
-use crate::Symbol;
+use crate::{DefaultSymbol, Symbol};
 
-#[cfg(not(feature = "backends"))]
-/// Indicates that no proper backend is in use.
-pub struct NoBackend<S>(core::marker::PhantomData<S>);
-
-cfg_if::cfg_if! {
-    if #[cfg(feature = "backends")] {
-        /// The default backend recommended for general use.
-        pub type DefaultBackend<S> = StringBackend<S>;
-    } else {
-        /// The `backends` crate feature is disabled thus there is no default backend.
-        pub type DefaultBackend<S> = NoBackend<S>;
-    }
-}
+/// The default backend recommended for general use.
+#[cfg(feature = "backends")]
+pub type DefaultBackend = StringBackend<DefaultSymbol>;
 
 /// Types implementing this trait may act as backends for the string interner.
 ///
