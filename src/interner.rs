@@ -1,16 +1,11 @@
-use crate::{
-    backend::Backend,
-    compat::{DefaultHashBuilder, HashMap},
-    DefaultBackend,
-    DefaultSymbol,
-    Symbol,
-};
+use crate::{backend::Backend, DefaultBackend, DefaultSymbol, Symbol};
 use core::{
     fmt,
     fmt::{Debug, Formatter},
     hash::{BuildHasher, Hash, Hasher},
     iter::FromIterator,
 };
+use hashbrown::{hash_map::DefaultHashBuilder, HashMap};
 
 /// Creates the `u64` hash value for the given value using the given hash builder.
 fn make_hash<T>(builder: &impl BuildHasher, value: &T) -> u64
@@ -215,7 +210,7 @@ where
             //         we receive from our backend making them valid.
             string == unsafe { backend.resolve_unchecked(*symbol) }
         });
-        use crate::compat::hash_map::RawEntryMut;
+        use hashbrown::hash_map::RawEntryMut;
         let (&mut symbol, &mut ()) = match entry {
             RawEntryMut::Occupied(occupied) => occupied.into_key_value(),
             RawEntryMut::Vacant(vacant) => {

@@ -1,12 +1,8 @@
 #![cfg(feature = "backends")]
 
 use super::Backend;
-use crate::{
-    compat::{String, Vec},
-    symbol::expect_valid_symbol,
-    DefaultSymbol,
-    Symbol,
-};
+use crate::{symbol::expect_valid_symbol, DefaultSymbol, Symbol};
+use alloc::{string::String, vec::Vec};
 use core::{iter::Enumerate, marker::PhantomData, slice};
 
 /// An interner backend that accumulates all interned string contents into one string.
