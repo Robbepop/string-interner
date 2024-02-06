@@ -1,24 +1,14 @@
 use crate::{
     backend::Backend,
-    compat::{
-        DefaultHashBuilder,
-        HashMap,
-    },
+    compat::{DefaultHashBuilder, HashMap},
     DefaultBackend,
     DefaultSymbol,
     Symbol,
 };
 use core::{
     fmt,
-    fmt::{
-        Debug,
-        Formatter,
-    },
-    hash::{
-        BuildHasher,
-        Hash,
-        Hasher,
-    },
+    fmt::{Debug, Formatter},
+    hash::{BuildHasher, Hash, Hasher},
     iter::FromIterator,
 };
 
@@ -271,10 +261,7 @@ where
     /// If the interner already interns the maximum number of strings possible
     /// by the chosen symbol type.
     #[inline]
-    pub fn get_or_intern_static(
-        &mut self,
-        string: &'static str,
-    ) -> <B as Backend>::Symbol {
+    pub fn get_or_intern_static(&mut self, string: &'static str) -> <B as Backend>::Symbol {
         self.get_or_intern_using(string, B::intern_static)
     }
 
