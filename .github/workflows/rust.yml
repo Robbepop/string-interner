@@ -77,26 +77,17 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --release --features test-allocations -- --test-threads 1 test_memory_consumption
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Test (Memory Consumption)
+        run: cargo test --release --features test-allocations -- --test-threads 1 test_memory_consumption
 
   fmt:
     name: Formatting
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@nightly
         with:
-          profile: minimal
-          toolchain: nightly
-          override: true
           components: rustfmt
       - uses: actions-rs/cargo@v1
         with:
@@ -108,80 +99,53 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
-          toolchain: stable
-          override: true
           components: rust-docs, rust-src
-      - uses: actions-rs/cargo@v1
+      - name: Check Docs
         env:
           RUSTDOCFLAGS: '-D warnings'
-        with:
-          command: doc
-          args: --workspace --no-deps --document-private-items
+        run: cargo doc --workspace --no-deps --document-private-items
 
   clippy:
     name: Clippy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@nightly
         with:
-          profile: minimal
-          toolchain: stable
-          override: true
           components: clippy
-      - uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: -- -D warnings
+      - name: Check Clippy
+        run: cargo clippy -- -D warnings
 
   outdated:
     name: Outdated
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: outdated
-          args: --root-deps-only --workspace --exit-code 1
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check Dependencies
+        run: cargo outdated --root-deps-only --workspace --exit-code 1
 
   audit:
     name: Audit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: audit
-          args: --deny warnings
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Audit Dependencies
+        run: cargo audit --deny warnings
 
   miri:
     name: Miri
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@nightly
         with:
-          profile: minimal
-          toolchain: nightly
-          override: true
           components: miri
-      - uses: actions-rs/cargo@v1
-        with:
-          command: miri
-          args: test
+      - name: Test with Miri
+        run: cargo miri test
 
   coverage:
     name: Coverage
@@ -189,11 +153,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+      - uses: dtolnay/rust-toolchain@stable
       - name: Run cargo-tarpaulin
         uses: actions-rs/tarpaulin@v0.1
         with:
