@@ -122,20 +122,23 @@
 //! Never use this one for real use cases!
 
 #[cfg(not(feature = "std"))]
+#[macro_use]
 extern crate alloc;
+#[cfg(feature = "std")]
+extern crate std as alloc;
 
 #[cfg(feature = "serde-1")]
 mod serde_impl;
 
 pub mod backend;
-mod compat;
 mod interner;
 pub mod symbol;
 
 #[doc(inline)]
 pub use self::{
     backend::DefaultBackend,
-    compat::DefaultHashBuilder,
     interner::StringInterner,
     symbol::{DefaultSymbol, Symbol},
 };
+#[doc(inline)]
+pub use hashbrown::hash_map::DefaultHashBuilder;

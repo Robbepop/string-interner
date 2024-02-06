@@ -1,7 +1,8 @@
 #![cfg(feature = "backends")]
 
 use super::Backend;
-use crate::{compat::Vec, symbol::expect_valid_symbol, DefaultSymbol, Symbol};
+use crate::{symbol::expect_valid_symbol, DefaultSymbol, Symbol};
+use alloc::vec::Vec;
 use core::{marker::PhantomData, mem, str};
 
 /// An interner backend that appends all interned string information in a single buffer.
