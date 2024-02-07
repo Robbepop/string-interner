@@ -1,5 +1,13 @@
 # Release Notes
 
+## 0.15.0 - 2024/02/08
+
+## Changed
+
+- Update to `hashbrown` version `0.14.0`. (https://github.com/Robbepop/string-interner/pull/58)
+- Improve `no_std` support. (https://github.com/Robbepop/string-interner/pull/44)
+- Fix bug in `BufferBackend::with_capacity` method. (https://github.com/Robbepop/string-interner/pull/54)
+
 ## 0.14.0 - 2021/10/27
 
 ## Added
