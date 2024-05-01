@@ -299,6 +299,26 @@ macro_rules! gen_tests_for_backend {
         }
 
         #[test]
+        fn resolve_unchecked_works() {
+            let mut interner = StringInterner::new();
+            // Insert 3 unique strings:
+            let aa = interner.get_or_intern("aa");
+            let bb = interner.get_or_intern("bb");
+            let cc = interner.get_or_intern("cc");
+            assert_eq!(interner.len(), 3);
+            // Resolve valid symbols:
+            assert_eq!(unsafe { interner.resolve_unchecked(aa) }, "aa");
+            assert_eq!(unsafe { interner.resolve_unchecked(bb) }, "bb");
+            assert_eq!(unsafe { interner.resolve_unchecked(cc) }, "cc");
+            assert_eq!(interner.len(), 3);
+            // Resolve invalid symbols:
+            let dd = expect_valid_symbol(1000);
+            assert_ne!(aa, dd);
+            assert_ne!(bb, dd);
+            assert_ne!(cc, dd);
+        }
+
+        #[test]
         fn get_works() {
             let mut interner = StringInterner::new();
             // Insert 3 unique strings:
