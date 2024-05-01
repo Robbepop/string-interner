@@ -34,10 +34,10 @@ pub trait BackendStats {
 }
 
 impl BackendStats for backend::BucketBackend<DefaultSymbol> {
-    const MIN_OVERHEAD: f64 = 2.1;
-    const MAX_OVERHEAD: f64 = 2.33;
-    const MAX_ALLOCATIONS: usize = 66;
-    const MAX_DEALLOCATIONS: usize = 43;
+    const MIN_OVERHEAD: f64 = 2.2;
+    const MAX_OVERHEAD: f64 = 3.1;
+    const MAX_ALLOCATIONS: usize = 65;
+    const MAX_DEALLOCATIONS: usize = 42;
     const NAME: &'static str = "BucketBackend";
 }
 
@@ -359,6 +359,34 @@ macro_rules! gen_tests_for_backend {
             let symbols = strings.iter().map(|s| interner.get_or_intern(s)).collect::<Vec<_>>();
             let expected_iter = symbols.into_iter().zip(strings);
             assert!(Iterator::eq(expected_iter, &interner));
+        }
+
+        #[test]
+        fn shrink_to_fit_works() {
+            let mut interner = StringInterner::new();
+            // Insert 3 unique strings:
+            let aa = interner.get_or_intern("aa").to_usize();
+            let bb = interner.get_or_intern("bb").to_usize();
+            let cc = interner.get_or_intern("cc").to_usize();
+
+            interner.shrink_to_fit();
+
+            assert_eq!(
+                interner.get_or_intern("aa").to_usize(),
+                aa,
+                "'aa' did not produce the same symbol",
+            );
+            assert_eq!(
+                interner.get_or_intern("bb").to_usize(),
+                bb,
+                "'bb' did not produce the same symbol",
+            );
+            assert_eq!(
+                interner.get_or_intern("cc").to_usize(),
+                cc,
+                "'cc' did not produce the same symbol",
+            );
+            assert_eq!(interner.len(), 3);
         }
     };
 }

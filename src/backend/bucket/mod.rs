@@ -114,7 +114,8 @@ where
 
     fn shrink_to_fit(&mut self) {
         self.spans.shrink_to_fit();
-        self.head.shrink_to_fit();
+        // Commenting out the below line fixes: https://github.com/Robbepop/string-interner/issues/46
+        // self.head.shrink_to_fit();
         self.full.shrink_to_fit();
     }
 
