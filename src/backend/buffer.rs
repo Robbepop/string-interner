@@ -107,7 +107,7 @@ fn decode_len_backwards(bytes: &[u8; LEN_LOOKBEHIND]) -> usize {
     let short_len = bytes[LEN_LOOKBEHIND - SHORT_LEN] as usize;
     let long_len_bytes = <&[u8; LONG_LEN]>::try_from(&bytes[..LONG_LEN]).unwrap();
     let long_len = usize::from_le_bytes(*long_len_bytes);
-    if short_len == SENTINEL_SHORT_LEN as usize{
+    if short_len == SENTINEL_SHORT_LEN as usize {
         long_len
     } else {
         short_len
@@ -147,8 +147,7 @@ where
     unsafe fn resolve_index_to_str_unchecked(&self, index: usize) -> &str {
         // SAFETY: The function is marked unsafe so that the caller guarantees
         //         that required invariants are checked.
-        let len_bytes =
-            unsafe { self.buffer.get_unchecked(index - LEN_LOOKBEHIND..index) };
+        let len_bytes = unsafe { self.buffer.get_unchecked(index - LEN_LOOKBEHIND..index) };
         let len_bytes = <&[u8; LEN_LOOKBEHIND]>::try_from(len_bytes).unwrap();
         let len = decode_len_backwards(len_bytes);
         let str_bytes = unsafe { self.buffer.get_unchecked(index..index + len) };
@@ -269,7 +268,7 @@ where
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if self.backend.len_strings == self.yielded {
-            return None
+            return None;
         }
         // Parse length forwards, not backwards. To avoid the need for padding at the *end* of the buffer,
         // when decoding forwards we use branchy code, not branchless.
@@ -285,8 +284,7 @@ where
                     .buffer
                     .get_unchecked(i + SHORT_LEN..i + SHORT_LEN + LONG_LEN)
             };
-            let len = usize::from_ne_bytes(<[u8; LONG_LEN]>::try_from(len_bytes).unwrap())
-                as usize;
+            let len = usize::from_ne_bytes(<[u8; LONG_LEN]>::try_from(len_bytes).unwrap()) as usize;
             (len, SHORT_LEN + LONG_LEN + SHORT_LEN)
         } else {
             (short_len as usize, SHORT_LEN)
