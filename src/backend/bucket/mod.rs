@@ -30,18 +30,20 @@ use core::{iter::Enumerate, marker::PhantomData, slice};
 /// - **Allocations:** The number of allocations performed by the backend.
 /// - **Footprint:** The total heap memory consumed by the backend.
 /// - **Contiguous:** True if the returned symbols have contiguous values.
+/// - **Iteration:** Efficiency of iterating over the interned strings.
 ///
 /// Rating varies between **bad**, **ok**, **good** and **best**.
 ///
 /// | Scenario    |  Rating  |
 /// |:------------|:--------:|
 /// | Fill        | **good** |
-/// | Resolve     | **ok**   |
+/// | Resolve     | **best**   |
 /// | Allocations | **good** |
 /// | Footprint   | **ok**   |
 /// | Supports `get_or_intern_static` | **yes** |
 /// | `Send` + `Sync` | **yes** |
 /// | Contiguous  | **yes**  |
+/// | Iteration   | **best** |
 #[derive(Debug)]
 pub struct BucketBackend<S = DefaultSymbol> {
     spans: Vec<InternedStr>,
@@ -81,6 +83,9 @@ where
     S: Symbol,
 {
     type Symbol = S;
+    type Iter<'a> = Iter<'a, S>
+    where
+        Self: 'a;
 
     #[cfg_attr(feature = "inline-more", inline)]
     fn with_capacity(cap: usize) -> Self {
@@ -123,6 +128,11 @@ where
         // SAFETY: The function is marked unsafe so that the caller guarantees
         //         that required invariants are checked.
         unsafe { self.spans.get_unchecked(symbol.to_usize()).as_str() }
+    }
+
+    #[inline]
+    fn iter(&self) -> Self::Iter<'_> {
+        Iter::new(self)
     }
 }
 
@@ -202,7 +212,7 @@ where
 
     #[cfg_attr(feature = "inline-more", inline)]
     fn into_iter(self) -> Self::IntoIter {
-        Self::IntoIter::new(self)
+        self.iter()
     }
 }
 

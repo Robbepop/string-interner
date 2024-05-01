@@ -269,6 +269,12 @@ where
     pub fn resolve(&self, symbol: <B as Backend>::Symbol) -> Option<&str> {
         self.backend.resolve(symbol)
     }
+
+    /// Returns an iterator that yields all interned strings and their symbols.
+    #[inline]
+    pub fn iter(&self) -> <B as Backend>::Iter<'_> {
+        self.backend.iter()
+    }
 }
 
 impl<B, H, T> FromIterator<T> for StringInterner<B, H>

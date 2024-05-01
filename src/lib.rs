@@ -89,14 +89,16 @@
 //! - **Allocations:** The number of allocations performed by the backend.
 //! - **Footprint:** The total heap memory consumed by the backend.
 //! - **Contiguous:** True if the returned symbols have contiguous values.
+//! - **Iteration:** Efficiency of iterating over the interned strings.
 //!
 //! | **Property** | **BucketBackend** | **StringBackend** | **BufferBackend** |
 //! |:-------------|:-----------------:|:-----------------:|:-----------------:|
 //! | **Fill**     | ok                | good              | best              |
-//! | **Resolve**  | ok                | good              | bad               |
+//! | **Resolve**  | best              | good              | bad               |
 //! | Allocations  | ok                | good              | best              |
 //! | Footprint    | ok                | good              | best              |
 //! | Contiguous   | yes               | yes               | no                |
+//! | Iteration    | best              | good              | bad               |
 //!
 //! ## When to use which backend?
 //!
