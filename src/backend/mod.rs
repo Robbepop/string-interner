@@ -31,6 +31,11 @@ pub trait Backend: Default {
     /// The symbol used by the string interner backend.
     type Symbol: Symbol;
 
+    /// The iterator over the symbols and their strings.
+    type Iter<'a>: Iterator<Item = (Self::Symbol, &'a str)>
+    where
+        Self: 'a;
+
     /// Creates a new backend for the given capacity.
     ///
     /// The capacity denotes how many strings are expected to be interned.
@@ -74,4 +79,7 @@ pub trait Backend: Default {
     /// [`intern_static`](`Backend::intern_static`) methods of the same
     /// interner backend.
     unsafe fn resolve_unchecked(&self, symbol: Self::Symbol) -> &str;
+
+    /// Creates an iterator that yields all interned strings and their symbols.
+    fn iter(&self) -> Self::Iter<'_>;
 }

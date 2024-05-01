@@ -23,6 +23,7 @@ use core::{iter::Enumerate, marker::PhantomData, slice};
 /// - **Allocations:** The number of allocations performed by the backend.
 /// - **Footprint:** The total heap memory consumed by the backend.
 /// - **Contiguous:** True if the returned symbols have contiguous values.
+/// - **Iteration:** Efficiency of iterating over the interned strings.
 ///
 /// Rating varies between **bad**, **ok**, **good** and **best**.
 ///
@@ -35,6 +36,7 @@ use core::{iter::Enumerate, marker::PhantomData, slice};
 /// | Supports `get_or_intern_static` | **no** |
 /// | `Send` + `Sync` | **yes** |
 /// | Contiguous  | **yes**  |
+/// | Iteration   | **good** |
 #[derive(Debug)]
 pub struct StringBackend<S = DefaultSymbol> {
     ends: Vec<usize>,
@@ -147,6 +149,9 @@ where
     S: Symbol,
 {
     type Symbol = S;
+    type Iter<'a> = Iter<'a, S>
+    where
+        Self: 'a;
 
     #[cfg_attr(feature = "inline-more", inline)]
     fn with_capacity(cap: usize) -> Self {
@@ -181,6 +186,11 @@ where
         //         that required invariants are checked.
         unsafe { self.span_to_str(self.symbol_to_span_unchecked(symbol)) }
     }
+
+    #[inline]
+    fn iter(&self) -> Self::Iter<'_> {
+        Iter::new(self)
+    }
 }
 
 impl<'a, S> IntoIterator for &'a StringBackend<S>
@@ -192,7 +202,7 @@ where
 
     #[cfg_attr(feature = "inline-more", inline)]
     fn into_iter(self) -> Self::IntoIter {
-        Self::IntoIter::new(self)
+        self.iter()
     }
 }
 
