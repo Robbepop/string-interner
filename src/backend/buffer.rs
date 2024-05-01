@@ -110,15 +110,15 @@ where
     unsafe fn resolve_index_to_str_unchecked(&self, index: usize) -> &str {
         // SAFETY: The function is marked unsafe so that the caller guarantees
         //         that required invariants are checked.
-        let slice_len = unsafe { self.buffer.get_unchecked(index..) };
+        let bytes = unsafe { self.buffer.get_unchecked(index..) };
         // SAFETY: The function is marked unsafe so that the caller guarantees
         //         that required invariants are checked.
-        let (str_len, str_len_bytes) = unsafe { decode_var_usize_unchecked(slice_len) };
-        let start_str = index + str_len_bytes;
+        let (str_len, str_len_bytes) = unsafe { decode_var_usize_unchecked(bytes) };
+        let index_str = index + str_len_bytes;
         let str_bytes =
             // SAFETY: The function is marked unsafe so that the caller guarantees
             //         that required invariants are checked.
-            unsafe { self.buffer.get_unchecked(start_str..start_str + str_len) };
+            unsafe { self.buffer.get_unchecked(index_str..index_str + str_len) };
         // SAFETY: It is guaranteed by the backend that only valid strings
         //         are stored in this portion of the buffer.
         unsafe { str::from_utf8_unchecked(str_bytes) }
