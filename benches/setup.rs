@@ -1,5 +1,5 @@
 use string_interner::{
-    backend::{Backend, BucketBackend, BufferBackend, SimpleBackend, StringBackend},
+    backend::{Backend, BucketBackend, BufferBackend, StringBackend},
     DefaultSymbol,
     StringInterner,
 };
@@ -116,12 +116,6 @@ pub struct BenchBucket;
 impl BackendBenchmark for BenchBucket {
     const NAME: &'static str = "BucketBackend";
     type Backend = BucketBackend<DefaultSymbol>;
-}
-
-pub struct BenchSimple;
-impl BackendBenchmark for BenchSimple {
-    const NAME: &'static str = "SimpleBackend";
-    type Backend = SimpleBackend<DefaultSymbol>;
 }
 
 pub struct BenchString;

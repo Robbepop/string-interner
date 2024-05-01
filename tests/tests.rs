@@ -41,14 +41,6 @@ impl BackendStats for backend::BucketBackend<DefaultSymbol> {
     const NAME: &'static str = "BucketBackend";
 }
 
-impl BackendStats for backend::SimpleBackend<DefaultSymbol> {
-    const MIN_OVERHEAD: f64 = 2.1;
-    const MAX_OVERHEAD: f64 = 2.33;
-    const MAX_ALLOCATIONS: usize = 1000040;
-    const MAX_DEALLOCATIONS: usize = 38;
-    const NAME: &'static str = "SimpleBackend";
-}
-
 impl BackendStats for backend::StringBackend<DefaultSymbol> {
     const MIN_OVERHEAD: f64 = 1.7;
     const MAX_OVERHEAD: f64 = 1.93;
@@ -375,12 +367,6 @@ mod bucket_backend {
     use super::*;
 
     gen_tests_for_backend!(backend::BucketBackend<DefaultSymbol>);
-}
-
-mod simple_backend {
-    use super::*;
-
-    gen_tests_for_backend!(backend::SimpleBackend<DefaultSymbol>);
 }
 
 mod string_backend {
