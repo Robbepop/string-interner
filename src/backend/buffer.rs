@@ -471,9 +471,9 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         self.backend
             .resolve_index_to_str(self.next)
-            .and_then(|(string, next_string_index)| {
+            .and_then(|(string, next)| {
                 let symbol = S::try_from_usize(self.next)?;
-                self.next = next_string_index;
+                self.next = next;
                 self.remaining -= 1;
                 Some((symbol, string))
             })
