@@ -440,8 +440,8 @@ where
 
 pub struct Iter<'a, S> {
     backend: &'a BufferBackend<S>,
-    yielded: usize,
-    current: usize,
+    remaining: usize,
+    next: usize,
 }
 
 impl<'a, S> Iter<'a, S> {
@@ -449,8 +449,8 @@ impl<'a, S> Iter<'a, S> {
     pub fn new(backend: &'a BufferBackend<S>) -> Self {
         Self {
             backend,
-            yielded: 0,
-            current: 0,
+            remaining: backend.len_strings,
+            next: 0,
         }
     }
 }
@@ -470,11 +470,11 @@ where
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         self.backend
-            .resolve_index_to_str(self.current)
+            .resolve_index_to_str(self.next)
             .and_then(|(string, next_string_index)| {
-                let symbol = S::try_from_usize(self.current)?;
-                self.current = next_string_index;
-                self.yielded += 1;
+                let symbol = S::try_from_usize(self.next)?;
+                self.next = next_string_index;
+                self.remaining -= 1;
                 Some((symbol, string))
             })
     }
@@ -484,7 +484,8 @@ impl<'a, S> ExactSizeIterator for Iter<'a, S>
 where
     S: Symbol,
 {
+    #[inline]
     fn len(&self) -> usize {
-        self.backend.len_strings - self.yielded
+        self.remaining
     }
 }
