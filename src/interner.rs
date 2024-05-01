@@ -1,26 +1,11 @@
-use crate::{
-    backend::Backend,
-    compat::{
-        DefaultHashBuilder,
-        HashMap,
-    },
-    DefaultBackend,
-    DefaultSymbol,
-    Symbol,
-};
+use crate::{backend::Backend, Symbol};
 use core::{
     fmt,
-    fmt::{
-        Debug,
-        Formatter,
-    },
-    hash::{
-        BuildHasher,
-        Hash,
-        Hasher,
-    },
+    fmt::{Debug, Formatter},
+    hash::{BuildHasher, Hash, Hasher},
     iter::FromIterator,
 };
+use hashbrown::{hash_map::DefaultHashBuilder, HashMap};
 
 /// Creates the `u64` hash value for the given value using the given hash builder.
 fn make_hash<T>(builder: &impl BuildHasher, value: &T) -> u64
@@ -43,10 +28,9 @@ where
 ///     - This maps from `string` type to `symbol` type.
 /// - [`StringInterner::resolve`]: To resolve your already interned strings.
 ///     - This maps from `symbol` type to `string` type.
-pub struct StringInterner<B = DefaultBackend<DefaultSymbol>, H = DefaultHashBuilder>
+pub struct StringInterner<B, H = DefaultHashBuilder>
 where
     B: Backend,
-    H: BuildHasher,
 {
     dedup: HashMap<<B as Backend>::Symbol, (), ()>,
     hasher: H,
@@ -68,7 +52,7 @@ where
 }
 
 #[cfg(feature = "backends")]
-impl Default for StringInterner {
+impl Default for StringInterner<crate::DefaultBackend> {
     #[cfg_attr(feature = "inline-more", inline)]
     fn default() -> Self {
         StringInterner::new()
@@ -225,7 +209,7 @@ where
             //         we receive from our backend making them valid.
             string == unsafe { backend.resolve_unchecked(*symbol) }
         });
-        use crate::compat::hash_map::RawEntryMut;
+        use hashbrown::hash_map::RawEntryMut;
         let (&mut symbol, &mut ()) = match entry {
             RawEntryMut::Occupied(occupied) => occupied.into_key_value(),
             RawEntryMut::Vacant(vacant) => {
@@ -271,10 +255,7 @@ where
     /// If the interner already interns the maximum number of strings possible
     /// by the chosen symbol type.
     #[inline]
-    pub fn get_or_intern_static(
-        &mut self,
-        string: &'static str,
-    ) -> <B as Backend>::Symbol {
+    pub fn get_or_intern_static(&mut self, string: &'static str) -> <B as Backend>::Symbol {
         self.get_or_intern_using(string, B::intern_static)
     }
 

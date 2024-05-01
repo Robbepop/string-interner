@@ -1,21 +1,9 @@
 #![cfg(feature = "backends")]
 
 use super::Backend;
-use crate::{
-    compat::{
-        Box,
-        ToString,
-        Vec,
-    },
-    symbol::expect_valid_symbol,
-    DefaultSymbol,
-    Symbol,
-};
-use core::{
-    iter::Enumerate,
-    marker::PhantomData,
-    slice,
-};
+use crate::{symbol::expect_valid_symbol, DefaultSymbol, Symbol};
+use alloc::{boxed::Box, string::ToString, vec::Vec};
+use core::{iter::Enumerate, marker::PhantomData, slice};
 
 /// A simple backend that stores a separate allocation for every interned string.
 ///

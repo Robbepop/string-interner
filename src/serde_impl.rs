@@ -1,28 +1,10 @@
-use crate::{
-    backend::Backend,
-    StringInterner,
-    Symbol,
-};
+use crate::{backend::Backend, StringInterner, Symbol};
 #[cfg(not(feature = "std"))]
 use alloc::boxed::Box;
-use core::{
-    default::Default,
-    fmt,
-    hash::BuildHasher,
-    marker,
-};
+use core::{default::Default, fmt, hash::BuildHasher, marker};
 use serde::{
-    de::{
-        Deserialize,
-        Deserializer,
-        SeqAccess,
-        Visitor,
-    },
-    ser::{
-        Serialize,
-        SerializeSeq,
-        Serializer,
-    },
+    de::{Deserialize, Deserializer, SeqAccess, Visitor},
+    ser::{Serialize, SerializeSeq, Serializer},
 };
 
 impl<B, H> Serialize for StringInterner<B, H>
@@ -96,10 +78,8 @@ where
     where
         A: SeqAccess<'de>,
     {
-        let mut interner: StringInterner<B, H> = StringInterner::with_capacity_and_hasher(
-            seq.size_hint().unwrap_or(0),
-            H::default(),
-        );
+        let mut interner: StringInterner<B, H> =
+            StringInterner::with_capacity_and_hasher(seq.size_hint().unwrap_or(0), H::default());
         while let Some(s) = seq.next_element::<Box<str>>()? {
             interner.get_or_intern(s);
         }

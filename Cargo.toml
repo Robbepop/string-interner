@@ -1,6 +1,6 @@
 [package]
 name = "string-interner"
-version = "0.14.0"
+version = "0.15.0"
 authors = ["Robbepop"]
 license = "MIT/Apache-2.0"
 readme = "README.md"
@@ -15,12 +15,12 @@ edition = "2021"
 
 [dependencies]
 cfg-if = "1.0"
-hashbrown = { version = "0.12.0", default-features = false, features = ["ahash"] }
+hashbrown = { version = "0.14.0", default-features = false, features = ["ahash"] }
 serde = { version = "1.0", default-features = false, features = ["alloc"], optional = true }
 
 [dev-dependencies]
 serde_json = "1.0"
-criterion = "0.3"
+criterion = "0.5.1"
 fxhash = "0.2"
 
 [[bench]]

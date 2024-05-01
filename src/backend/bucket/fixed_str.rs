@@ -44,7 +44,7 @@ impl FixedString {
     pub fn push_str(&mut self, string: &str) -> Option<InternedStr> {
         let len = self.len();
         if self.capacity() < len + string.len() {
-            return None
+            return None;
         }
         self.contents.push_str(string);
         debug_assert_eq!(self.contents.len(), len + string.len());
@@ -52,9 +52,7 @@ impl FixedString {
             // SAFETY: We convert from bytes to utf8 from which we know through the
             //         input string that they must represent valid utf8.
             unsafe {
-                core::str::from_utf8_unchecked(
-                    &self.contents.as_bytes()[len..len + string.len()],
-                )
+                core::str::from_utf8_unchecked(&self.contents.as_bytes()[len..len + string.len()])
             },
         ))
     }
