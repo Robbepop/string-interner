@@ -264,10 +264,21 @@ where
         self.backend.shrink_to_fit()
     }
 
-    /// Returns the string for the given symbol if any.
+    /// Returns the string for the given `symbol`` if any.
     #[inline]
     pub fn resolve(&self, symbol: <B as Backend>::Symbol) -> Option<&str> {
         self.backend.resolve(symbol)
+    }
+
+    /// Returns the string for the given `symbol` without performing any checks.
+    ///
+    /// # Safety
+    ///
+    /// It is the caller's responsibility to provide this method with `symbol`s
+    /// that are valid for the [`StringInterner`].
+    #[inline]
+    pub unsafe fn resolve_unchecked(&self, symbol: <B as Backend>::Symbol) -> &str {
+        unsafe { self.backend.resolve_unchecked(symbol) }
     }
 
     /// Returns an iterator that yields all interned strings and their symbols.

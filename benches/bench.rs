@@ -21,7 +21,11 @@ use criterion::{
 };
 use string_interner::backend::Backend;
 
-criterion_group!(bench_resolve, bench_resolve_already_filled);
+criterion_group!(
+    bench_resolve,
+    bench_resolve_already_filled,
+    bench_resolve_unchecked_already_filled
+);
 criterion_group!(bench_get, bench_get_already_filled);
 criterion_group!(bench_iter, bench_iter_already_filled);
 criterion_group!(
@@ -172,6 +176,35 @@ fn bench_resolve_already_filled(c: &mut Criterion) {
                     |(interner, word_ids)| {
                         for &word_id in &*word_ids {
                             black_box(interner.resolve(word_id));
+                        }
+                    },
+                    BatchSize::SmallInput,
+                )
+            },
+        );
+    }
+    bench_for_backend::<BenchBucket>(&mut g);
+    bench_for_backend::<BenchString>(&mut g);
+    bench_for_backend::<BenchBuffer>(&mut g);
+}
+
+fn bench_resolve_unchecked_already_filled(c: &mut Criterion) {
+    let mut g = c.benchmark_group("resolve_unchecked/already-filled");
+    g.throughput(Throughput::Elements(BENCH_LEN_STRINGS as u64));
+    fn bench_for_backend<BB: BackendBenchmark>(g: &mut BenchmarkGroup<WallTime>) {
+        g.bench_with_input(
+            BB::NAME,
+            &(BENCH_LEN_STRINGS, BENCH_STRING_LEN),
+            |bencher, &(len_words, word_len)| {
+                let words = generate_test_strings(len_words, word_len);
+                bencher.iter_batched_ref(
+                    || BB::setup_filled_with_ids(&words),
+                    |(interner, word_ids)| {
+                        for &word_id in &*word_ids {
+                            black_box(
+                                // SAFETY: We provide only valid symbols to the tested interners.
+                                unsafe { interner.resolve_unchecked(word_id) },
+                            );
                         }
                     },
                     BatchSize::SmallInput,
