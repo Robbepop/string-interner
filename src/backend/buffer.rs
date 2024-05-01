@@ -86,7 +86,6 @@ where
     ///
     /// Returns the string from the given index if any as well
     /// as the index of the next string in the buffer.
-    #[inline]
     fn resolve_index_to_str(&self, index: usize) -> Option<(&str, usize)> {
         let bytes = self.buffer.get(index..)?;
         let (str_len, str_len_bytes) = decode_var_usize(bytes)?;
@@ -108,7 +107,6 @@ where
     ///
     /// The caller of the function has to ensure that calling this method
     /// is safe to do.
-    #[inline]
     unsafe fn resolve_index_to_str_unchecked(&self, index: usize) -> &str {
         // SAFETY: The function is marked unsafe so that the caller guarantees
         //         that required invariants are checked.
@@ -139,7 +137,6 @@ where
     /// # Panics
     ///
     /// If the backend ran out of symbols.
-    #[inline]
     fn push_string(&mut self, string: &str) -> S {
         let symbol = self.next_symbol();
         let str_len = string.len();
