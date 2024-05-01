@@ -284,7 +284,7 @@ where
                     .buffer
                     .get_unchecked(i + SHORT_LEN..i + SHORT_LEN + LONG_LEN)
             };
-            let len = usize::from_ne_bytes(<[u8; LONG_LEN]>::try_from(len_bytes).unwrap()) as usize;
+            let len = usize::from_ne_bytes(<[u8; LONG_LEN]>::try_from(len_bytes).unwrap());
             (len, SHORT_LEN + LONG_LEN + SHORT_LEN)
         } else {
             (short_len as usize, SHORT_LEN)
