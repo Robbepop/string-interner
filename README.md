@@ -32,7 +32,7 @@ cargo test --release
 
 ### Memory Allocation Tests
 
-To further test memory consumption and allocatios performed by the
+To further test memory consumption and allocations performed by the
 different string interner backends test the project as follows:
 ```
 cargo test --release --features test-allocations -- --test-threads 1
