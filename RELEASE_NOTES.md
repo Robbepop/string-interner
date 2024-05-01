@@ -1,5 +1,15 @@
 # Release Notes
 
+## 0.17.0 - 2024/05/01
+
+## Added
+
+- Added `StringInterner::resolve_unchecked` method. (https://github.com/Robbepop/string-interner/pull/68)
+
+## Fixed
+
+- Fixed soundness issue in `BufferBackend::resolve`. (https://github.com/Robbepop/string-interner/pull/68)
+
 ## 0.16.0 - 2024/05/01
 
 ## Added
