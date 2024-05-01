@@ -88,15 +88,12 @@ where
     ///
     /// Returns the string from the given index if any as well
     /// as the index of the next string in the buffer.
-    fn resolve_index_to_str(&self, index: usize) -> Option<(&str, usize)> {
+    fn resolve_index_to_str(&self, index: usize) -> Option<(&[u8], usize)> {
         let bytes = self.buffer.get(index..)?;
         let (str_len, str_len_bytes) = decode_var_usize(bytes)?;
         let index_str = index + str_len_bytes;
         let str_bytes = self.buffer.get(index_str..index_str + str_len)?;
-        // SAFETY: It is guaranteed by the backend that only valid strings
-        //         are stored in this portion of the buffer.
-        let string = unsafe { str::from_utf8_unchecked(str_bytes) };
-        Some((string, index_str + str_len))
+        Some((str_bytes, index_str + str_len))
     }
 
     /// Resolves the string for the given symbol.
@@ -180,8 +177,10 @@ where
 
     #[inline]
     fn resolve(&self, symbol: Self::Symbol) -> Option<&str> {
-        self.resolve_index_to_str(symbol.to_usize())
-            .map(|(string, _next_str_index)| string)
+        match self.resolve_index_to_str(symbol.to_usize()) {
+            None => None,
+            Some((bytes, _)) => str::from_utf8(bytes).ok(),
+        }
     }
 
     fn shrink_to_fit(&mut self) {
@@ -481,7 +480,10 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         self.backend
             .resolve_index_to_str(self.next)
-            .and_then(|(string, next)| {
+            .and_then(|(bytes, next)| {
+                // SAFETY: Within the iterator all indices given to `resolv_index_to_str`
+                //         are properly pointing to the start of each interned string.
+                let string = unsafe { str::from_utf8_unchecked(bytes) };
                 let symbol = S::try_from_usize(self.next)?;
                 self.next = next;
                 self.remaining -= 1;
