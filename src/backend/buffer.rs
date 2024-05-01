@@ -227,9 +227,26 @@ fn encode_var_usize(buffer: &mut Vec<u8>, mut value: usize) -> usize {
 #[inline]
 unsafe fn decode_var_usize_unchecked(buffer: &[u8]) -> (usize, usize) {
     let first = unsafe { *buffer.get_unchecked(0) };
-    if first <= 0x7F_u8 {
-        return (first as usize, 1);
+    match first {
+        byte if byte <= 0x7F_u8 => (byte as usize, 1),
+        _ => unsafe { decode_var_usize_unchecked_cold(buffer) },
     }
+}
+
+/// Decodes from a variable length encoded `usize` from the buffer.
+///
+/// Returns the decoded value as first return value.
+/// Returns the number of decoded bytes as second return value.
+///
+/// # Safety
+///
+/// The caller has to make sure that the buffer contains the necessary
+/// bytes needed to properly decode a valid `usize` value.
+///
+/// Uncommon case for string lengths of 254 or greater.
+#[inline]
+#[cold]
+unsafe fn decode_var_usize_unchecked_cold(buffer: &[u8]) -> (usize, usize) {
     let mut result: usize = 0;
     let mut i = 0;
     loop {
@@ -248,11 +265,24 @@ unsafe fn decode_var_usize_unchecked(buffer: &[u8]) -> (usize, usize) {
 ///
 /// Returns the decoded value as first return value.
 /// Returns the number of decoded bytes as second return value.
+#[inline]
 fn decode_var_usize(buffer: &[u8]) -> Option<(usize, usize)> {
-    if !buffer.is_empty() && buffer[0] <= 0x7F_u8 {
-        // Shortcut the common case for low values.
-        return Some((buffer[0] as usize, 1));
+    match buffer.first() {
+        None => None,
+        Some(&byte) if byte <= 0x7F_u8 => Some((byte as usize, 1)),
+        _ => decode_var_usize_cold(buffer),
     }
+}
+
+/// Decodes from a variable length encoded `usize` from the buffer.
+///
+/// Returns the decoded value as first return value.
+/// Returns the number of decoded bytes as second return value.
+///
+/// Uncommon case for string lengths of 254 or greater.
+#[inline]
+#[cold]
+fn decode_var_usize_cold(buffer: &[u8]) -> Option<(usize, usize)> {
     let mut result: usize = 0;
     let mut i = 0;
     loop {
