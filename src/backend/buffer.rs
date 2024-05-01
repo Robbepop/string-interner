@@ -110,15 +110,15 @@ where
     unsafe fn resolve_index_to_str_unchecked(&self, index: usize) -> &str {
         // SAFETY: The function is marked unsafe so that the caller guarantees
         //         that required invariants are checked.
-        let slice_len = unsafe { self.buffer.get_unchecked(index..) };
+        let bytes = unsafe { self.buffer.get_unchecked(index..) };
         // SAFETY: The function is marked unsafe so that the caller guarantees
         //         that required invariants are checked.
-        let (str_len, str_len_bytes) = unsafe { decode_var_usize_unchecked(slice_len) };
-        let start_str = index + str_len_bytes;
+        let (str_len, str_len_bytes) = unsafe { decode_var_usize_unchecked(bytes) };
+        let index_str = index + str_len_bytes;
         let str_bytes =
             // SAFETY: The function is marked unsafe so that the caller guarantees
             //         that required invariants are checked.
-            unsafe { self.buffer.get_unchecked(start_str..start_str + str_len) };
+            unsafe { self.buffer.get_unchecked(index_str..index_str + str_len) };
         // SAFETY: It is guaranteed by the backend that only valid strings
         //         are stored in this portion of the buffer.
         unsafe { str::from_utf8_unchecked(str_bytes) }
@@ -227,9 +227,26 @@ fn encode_var_usize(buffer: &mut Vec<u8>, mut value: usize) -> usize {
 #[inline]
 unsafe fn decode_var_usize_unchecked(buffer: &[u8]) -> (usize, usize) {
     let first = unsafe { *buffer.get_unchecked(0) };
-    if first <= 0x7F_u8 {
-        return (first as usize, 1);
+    match first {
+        byte if byte <= 0x7F_u8 => (byte as usize, 1),
+        _ => unsafe { decode_var_usize_unchecked_cold(buffer) },
     }
+}
+
+/// Decodes from a variable length encoded `usize` from the buffer.
+///
+/// Returns the decoded value as first return value.
+/// Returns the number of decoded bytes as second return value.
+///
+/// # Safety
+///
+/// The caller has to make sure that the buffer contains the necessary
+/// bytes needed to properly decode a valid `usize` value.
+///
+/// Uncommon case for string lengths of 254 or greater.
+#[inline]
+#[cold]
+unsafe fn decode_var_usize_unchecked_cold(buffer: &[u8]) -> (usize, usize) {
     let mut result: usize = 0;
     let mut i = 0;
     loop {
@@ -248,11 +265,24 @@ unsafe fn decode_var_usize_unchecked(buffer: &[u8]) -> (usize, usize) {
 ///
 /// Returns the decoded value as first return value.
 /// Returns the number of decoded bytes as second return value.
+#[inline]
 fn decode_var_usize(buffer: &[u8]) -> Option<(usize, usize)> {
-    if !buffer.is_empty() && buffer[0] <= 0x7F_u8 {
-        // Shortcut the common case for low values.
-        return Some((buffer[0] as usize, 1));
+    match buffer.first() {
+        None => None,
+        Some(&byte) if byte <= 0x7F_u8 => Some((byte as usize, 1)),
+        _ => decode_var_usize_cold(buffer),
     }
+}
+
+/// Decodes from a variable length encoded `usize` from the buffer.
+///
+/// Returns the decoded value as first return value.
+/// Returns the number of decoded bytes as second return value.
+///
+/// Uncommon case for string lengths of 254 or greater.
+#[inline]
+#[cold]
+fn decode_var_usize_cold(buffer: &[u8]) -> Option<(usize, usize)> {
     let mut result: usize = 0;
     let mut i = 0;
     loop {
@@ -410,8 +440,8 @@ where
 
 pub struct Iter<'a, S> {
     backend: &'a BufferBackend<S>,
-    yielded: usize,
-    current: usize,
+    remaining: usize,
+    next: usize,
 }
 
 impl<'a, S> Iter<'a, S> {
@@ -419,8 +449,8 @@ impl<'a, S> Iter<'a, S> {
     pub fn new(backend: &'a BufferBackend<S>) -> Self {
         Self {
             backend,
-            yielded: 0,
-            current: 0,
+            remaining: backend.len_strings,
+            next: 0,
         }
     }
 }
@@ -440,11 +470,11 @@ where
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         self.backend
-            .resolve_index_to_str(self.current)
-            .and_then(|(string, next_string_index)| {
-                let symbol = S::try_from_usize(self.current)?;
-                self.current = next_string_index;
-                self.yielded += 1;
+            .resolve_index_to_str(self.next)
+            .and_then(|(string, next)| {
+                let symbol = S::try_from_usize(self.next)?;
+                self.next = next;
+                self.remaining -= 1;
                 Some((symbol, string))
             })
     }
@@ -454,7 +484,8 @@ impl<'a, S> ExactSizeIterator for Iter<'a, S>
 where
     S: Symbol,
 {
+    #[inline]
     fn len(&self) -> usize {
-        self.backend.len_strings - self.yielded
+        self.remaining
     }
 }
