@@ -1,5 +1,23 @@
 # Release Notes
 
+## 0.16.0 - 2024/05/01
+
+## Added
+
+- Added `StringInterner::iter` method. (https://github.com/Robbepop/string-interner/pull/65)
+
+## Changed
+
+- Optimized `BufferBackend::{resolve, iter}` methods. (https://github.com/Robbepop/string-interner/pull/64)
+
+## Fixed
+
+- Fixed unsoundness issue in `BucketBackend`. (https://github.com/Robbepop/string-interner/pull/66)
+
+## Removed
+
+- Removed `SimpleBackend` since it served no real purpose. (https://github.com/Robbepop/string-interner/commit/549db6c2efeac5acb5e8084e69fa22891ae14019)
+
 ## 0.15.0 - 2024/02/08
 
 ## Changed
