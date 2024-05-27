@@ -20,8 +20,7 @@ impl FixedString {
         //     contents: String::try_with_capacity(cap)?,
         // })
     }
-
-    /// Returns the underlying [`Box<str>`].
+    /// Returns the underlying [`String`].
     ///
     /// Guarantees not to perform any reallocations in this process.
     #[inline]
