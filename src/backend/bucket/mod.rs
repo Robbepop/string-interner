@@ -5,7 +5,7 @@ mod interned_str;
 
 use self::{fixed_str::FixedString, interned_str::InternedStr};
 use super::Backend;
-use crate::{symbol::expect_valid_symbol, DefaultSymbol, Symbol};
+use crate::{symbol::expect_valid_symbol, DefaultSymbol, Error, Result, Symbol};
 #[cfg(not(feature = "std"))]
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -91,25 +91,30 @@ where
     fn with_capacity(cap: usize) -> Self {
         Self {
             spans: Vec::with_capacity(cap),
-            head: FixedString::with_capacity(cap),
+            head: FixedString::try_with_capacity(cap).unwrap(),
             full: Vec::new(),
             marker: Default::default(),
         }
     }
 
     #[inline]
-    fn intern(&mut self, string: &str) -> Self::Symbol {
+    fn try_intern(&mut self, string: &str) -> Result<Self::Symbol> {
         // SAFETY: This is safe because we never hand out the returned
         //         interned string instance to the outside and only operate
         //         on it within this backend.
-        let interned = unsafe { self.alloc(string) };
-        self.push_span(interned)
+        let interned = unsafe { self.try_alloc(string)? };
+        self.try_push_span(interned)
     }
 
     #[cfg_attr(feature = "inline-more", inline)]
-    fn intern_static(&mut self, string: &'static str) -> Self::Symbol {
+    fn try_intern_static(&mut self, string: &'static str) -> Result<Self::Symbol> {
         let interned = InternedStr::new(string);
-        self.push_span(interned)
+        self.try_push_span(interned)
+    }
+
+    fn try_reserve(&mut self, additional: usize) -> Result<()> {
+        self.spans.try_reserve(additional)?;
+        self.try_reserve_head(additional)
     }
 
     fn shrink_to_fit(&mut self) {
@@ -142,29 +147,53 @@ where
     S: Symbol,
 {
     /// Returns the next available symbol.
-    fn next_symbol(&self) -> S {
-        expect_valid_symbol(self.spans.len())
+    fn try_next_symbol(&self) -> Result<S> {
+        S::try_from_usize(self.spans.len()).ok_or(Error::OutOfSymbols)
     }
 
-    /// Pushes the given interned string into the spans and returns its symbol.
-    fn push_span(&mut self, interned: InternedStr) -> S {
-        let symbol = self.next_symbol();
+    /// Pushes the given interned string into the spans and returns its symbol on success.
+    fn try_push_span(&mut self, interned: InternedStr) -> Result<S> {
+        let symbol = self.try_next_symbol()?;
+        // FIXME: vec_push_within_capacity #100486, replace the following with:
+        //
+        // if let Err(value) = self.spans.push_within_capacity(interned) {
+        //     self.spans.try_reserve(1)?;
+        //     // this cannot fail, the previous line either returned or added at least 1 free slot
+        //     let _ = self.spans.push_within_capacity(value);
+        // }
+        self.spans.try_reserve(1)?;
         self.spans.push(interned);
-        symbol
+
+        Ok(symbol)
     }
 
-    /// Interns a new string into the backend and returns a reference to it.
-    unsafe fn alloc(&mut self, string: &str) -> InternedStr {
+    /// Ensure head has enough reserved capacity or replace it with a new one.
+    #[cfg_attr(feature = "inline-more", inline)]
+    fn try_reserve_head(&mut self, additional: usize) -> Result<()> {
         let cap = self.head.capacity();
-        if cap < self.head.len() + string.len() {
-            let new_cap = (usize::max(cap, string.len()) + 1).next_power_of_two();
-            let new_head = FixedString::with_capacity(new_cap);
+        if cap < self.head.len() + additional {
+            let new_cap = (usize::max(cap, additional) + 1).next_power_of_two();
+            let new_head = FixedString::try_with_capacity(new_cap)?;
             let old_head = core::mem::replace(&mut self.head, new_head);
-            self.full.push(old_head.finish());
+            let old_string = old_head.finish();
+            // FIXME: vec_push_within_capacity #100486, replace the following with:
+            //
+            // if let Err(value) = self.full.push_within_capacity(old_string) {
+            //     self.full.try_reserve(1)?;
+            //     // this cannot fail, the previous line either returned or added at least 1 free slot
+            //     let _ = self.full.push_within_capacity(value);
+            // }
+            self.full.try_reserve(1)?;
+            self.full.push(old_string);
         }
-        self.head
+        Ok(())
+    }
+    /// Interns a new string into the backend and returns a reference to it.
+    unsafe fn try_alloc(&mut self, string: &str) -> Result<InternedStr> {
+        self.try_reserve_head(string.len())?;
+        Ok(self.head
             .push_str(string)
-            .expect("encountered invalid head capacity (2)")
+            .expect("encountered invalid head capacity (2)"))
     }
 }
 
@@ -174,7 +203,7 @@ impl<S> Clone for BucketBackend<S> {
         // head string leaving the cloned `full` empty.
         let new_head_cap =
             self.head.capacity() + self.full.iter().fold(0, |lhs, rhs| lhs + rhs.len());
-        let mut head = FixedString::with_capacity(new_head_cap);
+        let mut head = FixedString::try_with_capacity(new_head_cap).unwrap();
         let mut spans = Vec::with_capacity(self.spans.len());
         for span in &self.spans {
             let string = span.as_str();

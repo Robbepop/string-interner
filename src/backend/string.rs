@@ -1,7 +1,7 @@
 #![cfg(feature = "backends")]
 
 use super::Backend;
-use crate::{symbol::expect_valid_symbol, DefaultSymbol, Symbol};
+use crate::{symbol::expect_valid_symbol, DefaultSymbol, Error, Result, Symbol};
 use alloc::{string::String, vec::Vec};
 use core::{iter::Enumerate, marker::PhantomData, slice};
 
@@ -96,8 +96,9 @@ where
     S: Symbol,
 {
     /// Returns the next available symbol.
-    fn next_symbol(&self) -> S {
-        expect_valid_symbol(self.ends.len())
+    #[inline]
+    fn try_next_symbol(&self) -> Result<S> {
+        S::try_from_usize(self.ends.len()).ok_or(Error::OutOfSymbols)
     }
 
     /// Returns the string associated to the span.
@@ -130,19 +131,34 @@ where
         Span { from, to }
     }
 
-    /// Pushes the given string into the buffer and returns its span.
+    /// Pushes the given string into the buffer and returns its span on success.
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// If the backend ran out of symbols.
-    fn push_string(&mut self, string: &str) -> S {
+    /// Returns an [`Error`] if the backend ran out of symbols or memory.
+    fn try_push_string(&mut self, string: &str) -> Result<S> {
+        // reserve required capacity ahead of pushing a string
+        self.buffer.try_reserve(string.len())?;
+        // The following cannot panic, we already reserved enough capacity for a string.
         self.buffer.push_str(string);
         let to = self.buffer.as_bytes().len();
-        let symbol = self.next_symbol();
+        let symbol = self.try_next_symbol()?;
+        // FIXME: vec_push_within_capacity #100486, replace the following with:
+        //
+        // if let Err(value) = self.ends.push_within_capacity(to) {
+        //     self.ends.try_reserve(1)?;
+        //     // this cannot fail, the previous line either returned or added at least 1 free slot
+        //     let _ = self.ends.push_within_capacity(value);
+        // }
+        self.ends.try_reserve(1)?;
         self.ends.push(to);
-        symbol
+
+        Ok(symbol)
     }
 }
+
+// According to google the approx. word length is 5.
+const DEFAULT_WORD_LEN: usize = 5;
 
 impl<S> Backend for StringBackend<S>
 where
@@ -155,24 +171,28 @@ where
 
     #[cfg_attr(feature = "inline-more", inline)]
     fn with_capacity(cap: usize) -> Self {
-        // According to google the approx. word length is 5.
-        let default_word_len = 5;
         Self {
             ends: Vec::with_capacity(cap),
-            buffer: String::with_capacity(cap * default_word_len),
+            buffer: String::with_capacity(cap * DEFAULT_WORD_LEN),
             marker: Default::default(),
         }
     }
 
     #[inline]
-    fn intern(&mut self, string: &str) -> Self::Symbol {
-        self.push_string(string)
+    fn try_intern(&mut self, string: &str) -> Result<Self::Symbol> {
+        self.try_push_string(string)
     }
 
     #[inline]
     fn resolve(&self, symbol: Self::Symbol) -> Option<&str> {
         self.symbol_to_span(symbol)
             .map(|span| self.span_to_str(span))
+    }
+
+    fn try_reserve(&mut self, additional: usize) -> Result<()> {
+        self.ends.try_reserve(additional)?;
+        self.buffer.try_reserve(additional * DEFAULT_WORD_LEN)?;
+        Ok(())
     }
 
     fn shrink_to_fit(&mut self) {

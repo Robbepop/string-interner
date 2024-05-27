@@ -10,7 +10,7 @@ mod string;
 
 #[cfg(feature = "backends")]
 pub use self::{bucket::BucketBackend, buffer::BufferBackend, string::StringBackend};
-use crate::Symbol;
+use crate::{Result, Symbol};
 
 /// The default backend recommended for general use.
 #[cfg(feature = "backends")]
@@ -35,27 +35,30 @@ pub trait Backend: Default {
     /// The capacity denotes how many strings are expected to be interned.
     fn with_capacity(cap: usize) -> Self;
 
-    /// Interns the given string and returns its interned ref and symbol.
+    /// Interns the given string and returns its interned ref and symbol on success.
     ///
     /// # Note
     ///
     /// The backend must make sure that the returned symbol maps back to the
     /// original string in its [`resolve`](`Backend::resolve`) method.
-    fn intern(&mut self, string: &str) -> Self::Symbol;
+    fn try_intern(&mut self, string: &str) -> Result<Self::Symbol>;
 
-    /// Interns the given static string and returns its interned ref and symbol.
+    /// Interns the given static string and returns its interned ref and symbol on success.
     ///
     /// # Note
     ///
     /// The backend must make sure that the returned symbol maps back to the
     /// original string in its [`resolve`](`Backend::resolve`) method.
     #[inline]
-    fn intern_static(&mut self, string: &'static str) -> Self::Symbol {
+    fn try_intern_static(&mut self, string: &'static str) -> Result<Self::Symbol> {
         // The default implementation simply forwards to the normal [`intern`]
         // implementation. Backends that can optimize for this use case should
         // implement this method.
-        self.intern(string)
+        self.try_intern(string)
     }
+
+    /// Try to reserve capacity for at least additional more symbols.
+    fn try_reserve(&mut self, additional: usize) -> Result<()>;
 
     /// Shrink backend capacity to fit interned symbols exactly.
     fn shrink_to_fit(&mut self);

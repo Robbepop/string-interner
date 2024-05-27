@@ -130,6 +130,7 @@ mod serde_impl;
 pub mod backend;
 mod interner;
 pub mod symbol;
+mod error;
 
 /// A convenience [`StringInterner`] type based on the [`DefaultBackend`].
 #[cfg(feature = "backends")]
@@ -147,3 +148,6 @@ pub use self::{
 
 #[doc(inline)]
 pub use hashbrown::hash_map::DefaultHashBuilder;
+
+#[doc(inline)]
+pub use error::{Error, Result};
