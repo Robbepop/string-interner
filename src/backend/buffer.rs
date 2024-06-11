@@ -325,7 +325,7 @@ fn decode_var_usize_cold(buffer: &[u8]) -> Option<(usize, usize)> {
 
 #[cfg(test)]
 mod tests {
-    use super::{decode_var_usize, encode_var_usize};
+    use super::{decode_var_usize, encode_var_usize, calculate_var7_size};
     #[cfg(not(feature = "std"))]
     use alloc::vec::Vec;
 
@@ -334,6 +334,7 @@ mod tests {
         let mut buffer = Vec::new();
         for i in 0..2usize.pow(7) {
             buffer.clear();
+            assert_eq!(calculate_var7_size(i), 1);
             assert_eq!(encode_var_usize(&mut buffer, i), 1);
             assert_eq!(buffer, [i as u8]);
             assert_eq!(decode_var_usize(&buffer), Some((i, 1)));
@@ -345,6 +346,7 @@ mod tests {
         let mut buffer = Vec::new();
         for i in 2usize.pow(7)..2usize.pow(14) {
             buffer.clear();
+            assert_eq!(calculate_var7_size(i), 2);
             assert_eq!(encode_var_usize(&mut buffer, i), 2);
             assert_eq!(buffer, [0x80 | ((i & 0x7F) as u8), (0x7F & (i >> 7) as u8)]);
             assert_eq!(decode_var_usize(&buffer), Some((i, 2)));
@@ -357,6 +359,7 @@ mod tests {
         let mut buffer = Vec::new();
         for i in 2usize.pow(14)..2usize.pow(21) {
             buffer.clear();
+            assert_eq!(calculate_var7_size(i), 3);
             assert_eq!(encode_var_usize(&mut buffer, i), 3);
             assert_eq!(
                 buffer,
@@ -376,6 +379,7 @@ mod tests {
         let mut buffer = Vec::new();
         for i in range {
             buffer.clear();
+            assert_eq!(calculate_var7_size(i), 4);
             assert_eq!(encode_var_usize(&mut buffer, i), 4);
             assert_eq!(
                 buffer,
@@ -418,6 +422,7 @@ mod tests {
     fn encode_var_u32_max_works() {
         let mut buffer = Vec::new();
         let i = u32::MAX as usize;
+        assert_eq!(calculate_var7_size(i), 5);
         assert_eq!(encode_var_usize(&mut buffer, i), 5);
         assert_eq!(buffer, [0xFF, 0xFF, 0xFF, 0xFF, 0x0F]);
         assert_eq!(decode_var_usize(&buffer), Some((i, 5)));
@@ -427,6 +432,7 @@ mod tests {
     fn encode_var_u64_max_works() {
         let mut buffer = Vec::new();
         let i = u64::MAX as usize;
+        assert_eq!(calculate_var7_size(i), 10);
         assert_eq!(encode_var_usize(&mut buffer, i), 10);
         assert_eq!(
             buffer,
