@@ -112,11 +112,6 @@ where
         self.try_push_span(interned)
     }
 
-    fn try_reserve(&mut self, additional: usize) -> Result<()> {
-        self.spans.try_reserve(additional)?;
-        self.try_reserve_head(additional)
-    }
-
     fn shrink_to_fit(&mut self) {
         self.spans.shrink_to_fit();
         // Commenting out the below line fixes: https://github.com/Robbepop/string-interner/issues/46

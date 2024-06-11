@@ -158,15 +158,21 @@ where
         self.len() == 0
     }
 
-    /// Try to reserve capacity for at least additional more symbols.
+    /// Try to reserve capacity for at least `additional` more symbols.
+    ///
+    /// # Note
+    ///
+    /// This function only reserves capacity in the hashmap responsible for
+    /// string deduplication.
+    /// It __does not__ reserve capacity in the backend that stores strings.
     pub fn try_reserve(&mut self, additional: usize) -> Result<()> {
         self.dedup.raw_table_mut().try_reserve(additional, |(symbol, ())| {
             // SAFETY: This is safe because we only operate on symbols that
             //         we receive from our backend making them valid.
             let string = unsafe { self.backend.resolve_unchecked(*symbol) };
             make_hash(&self.hasher, string)
-        })?;
-        self.backend.try_reserve(additional)
+        })
+        .map_err(From::from)
     }
 
     /// Returns the symbol for the given string if any.

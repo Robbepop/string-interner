@@ -190,14 +190,6 @@ where
         }
     }
 
-    fn try_reserve(&mut self, additional: usize) -> Result<()> {
-        // We encode the `usize` string length into the buffer as well.
-        let var7_len: usize = calculate_var7_size(self.buffer.len() + additional);
-        let bytes_per_string = DEFAULT_STR_LEN + var7_len;
-        self.buffer.try_reserve(additional * bytes_per_string)?;
-        Ok(())
-    }
-
     fn shrink_to_fit(&mut self) {
         self.buffer.shrink_to_fit();
     }

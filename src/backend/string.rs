@@ -189,12 +189,6 @@ where
             .map(|span| self.span_to_str(span))
     }
 
-    fn try_reserve(&mut self, additional: usize) -> Result<()> {
-        self.ends.try_reserve(additional)?;
-        self.buffer.try_reserve(additional * DEFAULT_WORD_LEN)?;
-        Ok(())
-    }
-
     fn shrink_to_fit(&mut self) {
         self.ends.shrink_to_fit();
         self.buffer.shrink_to_fit();

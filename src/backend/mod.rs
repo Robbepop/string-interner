@@ -57,9 +57,6 @@ pub trait Backend: Default {
         self.try_intern(string)
     }
 
-    /// Try to reserve capacity for at least additional more symbols.
-    fn try_reserve(&mut self, additional: usize) -> Result<()>;
-
     /// Shrink backend capacity to fit interned symbols exactly.
     fn shrink_to_fit(&mut self);
 
