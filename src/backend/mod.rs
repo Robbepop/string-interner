@@ -69,8 +69,8 @@ pub trait Backend: Default {
     ///
     /// Does not perform validity checks on the given symbol and relies
     /// on the caller to be provided with a symbol that has been generated
-    /// by the [`intern`](`Backend::intern`) or
-    /// [`intern_static`](`Backend::intern_static`) methods of the same
+    /// by the [`try_intern`](`Backend::try_intern`) or
+    /// [`try_intern_static`](`Backend::try_intern_static`) methods of the same
     /// interner backend.
     unsafe fn resolve_unchecked(&self, symbol: Self::Symbol) -> &str;
 

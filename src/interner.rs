@@ -24,7 +24,8 @@ where
 ///
 /// The following API covers the main functionality:
 ///
-/// - [`StringInterner::get_or_intern`]: To intern a new string.
+/// - [`StringInterner::get_or_intern`] or
+///   [`StringInterner::try_get_or_intern`]: To intern a new string.
 ///     - This maps from `string` type to `symbol` type.
 /// - [`StringInterner::resolve`]: To resolve your already interned strings.
 ///     - This maps from `symbol` type to `string` type.
@@ -287,7 +288,7 @@ where
     ///
     /// # Note
     ///
-    /// This is more efficient than [`StringInterner::get_or_intern`] since it might
+    /// This is more efficient than [`StringInterner::try_get_or_intern`] since it might
     /// avoid some memory allocations if the backends supports this.
     ///
     /// # Errors
