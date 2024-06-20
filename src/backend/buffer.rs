@@ -212,7 +212,7 @@ where
 fn calculate_var7_size(value: usize) -> usize {
     // number of bits to encode
     // value = 0 would give 0 bits, hence: |1, could be anything up to |0x7F as well
-    let bits = usize::BITS - (value|1).leading_zeros();
+    let bits = usize::BITS - (value | 1).leading_zeros();
     // (bits to encode / 7).ceil()
     ((bits + 6) / 7) as usize
 }
@@ -325,7 +325,7 @@ fn decode_var_usize_cold(buffer: &[u8]) -> Option<(usize, usize)> {
 
 #[cfg(test)]
 mod tests {
-    use super::{decode_var_usize, encode_var_usize, calculate_var7_size};
+    use super::{calculate_var7_size, decode_var_usize, encode_var_usize};
     #[cfg(not(feature = "std"))]
     use alloc::vec::Vec;
 

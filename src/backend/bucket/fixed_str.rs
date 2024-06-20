@@ -1,7 +1,7 @@
 use super::InternedStr;
+use crate::Result;
 #[cfg(not(feature = "std"))]
 use alloc::string::String;
-use crate::Result;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct FixedString {
@@ -56,9 +56,7 @@ impl FixedString {
         Some(InternedStr::new(
             // SAFETY: We convert from bytes to utf8 from which we know through the
             //         input string that they must represent valid utf8.
-            unsafe {
-                core::str::from_utf8_unchecked(&self.contents.as_bytes()[len..new_len])
-            },
+            unsafe { core::str::from_utf8_unchecked(&self.contents.as_bytes()[len..new_len]) },
         ))
     }
 }

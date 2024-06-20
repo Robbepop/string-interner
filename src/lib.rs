@@ -128,9 +128,9 @@ extern crate std as alloc;
 mod serde_impl;
 
 pub mod backend;
+mod error;
 mod interner;
 pub mod symbol;
-mod error;
 
 /// A convenience [`StringInterner`] type based on the [`DefaultBackend`].
 #[cfg(feature = "backends")]

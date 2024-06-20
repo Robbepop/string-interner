@@ -186,7 +186,8 @@ where
     /// Interns a new string into the backend and returns a reference to it.
     unsafe fn try_alloc(&mut self, string: &str) -> Result<InternedStr> {
         self.try_reserve_head(string.len())?;
-        Ok(self.head
+        Ok(self
+            .head
             .push_str(string)
             .expect("encountered invalid head capacity (2)"))
     }

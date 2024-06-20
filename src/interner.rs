@@ -167,13 +167,15 @@ where
     /// string deduplication.
     /// It __does not__ reserve capacity in the backend that stores strings.
     pub fn try_reserve(&mut self, additional: usize) -> Result<()> {
-        self.dedup.raw_table_mut().try_reserve(additional, |(symbol, ())| {
-            // SAFETY: This is safe because we only operate on symbols that
-            //         we receive from our backend making them valid.
-            let string = unsafe { self.backend.resolve_unchecked(*symbol) };
-            make_hash(&self.hasher, string)
-        })
-        .map_err(From::from)
+        self.dedup
+            .raw_table_mut()
+            .try_reserve(additional, |(symbol, ())| {
+                // SAFETY: This is safe because we only operate on symbols that
+                //         we receive from our backend making them valid.
+                let string = unsafe { self.backend.resolve_unchecked(*symbol) };
+                make_hash(&self.hasher, string)
+            })
+            .map_err(From::from)
     }
 
     /// Returns the symbol for the given string if any.
@@ -296,7 +298,10 @@ where
     /// If the interner already interns the maximum number of strings possible
     /// by the chosen symbol type or when running out of heap memory.
     #[inline]
-    pub fn try_get_or_intern_static(&mut self, string: &'static str) -> Result<<B as Backend>::Symbol> {
+    pub fn try_get_or_intern_static(
+        &mut self,
+        string: &'static str,
+    ) -> Result<<B as Backend>::Symbol> {
         self.try_get_or_intern_using(string, B::try_intern_static)
     }
 

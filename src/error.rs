@@ -7,14 +7,14 @@ pub enum Error {
     /// The interner already interns the maximum number of strings possible by the chosen symbol type.
     OutOfSymbols,
     /// An operation could not be completed, because it failed to allocate enough memory.
-    OutOfMemory
+    OutOfMemory,
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
             Error::OutOfSymbols => "no more symbols available",
-            Error::OutOfMemory => "out of memory"
+            Error::OutOfMemory => "out of memory",
         })
     }
 }
