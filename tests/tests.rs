@@ -52,8 +52,8 @@ impl BackendStats for backend::StringBackend<DefaultSymbol> {
 impl BackendStats for backend::BufferBackend<DefaultSymbol> {
     const MIN_OVERHEAD: f64 = 1.35;
     const MAX_OVERHEAD: f64 = 1.58;
-    const MAX_ALLOCATIONS: usize = 43;
-    const MAX_DEALLOCATIONS: usize = 41;
+    const MAX_ALLOCATIONS: usize = 42;
+    const MAX_DEALLOCATIONS: usize = 40;
     const NAME: &'static str = "BufferBackend";
 }
 

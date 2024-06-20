@@ -1,4 +1,5 @@
 use super::InternedStr;
+use crate::Result;
 #[cfg(not(feature = "std"))]
 use alloc::string::String;
 
@@ -10,13 +11,16 @@ pub struct FixedString {
 impl FixedString {
     /// Creates a new fixed string with the given fixed capacity.
     #[inline]
-    pub fn with_capacity(cap: usize) -> Self {
-        Self {
-            contents: String::with_capacity(cap),
-        }
+    pub fn try_with_capacity(cap: usize) -> Result<Self> {
+        let mut contents = String::new();
+        contents.try_reserve(cap)?;
+        Ok(Self { contents })
+        // FIXME: try_with_capacity #91913, replace with the following:
+        // Ok(Self {
+        //     contents: String::try_with_capacity(cap)?,
+        // })
     }
-
-    /// Returns the underlying [`Box<str>`].
+    /// Returns the underlying [`String`].
     ///
     /// Guarantees not to perform any reallocations in this process.
     #[inline]
@@ -43,17 +47,16 @@ impl FixedString {
     #[inline]
     pub fn push_str(&mut self, string: &str) -> Option<InternedStr> {
         let len = self.len();
-        if self.capacity() < len + string.len() {
+        let new_len = len + string.len();
+        if self.capacity() < new_len {
             return None;
         }
         self.contents.push_str(string);
-        debug_assert_eq!(self.contents.len(), len + string.len());
+        debug_assert_eq!(self.contents.len(), new_len);
         Some(InternedStr::new(
             // SAFETY: We convert from bytes to utf8 from which we know through the
             //         input string that they must represent valid utf8.
-            unsafe {
-                core::str::from_utf8_unchecked(&self.contents.as_bytes()[len..len + string.len()])
-            },
+            unsafe { core::str::from_utf8_unchecked(&self.contents.as_bytes()[len..new_len]) },
         ))
     }
 }

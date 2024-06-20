@@ -128,6 +128,7 @@ extern crate std as alloc;
 mod serde_impl;
 
 pub mod backend;
+mod error;
 mod interner;
 pub mod symbol;
 
@@ -147,3 +148,6 @@ pub use self::{
 
 #[doc(inline)]
 pub use hashbrown::hash_map::DefaultHashBuilder;
+
+#[doc(inline)]
+pub use error::{Error, Result};

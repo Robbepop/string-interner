@@ -1,4 +1,4 @@
-use crate::{backend::Backend, Symbol};
+use crate::{backend::Backend, Result, Symbol};
 use core::{
     fmt,
     fmt::{Debug, Formatter},
@@ -24,7 +24,8 @@ where
 ///
 /// The following API covers the main functionality:
 ///
-/// - [`StringInterner::get_or_intern`]: To intern a new string.
+/// - [`StringInterner::get_or_intern`] or
+///   [`StringInterner::try_get_or_intern`]: To intern a new string.
 ///     - This maps from `string` type to `symbol` type.
 /// - [`StringInterner::resolve`]: To resolve your already interned strings.
 ///     - This maps from `symbol` type to `string` type.
@@ -158,6 +159,25 @@ where
         self.len() == 0
     }
 
+    /// Try to reserve capacity for at least `additional` more symbols.
+    ///
+    /// # Note
+    ///
+    /// This function only reserves capacity in the hashmap responsible for
+    /// string deduplication.
+    /// It __does not__ reserve capacity in the backend that stores strings.
+    pub fn try_reserve(&mut self, additional: usize) -> Result<()> {
+        self.dedup
+            .raw_table_mut()
+            .try_reserve(additional, |(symbol, ())| {
+                // SAFETY: This is safe because we only operate on symbols that
+                //         we receive from our backend making them valid.
+                let string = unsafe { self.backend.resolve_unchecked(*symbol) };
+                make_hash(&self.hasher, string)
+            })
+            .map_err(From::from)
+    }
+
     /// Returns the symbol for the given string if any.
     ///
     /// Can be used to query if a string has already been interned without interning.
@@ -190,11 +210,11 @@ where
     /// [1]: [`StringInterner::get_or_intern`]
     /// [2]: [`StringInterner::get_or_intern_static`]
     #[cfg_attr(feature = "inline-more", inline)]
-    fn get_or_intern_using<T>(
+    fn try_get_or_intern_using<T>(
         &mut self,
         string: T,
-        intern_fn: fn(&mut B, T) -> <B as Backend>::Symbol,
-    ) -> <B as Backend>::Symbol
+        intern_fn: fn(&mut B, T) -> Result<<B as Backend>::Symbol>,
+    ) -> Result<<B as Backend>::Symbol>
     where
         T: Copy + Hash + AsRef<str> + for<'a> PartialEq<&'a str>,
     {
@@ -204,6 +224,13 @@ where
             backend,
         } = self;
         let hash = make_hash(hasher, string.as_ref());
+        // this call requires hashbrown `raw` feature enabled
+        dedup.raw_table_mut().try_reserve(1, |(symbol, ())| {
+            // SAFETY: This is safe because we only operate on symbols that
+            //         we receive from our backend making them valid.
+            let string = unsafe { backend.resolve_unchecked(*symbol) };
+            make_hash(hasher, string)
+        })?;
         let entry = dedup.raw_entry_mut().from_hash(hash, |symbol| {
             // SAFETY: This is safe because we only operate on symbols that
             //         we receive from our backend making them valid.
@@ -213,7 +240,7 @@ where
         let (&mut symbol, &mut ()) = match entry {
             RawEntryMut::Occupied(occupied) => occupied.into_key_value(),
             RawEntryMut::Vacant(vacant) => {
-                let symbol = intern_fn(backend, string);
+                let symbol = intern_fn(backend, string)?;
                 vacant.insert_with_hasher(hash, symbol, (), |symbol| {
                     // SAFETY: This is safe because we only operate on symbols that
                     //         we receive from our backend making them valid.
@@ -222,7 +249,23 @@ where
                 })
             }
         };
-        symbol
+        Ok(symbol)
+    }
+
+    /// Interns the given string fallibly.
+    ///
+    /// Returns a symbol for resolution into the original string on success.
+    ///
+    /// # Errors
+    ///
+    /// If the interner already interns the maximum number of strings possible
+    /// by the chosen symbol type or when running out of heap memory.
+    #[inline]
+    pub fn try_get_or_intern<T>(&mut self, string: T) -> Result<<B as Backend>::Symbol>
+    where
+        T: AsRef<str>,
+    {
+        self.try_get_or_intern_using(string.as_ref(), B::try_intern)
     }
 
     /// Interns the given string.
@@ -232,13 +275,34 @@ where
     /// # Panics
     ///
     /// If the interner already interns the maximum number of strings possible
-    /// by the chosen symbol type.
+    /// by the chosen symbol type or when running out of heap memory.
     #[inline]
     pub fn get_or_intern<T>(&mut self, string: T) -> <B as Backend>::Symbol
     where
         T: AsRef<str>,
     {
-        self.get_or_intern_using(string.as_ref(), B::intern)
+        self.try_get_or_intern(string).unwrap()
+    }
+
+    /// Interns the given `'static` string fallibly.
+    ///
+    /// Returns a symbol for resolution into the original string.
+    ///
+    /// # Note
+    ///
+    /// This is more efficient than [`StringInterner::try_get_or_intern`] since it might
+    /// avoid some memory allocations if the backends supports this.
+    ///
+    /// # Errors
+    ///
+    /// If the interner already interns the maximum number of strings possible
+    /// by the chosen symbol type or when running out of heap memory.
+    #[inline]
+    pub fn try_get_or_intern_static(
+        &mut self,
+        string: &'static str,
+    ) -> Result<<B as Backend>::Symbol> {
+        self.try_get_or_intern_using(string, B::try_intern_static)
     }
 
     /// Interns the given `'static` string.
@@ -253,10 +317,10 @@ where
     /// # Panics
     ///
     /// If the interner already interns the maximum number of strings possible
-    /// by the chosen symbol type.
+    /// by the chosen symbol type or when running out of heap memory.
     #[inline]
     pub fn get_or_intern_static(&mut self, string: &'static str) -> <B as Backend>::Symbol {
-        self.get_or_intern_using(string, B::intern_static)
+        self.try_get_or_intern_static(string).unwrap()
     }
 
     /// Shrink backend capacity to fit the interned strings exactly.

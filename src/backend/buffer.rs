@@ -1,9 +1,9 @@
 #![cfg(feature = "backends")]
 
 use super::Backend;
-use crate::{symbol::expect_valid_symbol, DefaultSymbol, Symbol};
+use crate::{DefaultSymbol, Error, Result, Symbol};
 use alloc::vec::Vec;
-use core::{marker::PhantomData, mem, str};
+use core::{marker::PhantomData, str};
 
 /// An interner backend that appends all interned string information in a single buffer.
 ///
@@ -78,8 +78,8 @@ where
 {
     /// Returns the next available symbol.
     #[inline]
-    fn next_symbol(&self) -> S {
-        expect_valid_symbol(self.buffer.len())
+    fn try_next_symbol(&self) -> Result<S> {
+        S::try_from_usize(self.buffer.len()).ok_or(Error::OutOfSymbols)
     }
 
     /// Resolves the string for the given symbol if any.
@@ -123,29 +123,38 @@ where
         unsafe { str::from_utf8_unchecked(str_bytes) }
     }
 
-    /// Pushes the given value onto the buffer with `var7` encoding.
+    /// Pushes the given length value onto the buffer with `var7` encoding.
+    /// Ensures there's enough capacity for the `var7` encoded length and
+    /// the following string bytes ahead of pushing.
     ///
     /// Returns the amount of `var7` encoded bytes.
     #[inline]
-    fn encode_var_usize(&mut self, value: usize) -> usize {
-        encode_var_usize(&mut self.buffer, value)
+    fn try_encode_var_length(&mut self, length: usize) -> Result<()> {
+        let add_len = length + calculate_var7_size(length);
+        self.buffer.try_reserve(add_len)?;
+        encode_var_usize(&mut self.buffer, length);
+        Ok(())
     }
 
-    /// Pushes the given string into the buffer and returns its span.
+    /// Pushes the given string into the buffer and returns its span on success.
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// If the backend ran out of symbols.
-    fn push_string(&mut self, string: &str) -> S {
-        let symbol = self.next_symbol();
+    /// Returns an [`Error`] if the backend ran out of symbols or memory.
+    fn try_push_string(&mut self, string: &str) -> Result<S> {
+        let symbol = self.try_next_symbol()?;
         let str_len = string.len();
         let str_bytes = string.as_bytes();
-        self.encode_var_usize(str_len);
-        self.buffer.extend(str_bytes);
+        self.try_encode_var_length(str_len)?;
+        // try_encode_var_length ensures there's enough space left for str_bytes
+        self.buffer.extend_from_slice(str_bytes);
         self.len_strings += 1;
-        symbol
+        Ok(symbol)
     }
 }
+
+/// According to google the approx. word length is 5.
+const DEFAULT_STR_LEN: usize = 5;
 
 impl<S> Backend for BufferBackend<S>
 where
@@ -158,11 +167,9 @@ where
 
     #[cfg_attr(feature = "inline-more", inline)]
     fn with_capacity(capacity: usize) -> Self {
-        /// We encode the `usize` string length into the buffer as well.
-        const LEN_USIZE: usize = mem::size_of::<usize>();
-        /// According to google the approx. word length is 5.
-        const DEFAULT_STR_LEN: usize = 5;
-        let bytes_per_string = DEFAULT_STR_LEN + LEN_USIZE;
+        // We encode the `usize` string length into the buffer as well.
+        let var7_len: usize = calculate_var7_size(capacity);
+        let bytes_per_string = DEFAULT_STR_LEN + var7_len;
         Self {
             len_strings: 0,
             buffer: Vec::with_capacity(capacity * bytes_per_string),
@@ -171,8 +178,8 @@ where
     }
 
     #[inline]
-    fn intern(&mut self, string: &str) -> Self::Symbol {
-        self.push_string(string)
+    fn try_intern(&mut self, string: &str) -> Result<Self::Symbol> {
+        self.try_push_string(string)
     }
 
     #[inline]
@@ -198,6 +205,16 @@ where
     fn iter(&self) -> Self::Iter<'_> {
         Iter::new(self)
     }
+}
+
+/// Calculate var7 encoded size from a given value.
+#[inline]
+fn calculate_var7_size(value: usize) -> usize {
+    // number of bits to encode
+    // value = 0 would give 0 bits, hence: |1, could be anything up to |0x7F as well
+    let bits = usize::BITS - (value | 1).leading_zeros();
+    // (bits to encode / 7).ceil()
+    ((bits + 6) / 7) as usize
 }
 
 /// Encodes the value using variable length encoding into the buffer.
@@ -308,7 +325,7 @@ fn decode_var_usize_cold(buffer: &[u8]) -> Option<(usize, usize)> {
 
 #[cfg(test)]
 mod tests {
-    use super::{decode_var_usize, encode_var_usize};
+    use super::{calculate_var7_size, decode_var_usize, encode_var_usize};
     #[cfg(not(feature = "std"))]
     use alloc::vec::Vec;
 
@@ -317,6 +334,7 @@ mod tests {
         let mut buffer = Vec::new();
         for i in 0..2usize.pow(7) {
             buffer.clear();
+            assert_eq!(calculate_var7_size(i), 1);
             assert_eq!(encode_var_usize(&mut buffer, i), 1);
             assert_eq!(buffer, [i as u8]);
             assert_eq!(decode_var_usize(&buffer), Some((i, 1)));
@@ -328,6 +346,7 @@ mod tests {
         let mut buffer = Vec::new();
         for i in 2usize.pow(7)..2usize.pow(14) {
             buffer.clear();
+            assert_eq!(calculate_var7_size(i), 2);
             assert_eq!(encode_var_usize(&mut buffer, i), 2);
             assert_eq!(buffer, [0x80 | ((i & 0x7F) as u8), (0x7F & (i >> 7) as u8)]);
             assert_eq!(decode_var_usize(&buffer), Some((i, 2)));
@@ -340,6 +359,7 @@ mod tests {
         let mut buffer = Vec::new();
         for i in 2usize.pow(14)..2usize.pow(21) {
             buffer.clear();
+            assert_eq!(calculate_var7_size(i), 3);
             assert_eq!(encode_var_usize(&mut buffer, i), 3);
             assert_eq!(
                 buffer,
@@ -359,6 +379,7 @@ mod tests {
         let mut buffer = Vec::new();
         for i in range {
             buffer.clear();
+            assert_eq!(calculate_var7_size(i), 4);
             assert_eq!(encode_var_usize(&mut buffer, i), 4);
             assert_eq!(
                 buffer,
@@ -401,6 +422,7 @@ mod tests {
     fn encode_var_u32_max_works() {
         let mut buffer = Vec::new();
         let i = u32::MAX as usize;
+        assert_eq!(calculate_var7_size(i), 5);
         assert_eq!(encode_var_usize(&mut buffer, i), 5);
         assert_eq!(buffer, [0xFF, 0xFF, 0xFF, 0xFF, 0x0F]);
         assert_eq!(decode_var_usize(&buffer), Some((i, 5)));
@@ -410,6 +432,7 @@ mod tests {
     fn encode_var_u64_max_works() {
         let mut buffer = Vec::new();
         let i = u64::MAX as usize;
+        assert_eq!(calculate_var7_size(i), 10);
         assert_eq!(encode_var_usize(&mut buffer, i), 10);
         assert_eq!(
             buffer,
