@@ -146,4 +146,4 @@ pub use self::{
 };
 
 #[doc(inline)]
-pub use hashbrown::hash_map::DefaultHashBuilder;
+pub use hashbrown::DefaultHashBuilder;

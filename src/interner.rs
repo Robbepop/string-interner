@@ -5,7 +5,7 @@ use core::{
     hash::{BuildHasher, Hash, Hasher},
     iter::FromIterator,
 };
-use hashbrown::{hash_map::DefaultHashBuilder, HashMap};
+use hashbrown::{DefaultHashBuilder, HashMap};
 
 /// Creates the `u64` hash value for the given value using the given hash builder.
 fn make_hash<T>(builder: &impl BuildHasher, value: &T) -> u64
