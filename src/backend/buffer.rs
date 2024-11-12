@@ -152,7 +152,8 @@ where
     S: Symbol,
 {
     type Symbol = S;
-    type Iter<'a> = Iter<'a, S>
+    type Iter<'a>
+        = Iter<'a, S>
     where
         Self: 'a;
 
@@ -492,7 +493,7 @@ where
     }
 }
 
-impl<'a, S> ExactSizeIterator for Iter<'a, S>
+impl<S> ExactSizeIterator for Iter<'_, S>
 where
     S: Symbol,
 {

@@ -137,7 +137,7 @@ where
     /// If the backend ran out of symbols.
     fn push_string(&mut self, string: &str) -> S {
         self.buffer.push_str(string);
-        let to = self.buffer.as_bytes().len();
+        let to = self.buffer.len();
         let symbol = self.next_symbol();
         self.ends.push(to);
         symbol
@@ -149,7 +149,8 @@ where
     S: Symbol,
 {
     type Symbol = S;
-    type Iter<'a> = Iter<'a, S>
+    type Iter<'a>
+        = Iter<'a, S>
     where
         Self: 'a;
 

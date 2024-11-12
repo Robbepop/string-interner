@@ -83,7 +83,8 @@ where
     S: Symbol,
 {
     type Symbol = S;
-    type Iter<'a> = Iter<'a, S>
+    type Iter<'a>
+        = Iter<'a, S>
     where
         Self: 'a;
 
