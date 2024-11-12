@@ -124,7 +124,7 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std as alloc;
 
-#[cfg(feature = "serde-1")]
+#[cfg(feature = "serde")]
 mod serde_impl;
 
 pub mod backend;
