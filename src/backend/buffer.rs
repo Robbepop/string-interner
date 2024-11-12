@@ -307,6 +307,74 @@ fn decode_var_usize_cold(buffer: &[u8]) -> Option<(usize, usize)> {
     Some((result, i + 1))
 }
 
+impl<'a, S> IntoIterator for &'a BufferBackend<S>
+where
+    S: Symbol,
+{
+    type Item = (S, &'a str);
+    type IntoIter = Iter<'a, S>;
+
+    #[cfg_attr(feature = "inline-more", inline)]
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+pub struct Iter<'a, S> {
+    backend: &'a BufferBackend<S>,
+    remaining: usize,
+    next: usize,
+}
+
+impl<'a, S> Iter<'a, S> {
+    #[cfg_attr(feature = "inline-more", inline)]
+    pub fn new(backend: &'a BufferBackend<S>) -> Self {
+        Self {
+            backend,
+            remaining: backend.len_strings,
+            next: 0,
+        }
+    }
+}
+
+impl<'a, S> Iterator for Iter<'a, S>
+where
+    S: Symbol,
+{
+    type Item = (S, &'a str);
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.len();
+        (remaining, Some(remaining))
+    }
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        self.backend
+            .resolve_index_to_str(self.next)
+            .and_then(|(bytes, next)| {
+                // SAFETY: Within the iterator all indices given to `resolv_index_to_str`
+                //         are properly pointing to the start of each interned string.
+                let string = unsafe { str::from_utf8_unchecked(bytes) };
+                let symbol = S::try_from_usize(self.next)?;
+                self.next = next;
+                self.remaining -= 1;
+                Some((symbol, string))
+            })
+    }
+}
+
+impl<S> ExactSizeIterator for Iter<'_, S>
+where
+    S: Symbol,
+{
+    #[inline]
+    fn len(&self) -> usize {
+        self.remaining
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{decode_var_usize, encode_var_usize};
@@ -432,73 +500,5 @@ mod tests {
         //     ]),
         //     None,
         // );
-    }
-}
-
-impl<'a, S> IntoIterator for &'a BufferBackend<S>
-where
-    S: Symbol,
-{
-    type Item = (S, &'a str);
-    type IntoIter = Iter<'a, S>;
-
-    #[cfg_attr(feature = "inline-more", inline)]
-    fn into_iter(self) -> Self::IntoIter {
-        self.iter()
-    }
-}
-
-pub struct Iter<'a, S> {
-    backend: &'a BufferBackend<S>,
-    remaining: usize,
-    next: usize,
-}
-
-impl<'a, S> Iter<'a, S> {
-    #[cfg_attr(feature = "inline-more", inline)]
-    pub fn new(backend: &'a BufferBackend<S>) -> Self {
-        Self {
-            backend,
-            remaining: backend.len_strings,
-            next: 0,
-        }
-    }
-}
-
-impl<'a, S> Iterator for Iter<'a, S>
-where
-    S: Symbol,
-{
-    type Item = (S, &'a str);
-
-    #[inline]
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let remaining = self.len();
-        (remaining, Some(remaining))
-    }
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.backend
-            .resolve_index_to_str(self.next)
-            .and_then(|(bytes, next)| {
-                // SAFETY: Within the iterator all indices given to `resolv_index_to_str`
-                //         are properly pointing to the start of each interned string.
-                let string = unsafe { str::from_utf8_unchecked(bytes) };
-                let symbol = S::try_from_usize(self.next)?;
-                self.next = next;
-                self.remaining -= 1;
-                Some((symbol, string))
-            })
-    }
-}
-
-impl<S> ExactSizeIterator for Iter<'_, S>
-where
-    S: Symbol,
-{
-    #[inline]
-    fn len(&self) -> usize {
-        self.remaining
     }
 }
