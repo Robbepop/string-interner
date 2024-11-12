@@ -378,7 +378,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::{decode_var_usize, encode_var_usize};
-    #[cfg(not(feature = "std"))]
     use alloc::vec::Vec;
 
     #[test]

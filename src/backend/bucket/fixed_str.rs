@@ -1,5 +1,4 @@
 use super::InternedStr;
-#[cfg(not(feature = "std"))]
 use alloc::string::String;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]

@@ -6,9 +6,7 @@ mod interned_str;
 use self::{fixed_str::FixedString, interned_str::InternedStr};
 use super::Backend;
 use crate::{symbol::expect_valid_symbol, DefaultSymbol, Symbol};
-#[cfg(not(feature = "std"))]
-use alloc::string::String;
-use alloc::vec::Vec;
+use alloc::{string::String, vec::Vec};
 use core::{iter::Enumerate, marker::PhantomData, slice};
 
 /// An interner backend that reduces memory allocations by using string buckets.
