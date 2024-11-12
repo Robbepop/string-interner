@@ -18,6 +18,8 @@ impl FixedString {
     /// Returns the underlying [`Box<str>`].
     ///
     /// Guarantees not to perform any reallocations in this process.
+    /// 
+    /// [`Box<str>`]: alloc::boxed::Box
     #[inline]
     pub fn finish(self) -> String {
         self.contents
