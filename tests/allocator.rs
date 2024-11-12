@@ -9,6 +9,7 @@ pub struct TracingAllocator {
 }
 
 impl TracingAllocator {
+    #[allow(clippy::new_without_default)] // not applicable here
     pub const fn new() -> Self {
         Self {
             inner: System,
@@ -36,8 +37,7 @@ impl TracingAllocator {
 unsafe impl GlobalAlloc for TracingAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         self.stats.push_allocations(layout);
-        let res = self.inner.alloc(layout);
-        res
+        self.inner.alloc(layout)
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {

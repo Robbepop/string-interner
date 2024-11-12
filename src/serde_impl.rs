@@ -1,5 +1,4 @@
 use crate::{backend::Backend, StringInterner, Symbol};
-#[cfg(not(feature = "std"))]
 use alloc::boxed::Box;
 use core::{default::Default, fmt, hash::BuildHasher, marker};
 use serde::{

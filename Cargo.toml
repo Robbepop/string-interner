@@ -14,8 +14,7 @@ categories = ["data-structures"]
 edition = "2021"
 
 [dependencies]
-cfg-if = "1.0"
-hashbrown = { version = "0.14.0", default-features = false, features = ["ahash"] }
+hashbrown = { version = "0.15.1", default-features = false, features = ["default-hasher", "raw-entry"] }
 serde = { version = "1.0", default-features = false, features = ["alloc"], optional = true }
 
 [dev-dependencies]
@@ -28,13 +27,13 @@ name = "bench"
 harness = false
 
 [features]
-default = ["std", "serde-1", "inline-more", "backends"]
-std = ["serde/std"]
+default = ["std", "serde", "inline-more", "backends"]
+std = ["serde?/std"]
 
 # Enable this if you need `Serde` serialization and deserialization support.
 #
 # Enabled by default.
-serde-1 = ["serde"]
+serde = ["dep:serde"]
 
 # Use this to mark more public functions of the StringInterner (and hashbrown)
 # as inline. This significantly increases compile times of the crate but improves
