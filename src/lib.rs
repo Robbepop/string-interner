@@ -1,6 +1,5 @@
 #![doc(html_root_url = "https://docs.rs/crate/string-interner/0.12.0")]
 #![cfg_attr(not(feature = "std"), no_std)]
-// #![deny(missing_docs)]
 #![warn(unsafe_op_in_unsafe_fn, clippy::redundant_closure_for_method_calls)]
 
 //! Caches strings efficiently, with minimal memory footprint and associates them with unique symbols.
