@@ -1,5 +1,25 @@
 # Release Notes
 
+## 0.18.0 - 2024/11/12
+
+## Fixed
+
+- The `serde` crate feature is no longer enabled via `std` crate feature. [#73]
+
+## Removed
+
+- Removed the unused `cfg-if` dependency. [#73]
+
+## Changed
+
+- Updated `hashbrown` dependency to `0.15.1`. [#73]
+
+## Internal
+
+- Fixed many `clippy` and `formatting` issues. [#73]
+
+[#73]: https://github.com/Robbepop/string-interner/pull/73
+
 ## 0.17.0 - 2024/05/01
 
 ## Added
