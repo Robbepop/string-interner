@@ -9,6 +9,7 @@ pub struct TracingAllocator {
 }
 
 impl TracingAllocator {
+    #[allow(clippy::new_without_default)] // not applicable here
     pub const fn new() -> Self {
         Self {
             inner: System,
