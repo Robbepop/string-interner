@@ -132,8 +132,8 @@ pub mod symbol;
 
 /// A convenience [`StringInterner`] type based on the [`DefaultBackend`].
 #[cfg(feature = "backends")]
-pub type DefaultStringInterner<B = DefaultBackend, H = DefaultHashBuilder> =
-    self::interner::StringInterner<B, H>;
+pub type DefaultStringInterner<'i, B = DefaultBackend<'i>, H = DefaultHashBuilder> =
+    self::interner::StringInterner<'i, B, H>;
 
 #[cfg(feature = "backends")]
 #[doc(inline)]

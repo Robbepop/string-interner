@@ -6,11 +6,11 @@ use serde::{
     ser::{Serialize, SerializeSeq, Serializer},
 };
 
-impl<B, H> Serialize for StringInterner<B, H>
+impl<'i, B, H> Serialize for StringInterner<'i, B, H>
 where
-    B: Backend,
-    <B as Backend>::Symbol: Symbol,
-    for<'a> &'a B: IntoIterator<Item = (<B as Backend>::Symbol, &'a str)>,
+    B: Backend<'i>,
+    <B as Backend<'i>>::Symbol: Symbol,
+    for<'l> &'l B: IntoIterator<Item = (<B as Backend<'i>>::Symbol, &'l str)>,
     H: BuildHasher,
 {
     fn serialize<T>(&self, serializer: T) -> Result<T::Ok, T::Error>
@@ -25,13 +25,13 @@ where
     }
 }
 
-impl<'de, B, H> Deserialize<'de> for StringInterner<B, H>
+impl<'i: 'de, 'de, B, H> Deserialize<'de> for StringInterner<'i, B, H>
 where
-    B: Backend,
-    <B as Backend>::Symbol: Symbol,
+    B: Backend<'i>,
+    <B as Backend<'i>>::Symbol: Symbol,
     H: BuildHasher + Default,
 {
-    fn deserialize<D>(deserializer: D) -> Result<StringInterner<B, H>, D::Error>
+    fn deserialize<D>(deserializer: D) -> Result<StringInterner<'i, B, H>, D::Error>
     where
         D: Deserializer<'de>,
     {
@@ -39,19 +39,19 @@ where
     }
 }
 
-struct StringInternerVisitor<B, H>
+struct StringInternerVisitor<'i, B, H>
 where
-    B: Backend,
-    <B as Backend>::Symbol: Symbol,
+    B: Backend<'i>,
+    <B as Backend<'i>>::Symbol: Symbol,
     H: BuildHasher,
 {
-    mark: marker::PhantomData<(<B as Backend>::Symbol, B, H)>,
+    mark: marker::PhantomData<(<B as Backend<'i>>::Symbol, B, H)>,
 }
 
-impl<B, H> Default for StringInternerVisitor<B, H>
+impl<'i, B, H> Default for StringInternerVisitor<'i, B, H>
 where
-    B: Backend,
-    <B as Backend>::Symbol: Symbol,
+    B: Backend<'i>,
+    <B as Backend<'i>>::Symbol: Symbol,
     H: BuildHasher,
 {
     fn default() -> Self {
@@ -61,13 +61,13 @@ where
     }
 }
 
-impl<'de, B, H> Visitor<'de> for StringInternerVisitor<B, H>
+impl<'i: 'de, 'de, B, H> Visitor<'de> for StringInternerVisitor<'i, B, H>
 where
-    B: Backend,
-    <B as Backend>::Symbol: Symbol,
+    B: Backend<'i>,
+    <B as Backend<'i>>::Symbol: Symbol,
     H: BuildHasher + Default,
 {
-    type Value = StringInterner<B, H>;
+    type Value = StringInterner<'i, B, H>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         formatter.write_str("Expected a contiguous sequence of strings.")

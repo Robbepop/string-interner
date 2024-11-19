@@ -1,9 +1,9 @@
 #![cfg(feature = "backends")]
 
-use super::Backend;
+use super::{Backend, PhantomBackend};
 use crate::{symbol::expect_valid_symbol, DefaultSymbol, Symbol};
 use alloc::{string::String, vec::Vec};
-use core::{iter::Enumerate, marker::PhantomData, slice};
+use core::{iter::Enumerate, slice};
 
 /// An interner backend that accumulates all interned string contents into one string.
 ///
@@ -38,10 +38,10 @@ use core::{iter::Enumerate, marker::PhantomData, slice};
 /// | Contiguous  | **yes**  |
 /// | Iteration   | **good** |
 #[derive(Debug)]
-pub struct StringBackend<S = DefaultSymbol> {
+pub struct StringBackend<'i, S: Symbol = DefaultSymbol> {
     ends: Vec<usize>,
     buffer: String,
-    marker: PhantomData<fn() -> S>,
+    marker: PhantomBackend<'i, Self>,
 }
 
 /// Represents a `[from, to)` index into the `StringBackend` buffer.
@@ -51,7 +51,7 @@ pub struct Span {
     to: usize,
 }
 
-impl<S> PartialEq for StringBackend<S>
+impl<'i, S> PartialEq for StringBackend<'i, S>
 where
     S: Symbol,
 {
@@ -68,9 +68,9 @@ where
     }
 }
 
-impl<S> Eq for StringBackend<S> where S: Symbol {}
+impl<'i, S> Eq for StringBackend<'i, S> where S: Symbol {}
 
-impl<S> Clone for StringBackend<S> {
+impl<'i, S: Symbol> Clone for StringBackend<'i, S> {
     fn clone(&self) -> Self {
         Self {
             ends: self.ends.clone(),
@@ -80,7 +80,7 @@ impl<S> Clone for StringBackend<S> {
     }
 }
 
-impl<S> Default for StringBackend<S> {
+impl<'i, S: Symbol> Default for StringBackend<'i, S> {
     #[cfg_attr(feature = "inline-more", inline)]
     fn default() -> Self {
         Self {
@@ -91,7 +91,7 @@ impl<S> Default for StringBackend<S> {
     }
 }
 
-impl<S> StringBackend<S>
+impl<'i, S> StringBackend<'i, S>
 where
     S: Symbol,
 {
@@ -144,15 +144,17 @@ where
     }
 }
 
-impl<S> Backend for StringBackend<S>
+impl<'i, S> Backend<'i> for StringBackend<'i, S>
 where
     S: Symbol,
 {
+    type Access<'l> = &'l str where Self: 'l;
+
     type Symbol = S;
-    type Iter<'a>
-        = Iter<'a, S>
+    type Iter<'l>
+        = Iter<'i, 'l, S>
     where
-        Self: 'a;
+        Self: 'l;
 
     #[cfg_attr(feature = "inline-more", inline)]
     fn with_capacity(cap: usize) -> Self {
@@ -194,12 +196,12 @@ where
     }
 }
 
-impl<'a, S> IntoIterator for &'a StringBackend<S>
+impl<'i, 'l, S> IntoIterator for &'l StringBackend<'i, S>
 where
-    S: Symbol,
+    S: Symbol + 'l,
 {
-    type Item = (S, &'a str);
-    type IntoIter = Iter<'a, S>;
+    type Item = (S, &'l str);
+    type IntoIter = Iter<'i, 'l, S>;
 
     #[cfg_attr(feature = "inline-more", inline)]
     fn into_iter(self) -> Self::IntoIter {
@@ -207,15 +209,15 @@ where
     }
 }
 
-pub struct Iter<'a, S> {
-    backend: &'a StringBackend<S>,
+pub struct Iter<'i, 'l, S: Symbol> {
+    backend: &'l StringBackend<'i, S>,
     start: usize,
-    ends: Enumerate<slice::Iter<'a, usize>>,
+    ends: Enumerate<slice::Iter<'l, usize>>,
 }
 
-impl<'a, S> Iter<'a, S> {
+impl<'i, 'l, S: Symbol> Iter<'i, 'l, S> {
     #[cfg_attr(feature = "inline-more", inline)]
-    pub fn new(backend: &'a StringBackend<S>) -> Self {
+    pub fn new(backend: &'l StringBackend<'i, S>) -> Self {
         Self {
             backend,
             start: 0,
@@ -224,11 +226,11 @@ impl<'a, S> Iter<'a, S> {
     }
 }
 
-impl<'a, S> Iterator for Iter<'a, S>
+impl<'i, 'l, S> Iterator for Iter<'i, 'l, S>
 where
     S: Symbol,
 {
-    type Item = (S, &'a str);
+    type Item = (S, &'l str);
 
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
