@@ -5,38 +5,27 @@ use crate::{symbol::expect_valid_symbol, DefaultSymbol, Symbol};
 use alloc::{string::String, vec::Vec};
 use core::{iter::Enumerate, slice};
 
-/// An interner backend that accumulates all interned string contents into one string.
+/// An interner backend that concatenates all interned string contents into one large
+/// buffer and keeps track of string bounds in a separate [`Vec`].
+/// 
+/// Implementation is inspired by [CAD97's](https://github.com/CAD97)
+/// [`strena`](https://github.com/CAD97/strena) crate.
 ///
-/// # Note
+/// ## Trade-offs
+/// - **Advantages:**
+///   - Separated length tracking allows fast iteration.
+/// - **Disadvantages:**
+///   - Many insertions separated by external allocations can cause the buffer to drift
+///     far away (in memory) from `Vec` storing string ends, which impedes performance of
+///     all interning operations.
+///   - Resolving a symbol requires two heap lookups because data and length are stored in
+///     separate containers.
 ///
-/// Implementation inspired by [CAD97's](https://github.com/CAD97) research
-/// project [`strena`](https://github.com/CAD97/strena).
+/// ## Use Cases
+/// This backend is good for storing fewer large strings and for general use.
 ///
-/// # Usage Hint
-///
-/// Use this backend if runtime performance is what matters most to you.
-///
-/// # Usage
-///
-/// - **Fill:** Efficiency of filling an empty string interner.
-/// - **Resolve:** Efficiency of interned string look-up given a symbol.
-/// - **Allocations:** The number of allocations performed by the backend.
-/// - **Footprint:** The total heap memory consumed by the backend.
-/// - **Contiguous:** True if the returned symbols have contiguous values.
-/// - **Iteration:** Efficiency of iterating over the interned strings.
-///
-/// Rating varies between **bad**, **ok**, **good** and **best**.
-///
-/// | Scenario    |  Rating  |
-/// |:------------|:--------:|
-/// | Fill        | **good** |
-/// | Resolve     | **ok**   |
-/// | Allocations | **good** |
-/// | Footprint   | **good** |
-/// | Supports `get_or_intern_static` | **no** |
-/// | `Send` + `Sync` | **yes** |
-/// | Contiguous  | **yes**  |
-/// | Iteration   | **good** |
+/// Refer to the [comparison table][crate::_docs::comparison_table] for comparison with
+/// other backends.
 #[derive(Debug)]
 pub struct StringBackend<'i, S: Symbol = DefaultSymbol> {
     ends: Vec<usize>,

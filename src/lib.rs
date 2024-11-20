@@ -2,10 +2,19 @@
 #![doc(html_root_url = "https://docs.rs/crate/string-interner/0.18.0")]
 #![warn(unsafe_op_in_unsafe_fn, clippy::redundant_closure_for_method_calls)]
 
-//! Caches strings efficiently, with minimal memory footprint and associates them with unique symbols.
-//! These symbols allow constant time comparisons and look-ups to the underlying interned strings.
+//! Caches strings efficiently, with minimal memory footprint and associates them with
+//! unique symbols. These symbols allow constant time equality comparison and look-ups to
+//! the underlying interned strings.
+//! 
+//! For more information on purpose of string interning, refer to the corresponding
+//! [wikipedia article].
+//! 
+//! See the [**comparison table**](crate::_docs::comparison_table) for a detailed
+//! comparison summary of different backends.
+//! 
+//! ## Examples
 //!
-//! ### Example: Interning & Symbols
+//! #### Interning & Symbols
 //!
 //! ```
 //! use string_interner::StringInterner;
@@ -21,7 +30,7 @@
 //! assert_eq!(sym1, sym3); // same!
 //! ```
 //!
-//! ### Example: Creation by `FromIterator`
+//! #### Creation by `FromIterator`
 //!
 //! ```
 //! # use string_interner::DefaultStringInterner;
@@ -30,7 +39,7 @@
 //!     .collect::<DefaultStringInterner>();
 //! ```
 //!
-//! ### Example: Look-up
+//! #### Look-up
 //!
 //! ```
 //! # use string_interner::StringInterner;
@@ -39,7 +48,7 @@
 //! assert_eq!(interner.resolve(sym), Some("Banana"));
 //! ```
 //!
-//! ### Example: Iteration
+//! #### Iteration
 //!
 //! ```
 //! # use string_interner::{DefaultStringInterner, Symbol};
@@ -49,7 +58,7 @@
 //! }
 //! ```
 //!
-//! ### Example: Use Different Backend
+//! #### Use Different Backend
 //!
 //! ```
 //! # use string_interner::StringInterner;
@@ -63,7 +72,7 @@
 //! assert_eq!(sym1, sym3); // same!
 //! ```
 //!
-//! ### Example: Use Different Backend & Symbol
+//! #### Use Different Backend & Symbol
 //!
 //! ```
 //! # use string_interner::StringInterner;
@@ -79,44 +88,38 @@
 //!
 //! ## Backends
 //!
-//! The `string_interner` crate provides different backends with different strengths.
-//! The table below compactly shows when to use which backend according to the following
-//! performance characteristics.
+//! The `string_interner` crate provides different backends with different strengths.<br/>
+//! 
+//! #### [Bucket Backend](backend/struct.BucketBackend.html)
+//! 
+//! Stores strings in buckets which stay allocated for the lifespan of [`StringInterner`].
+//! This allows resolved symbols to be used even after new strings have been interned.
 //!
-//! - **Fill:** Efficiency of filling an empty string interner.
-//! - **Resolve:** Efficiency of resolving a symbol of an interned string.
-//! - **Allocations:** The number of allocations performed by the backend.
-//! - **Footprint:** The total heap memory consumed by the backend.
-//! - **Contiguous:** True if the returned symbols have contiguous values.
-//! - **Iteration:** Efficiency of iterating over the interned strings.
+//! **Ideal for:** storing strings in persistent location in memory
 //!
-//! | **Property** | **BucketBackend** | **StringBackend** | **BufferBackend** |
-//! |:-------------|:-----------------:|:-----------------:|:-----------------:|
-//! | **Fill**     | ok                | good              | best              |
-//! | **Resolve**  | best              | good              | bad               |
-//! | Allocations  | ok                | good              | best              |
-//! | Footprint    | ok                | good              | best              |
-//! | Contiguous   | yes               | yes               | no                |
-//! | Iteration    | best              | good              | bad               |
+//! #### [String Backend](backend/struct.StringBackend.html)
+//! 
+//! Concatenates all interned string contents into one large buffer
+//! [`String`][alloc::string::String], keeping interned string lenghts in a separate
+//! [`Vec`][alloc::vec::Vec].
 //!
-//! ## When to use which backend?
+//! **Ideal for:** general use
 //!
-//! ### Bucket Backend
+//! #### [Buffer Backend](backend/struct.BufferBackend.html)
 //!
-//! Given the table above the `BucketBackend` might seem inferior to the other backends.
-//! However, it allows to efficiently intern `&'static str` and avoids deallocations.
+//! Concatenates all interned string contents into one large buffer
+//! [`String`][alloc::string::String], and keeps interned string lenghts as prefixes.
 //!
-//! ### String Backend
-//!
-//! Overall the `StringBackend` performs really well and therefore is the backend
-//! that the `StringInterner` uses by default.
-//!
-//! ### Buffer Backend
-//!
-//! The `BufferBackend` is in some sense similar to the `StringBackend` on steroids.
-//! Some operations are even slightly more efficient and it consumes less memory.
-//! However, all this is at the costs of a less efficient resolution of symbols.
-//! Note that the symbols generated by the `BufferBackend` are not contiguous.
+//! **Ideal for:** storing many small (<255 characters) strings
+//! 
+//! [Comparison table][crate::_docs::comparison_table] shows a high-level overview of
+//! different backend characteristics.
+//! 
+//! [wikipedia article]: https://en.wikipedia.org/wiki/String_interning
+
+#[cfg(doc)]
+#[path ="docs.rs"]
+pub mod _docs;
 
 extern crate alloc;
 #[cfg(feature = "std")]

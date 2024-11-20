@@ -5,34 +5,22 @@ use crate::{symbol::expect_valid_symbol, DefaultSymbol, Symbol};
 use alloc::vec::Vec;
 use core::{mem, str};
 
-/// An interner backend that appends all interned string information in a single buffer.
+/// An interner backend that concatenates all interned string contents into one large
+/// buffer [`Vec`]. Unlike [`StringBackend`][crate::backend::StringBackend], string
+/// lengths are stored in the same buffer as strings preceeding the respective string
+/// data.
 ///
-/// # Usage Hint
+/// ## Trade-offs
+/// - **Advantages:**
+///   - Accessing interned strings is fast, as it requires a single lookup.
+/// - **Disadvantages:**
+///   - Iteration is slow because it requires consecutive reading of lengths to advance.
 ///
-/// Use this backend if memory consumption is what matters most to you.
-/// Note though that unlike all other backends symbol values are not contigous!
+/// ## Use Cases
+/// This backend is ideal for storing many small (<255 characters) strings.
 ///
-/// # Usage
-///
-/// - **Fill:** Efficiency of filling an empty string interner.
-/// - **Resolve:** Efficiency of interned string look-up given a symbol.
-/// - **Allocations:** The number of allocations performed by the backend.
-/// - **Footprint:** The total heap memory consumed by the backend.
-/// - **Contiguous:** True if the returned symbols have contiguous values.
-/// - **Iteration:** Efficiency of iterating over the interned strings.
-///
-/// Rating varies between **bad**, **ok**, **good** and **best**.
-///
-/// | Scenario    |  Rating  |
-/// |:------------|:--------:|
-/// | Fill        | **best** |
-/// | Resolve     | **bad**  |
-/// | Allocations | **best** |
-/// | Footprint   | **best** |
-/// | Supports `get_or_intern_static` | **no** |
-/// | `Send` + `Sync` | **yes** |
-/// | Contiguous  | **no**   |
-/// | Iteration   | **bad** |
+/// Refer to the [comparison table][crate::_docs::comparison_table] for comparison with
+/// other backends.
 #[derive(Debug)]
 pub struct BufferBackend<'i, S: Symbol = DefaultSymbol> {
     len_strings: usize,

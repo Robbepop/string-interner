@@ -242,18 +242,22 @@ where
     }
 
     /// Interns the given `'static` string.
-    ///
+    /// 
     /// Returns a symbol for resolution into the original string.
+    /// 
+    /// If the backend supports [`'static` interning][crate::_docs::comparison_table],
+    /// later calls to this or [`get_or_intern`][StringInterner::get_or_intern] function
+    /// will return a symbol that resolves to the original `&'static str` reference.
     ///
     /// # Note
     ///
-    /// This is more efficient than [`StringInterner::get_or_intern`] since it might
-    /// avoid some memory allocations if the backends supports this.
+    /// This is more efficient than [`StringInterner::get_or_intern`] since it might avoid
+    /// some memory allocations if the backends supports this.
     ///
     /// # Panics
     ///
-    /// If the interner already interns the maximum number of strings possible
-    /// by the chosen symbol type.
+    /// If the interner already interns the maximum number of strings possible by the
+    /// chosen symbol type.
     #[inline]
     pub fn get_or_intern_static(&mut self, string: &'static str) -> <B as Backend<'i>>::Symbol {
         self.get_or_intern_using(string, B::intern_static)
