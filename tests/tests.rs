@@ -33,7 +33,7 @@ pub trait BackendStats {
     const NAME: &'static str;
 }
 
-impl BackendStats for backend::BucketBackend<DefaultSymbol> {
+impl BackendStats for backend::BucketBackend<'_, DefaultSymbol> {
     const MIN_OVERHEAD: f64 = 2.2;
     const MAX_OVERHEAD: f64 = 3.1;
     const MAX_ALLOCATIONS: usize = 65;
@@ -41,7 +41,7 @@ impl BackendStats for backend::BucketBackend<DefaultSymbol> {
     const NAME: &'static str = "BucketBackend";
 }
 
-impl BackendStats for backend::StringBackend<DefaultSymbol> {
+impl BackendStats for backend::StringBackend<'_, DefaultSymbol> {
     const MIN_OVERHEAD: f64 = 1.7;
     const MAX_OVERHEAD: f64 = 1.93;
     const MAX_ALLOCATIONS: usize = 62;
@@ -49,7 +49,7 @@ impl BackendStats for backend::StringBackend<DefaultSymbol> {
     const NAME: &'static str = "StringBackend";
 }
 
-impl BackendStats for backend::BufferBackend<DefaultSymbol> {
+impl BackendStats for backend::BufferBackend<'_, DefaultSymbol> {
     const MIN_OVERHEAD: f64 = 1.35;
     const MAX_OVERHEAD: f64 = 1.58;
     const MAX_ALLOCATIONS: usize = 43;
@@ -68,9 +68,12 @@ pub struct ProfilingStats {
 }
 
 macro_rules! gen_tests_for_backend {
-    ( $backend:ty ) => {
-        type StringInterner =
-            string_interner::StringInterner<$backend, DefaultHashBuilder>;
+    ( $backend:ident ) => {
+        gen_tests_for_backend!($backend, symbol: DefaultSymbol);
+    };
+    ( $backend:ident, symbol: $symbol: ident ) => {
+        type StringInterner<'i> =
+            string_interner::StringInterner<'i, backend::$backend<'i, $symbol>, DefaultHashBuilder>;
 
         fn profile_memory_usage(words: &[String]) -> ProfilingStats {
             ALLOCATOR.reset();
@@ -128,7 +131,7 @@ macro_rules! gen_tests_for_backend {
             }).collect::<Vec<_>>();
 
             println!();
-            println!("Benchmark Memory Usage for {}", <$backend as BackendStats>::NAME);
+            println!("Benchmark Memory Usage for {}", <backend::$backend<$symbol> as BackendStats>::NAME);
             let mut min_overhead = None;
             let mut max_overhead = None;
             let mut max_allocations = None;
@@ -152,12 +155,12 @@ macro_rules! gen_tests_for_backend {
             }
             let actual_min_overhead = min_overhead.unwrap();
             let actual_max_overhead = max_overhead.unwrap();
-            let expect_min_overhead = <$backend as BackendStats>::MIN_OVERHEAD;
-            let expect_max_overhead = <$backend as BackendStats>::MAX_OVERHEAD;
+            let expect_min_overhead = <backend::$backend<$symbol> as BackendStats>::MIN_OVERHEAD;
+            let expect_max_overhead = <backend::$backend<$symbol> as BackendStats>::MAX_OVERHEAD;
             let actual_max_allocations = max_allocations.unwrap();
             let actual_max_deallocations = max_deallocations.unwrap();
-            let expect_max_allocations = <$backend as BackendStats>::MAX_ALLOCATIONS;
-            let expect_max_deallocations = <$backend as BackendStats>::MAX_DEALLOCATIONS;
+            let expect_max_allocations = <backend::$backend<$symbol> as BackendStats>::MAX_ALLOCATIONS;
+            let expect_max_deallocations = <backend::$backend<$symbol> as BackendStats>::MAX_DEALLOCATIONS;
 
             println!();
             println!("- % min overhead      = {:.02}%", actual_min_overhead * 100.0);
@@ -168,28 +171,28 @@ macro_rules! gen_tests_for_backend {
             assert!(
                 actual_min_overhead < expect_min_overhead,
                 "{} string interner backend minimum memory overhead is greater than expected. expected = {:?}, actual = {:?}",
-                <$backend as BackendStats>::NAME,
+                <backend::$backend<$symbol> as BackendStats>::NAME,
                 expect_min_overhead,
                 actual_min_overhead,
             );
             assert!(
                 actual_max_overhead < expect_max_overhead,
                 "{} string interner backend maximum memory overhead is greater than expected. expected = {:?}, actual = {:?}",
-                <$backend as BackendStats>::NAME,
+                <backend::$backend<$symbol> as BackendStats>::NAME,
                 expect_max_overhead,
                 actual_max_overhead,
             );
             assert_eq!(
                 actual_max_allocations, expect_max_allocations,
                 "{} string interner backend maximum amount of allocations is greater than expected. expected = {:?}, actual = {:?}",
-                <$backend as BackendStats>::NAME,
+                <backend::$backend<$symbol> as BackendStats>::NAME,
                 expect_max_allocations,
                 actual_max_allocations,
             );
             assert_eq!(
                 actual_max_deallocations, expect_max_deallocations,
                 "{} string interner backend maximum amount of deallocations is greater than expected. expected = {:?}, actual = {:?}",
-                <$backend as BackendStats>::NAME,
+                <backend::$backend<$symbol> as BackendStats>::NAME,
                 expect_max_deallocations,
                 actual_max_deallocations,
             );
@@ -414,17 +417,17 @@ macro_rules! gen_tests_for_backend {
 mod bucket_backend {
     use super::*;
 
-    gen_tests_for_backend!(backend::BucketBackend<DefaultSymbol>);
+    gen_tests_for_backend!(BucketBackend);
 }
 
 mod string_backend {
     use super::*;
 
-    gen_tests_for_backend!(backend::StringBackend<DefaultSymbol>);
+    gen_tests_for_backend!(StringBackend);
 }
 
 mod buffer_backend {
     use super::*;
 
-    gen_tests_for_backend!(backend::BufferBackend<DefaultSymbol>);
+    gen_tests_for_backend!(BufferBackend);
 }

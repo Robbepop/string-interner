@@ -54,7 +54,7 @@
 //! ```
 //! # use string_interner::StringInterner;
 //! use string_interner::backend::BufferBackend;
-//! type Interner = StringInterner<BufferBackend>;
+//! type Interner<'i> = StringInterner<'i, BufferBackend<'i>>;
 //! let mut interner = Interner::new();
 //! let sym1 = interner.get_or_intern("Tiger");
 //! let sym2 = interner.get_or_intern("Horse");
@@ -68,7 +68,7 @@
 //! ```
 //! # use string_interner::StringInterner;
 //! use string_interner::{backend::BucketBackend, symbol::SymbolU16};
-//! type Interner = StringInterner<BucketBackend<SymbolU16>>;
+//! type Interner<'i> = StringInterner<'i, BucketBackend<'i, SymbolU16>>;
 //! let mut interner = Interner::new();
 //! let sym1 = interner.get_or_intern("Tiger");
 //! let sym2 = interner.get_or_intern("Horse");
