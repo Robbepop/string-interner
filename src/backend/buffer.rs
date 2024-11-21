@@ -7,8 +7,7 @@ use core::{mem, str};
 
 /// An interner backend that concatenates all interned string contents into one large
 /// buffer [`Vec`]. Unlike [`StringBackend`][crate::backend::StringBackend], string
-/// lengths are stored in the same buffer as strings preceeding the respective string
-/// data.
+/// lengths are stored in the same buffer as strings preceeding the respective string data.
 ///
 /// ## Trade-offs
 /// - **Advantages:**

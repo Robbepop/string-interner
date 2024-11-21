@@ -1,7 +1,6 @@
 use string_interner::{
     backend::{Backend, BucketBackend, BufferBackend, StringBackend},
-    DefaultSymbol,
-    StringInterner,
+    DefaultSymbol, StringInterner,
 };
 
 /// Alphabet containing all characters that may be put into a benchmark string.
@@ -79,53 +78,64 @@ pub const BENCH_LEN_STRINGS: usize = 100_000;
 pub const BENCH_STRING_LEN: usize = 5;
 
 type FxBuildHasher = fxhash::FxBuildHasher;
-type StringInternerWith<B> = StringInterner<B, FxBuildHasher>;
+type StringInternerWith<'i, B> = StringInterner<'i, B, FxBuildHasher>;
 
-pub trait BackendBenchmark {
+pub trait BackendBenchmark<'i> {
     const NAME: &'static str;
-    type Backend: Backend;
+    type Backend: Backend<'i>;
 
-    fn setup() -> StringInternerWith<Self::Backend> {
+    fn setup() -> StringInternerWith<'i, Self::Backend> {
         <StringInternerWith<Self::Backend>>::new()
     }
 
-    fn setup_with_capacity(cap: usize) -> StringInternerWith<Self::Backend> {
+    fn setup_with_capacity(cap: usize) -> StringInternerWith<'i, Self::Backend> {
         <StringInternerWith<Self::Backend>>::with_capacity(cap)
     }
 
-    fn setup_filled(words: &[String]) -> StringInternerWith<Self::Backend> {
-        words.iter().collect::<StringInternerWith<Self::Backend>>()
+    fn setup_filled<I, S>(words: I) -> StringInternerWith<'i, Self::Backend>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        words
+            .into_iter()
+            .map(|it| it.as_ref().to_string())
+            .collect::<StringInternerWith<Self::Backend>>()
     }
 
-    fn setup_filled_with_ids(
-        words: &[String],
+    fn setup_filled_with_ids<I, S>(
+        words: I,
     ) -> (
-        StringInternerWith<Self::Backend>,
-        Vec<<Self::Backend as Backend>::Symbol>,
-    ) {
-        let mut interner = <StringInternerWith<Self::Backend>>::new();
+        StringInternerWith<'i, Self::Backend>,
+        Vec<<Self::Backend as Backend<'i>>::Symbol>,
+    )
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        let mut interner = <StringInternerWith<'i, Self::Backend>>::new();
         let word_ids = words
-            .iter()
-            .map(|word| interner.get_or_intern(word))
+            .into_iter()
+            .map(|word| interner.get_or_intern(word.as_ref()))
             .collect::<Vec<_>>();
         (interner, word_ids)
     }
 }
 
 pub struct BenchBucket;
-impl BackendBenchmark for BenchBucket {
+impl<'i> BackendBenchmark<'i> for BenchBucket {
     const NAME: &'static str = "BucketBackend";
-    type Backend = BucketBackend<DefaultSymbol>;
+    type Backend = BucketBackend<'i, DefaultSymbol>;
 }
 
 pub struct BenchString;
-impl BackendBenchmark for BenchString {
+impl<'i> BackendBenchmark<'i> for BenchString {
     const NAME: &'static str = "StringBackend";
-    type Backend = StringBackend<DefaultSymbol>;
+    type Backend = StringBackend<'i, DefaultSymbol>;
 }
 
 pub struct BenchBuffer;
-impl BackendBenchmark for BenchBuffer {
+impl<'i> BackendBenchmark<'i> for BenchBuffer {
     const NAME: &'static str = "BufferBackend";
-    type Backend = BufferBackend<DefaultSymbol>;
+    type Backend = BufferBackend<'i, DefaultSymbol>;
 }
