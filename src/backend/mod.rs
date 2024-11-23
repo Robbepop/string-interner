@@ -14,21 +14,43 @@ use crate::Symbol;
 
 /// The default backend recommended for general use.
 #[cfg(feature = "backends")]
-pub type DefaultBackend = StringBackend<crate::DefaultSymbol>;
+pub type DefaultBackend<'i> = StringBackend<'i, crate::DefaultSymbol>;
+
+/// [`PhantomData`][std::marker::PhantomData] wrapper that describes how a [`Backend`]
+/// implementor uses lifetime `'i` and [`B::Symbol`][Backend::Symbol].
+#[allow(type_alias_bounds)] // included for clarity
+type PhantomBackend<'i, B: Backend<'i>> = std::marker::PhantomData<
+    // 'i is invariant,        Symbol is covariant + Send + Sync
+    (core::cell::Cell<&'i ()>, fn() -> <B as Backend<'i>>::Symbol)
+>;
 
 /// Types implementing this trait may act as backends for the string interner.
 ///
 /// The job of a backend is to actually store, manage and organize the interned
 /// strings. Different backends have different trade-offs. Users should pick
 /// their backend with hinsight of their personal use-case.
-pub trait Backend: Default {
+pub trait Backend<'i>: Default {
     /// The symbol used by the string interner backend.
     type Symbol: Symbol;
 
-    /// The iterator over the symbols and their strings.
-    type Iter<'a>: Iterator<Item = (Self::Symbol, &'a str)>
+    /// Describes the lifetime of returned string.
+    ///
+    /// If interned strings can move between insertion this type will be
+    /// `&'local str` - indicating that resolved `str` is only valid while
+    /// container isn't mutably accessed.
+    ///
+    /// If interned strings can't move then this type is `&'container str`,
+    /// indicating that resolved `str` are valid for as long as interner exists.
+    type Access<'l>: AsRef<str>
     where
-        Self: 'a;
+        Self: 'l,
+        'i: 'l;
+
+    /// The iterator over the symbols and their strings.
+    type Iter<'l>: Iterator<Item = (Self::Symbol, Self::Access<'l>)>
+    where
+        'i: 'l,
+        Self: 'l;
 
     /// Creates a new backend for the given capacity.
     ///
@@ -61,7 +83,7 @@ pub trait Backend: Default {
     fn shrink_to_fit(&mut self);
 
     /// Resolves the given symbol to its original string contents.
-    fn resolve(&self, symbol: Self::Symbol) -> Option<&str>;
+    fn resolve(&self, symbol: Self::Symbol) -> Option<Self::Access<'_>>;
 
     /// Resolves the given symbol to its original string contents.
     ///
@@ -72,7 +94,7 @@ pub trait Backend: Default {
     /// by the [`intern`](`Backend::intern`) or
     /// [`intern_static`](`Backend::intern_static`) methods of the same
     /// interner backend.
-    unsafe fn resolve_unchecked(&self, symbol: Self::Symbol) -> &str;
+    unsafe fn resolve_unchecked(&self, symbol: Self::Symbol) -> Self::Access<'_>;
 
     /// Creates an iterator that yields all interned strings and their symbols.
     fn iter(&self) -> Self::Iter<'_>;

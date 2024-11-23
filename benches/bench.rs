@@ -39,7 +39,7 @@ criterion_main!(bench_get_or_intern, bench_resolve, bench_get, bench_iter);
 
 fn bench_get_or_intern_static(c: &mut Criterion) {
     let mut g = c.benchmark_group("get_or_intern_static");
-    fn bench_for_backend<BB: BackendBenchmark>(g: &mut BenchmarkGroup<WallTime>) {
+    fn bench_for_backend<'i, BB: BackendBenchmark<'i>>(g: &mut BenchmarkGroup<WallTime>) {
         #[rustfmt::skip]
         let static_strings = &[
             "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
@@ -87,7 +87,7 @@ fn bench_get_or_intern_static(c: &mut Criterion) {
 fn bench_get_or_intern_fill_with_capacity(c: &mut Criterion) {
     let mut g = c.benchmark_group("get_or_intern/fill-empty/with_capacity");
     g.throughput(Throughput::Elements(BENCH_LEN_STRINGS as u64));
-    fn bench_for_backend<BB: BackendBenchmark>(g: &mut BenchmarkGroup<WallTime>) {
+    fn bench_for_backend<'i, BB: BackendBenchmark<'i>>(g: &mut BenchmarkGroup<WallTime>) {
         g.bench_with_input(
             BB::NAME,
             &(BENCH_LEN_STRINGS, BENCH_STRING_LEN),
@@ -113,7 +113,7 @@ fn bench_get_or_intern_fill_with_capacity(c: &mut Criterion) {
 fn bench_get_or_intern_fill(c: &mut Criterion) {
     let mut g = c.benchmark_group("get_or_intern/fill-empty/new");
     g.throughput(Throughput::Elements(BENCH_LEN_STRINGS as u64));
-    fn bench_for_backend<BB: BackendBenchmark>(g: &mut BenchmarkGroup<WallTime>) {
+    fn bench_for_backend<'i, BB: BackendBenchmark<'i>>(g: &mut BenchmarkGroup<WallTime>) {
         g.bench_with_input(
             BB::NAME,
             &(BENCH_LEN_STRINGS, BENCH_STRING_LEN),
@@ -139,7 +139,7 @@ fn bench_get_or_intern_fill(c: &mut Criterion) {
 fn bench_get_or_intern_already_filled(c: &mut Criterion) {
     let mut g = c.benchmark_group("get_or_intern/already-filled");
     g.throughput(Throughput::Elements(BENCH_LEN_STRINGS as u64));
-    fn bench_for_backend<BB: BackendBenchmark>(g: &mut BenchmarkGroup<WallTime>) {
+    fn bench_for_backend<'i, BB: BackendBenchmark<'i>>(g: &mut BenchmarkGroup<WallTime>) {
         g.bench_with_input(
             BB::NAME,
             &(BENCH_LEN_STRINGS, BENCH_STRING_LEN),
@@ -165,7 +165,7 @@ fn bench_get_or_intern_already_filled(c: &mut Criterion) {
 fn bench_resolve_already_filled(c: &mut Criterion) {
     let mut g = c.benchmark_group("resolve/already-filled");
     g.throughput(Throughput::Elements(BENCH_LEN_STRINGS as u64));
-    fn bench_for_backend<BB: BackendBenchmark>(g: &mut BenchmarkGroup<WallTime>) {
+    fn bench_for_backend<'i, BB: BackendBenchmark<'i>>(g: &mut BenchmarkGroup<WallTime>) {
         g.bench_with_input(
             BB::NAME,
             &(BENCH_LEN_STRINGS, BENCH_STRING_LEN),
@@ -191,7 +191,7 @@ fn bench_resolve_already_filled(c: &mut Criterion) {
 fn bench_resolve_unchecked_already_filled(c: &mut Criterion) {
     let mut g = c.benchmark_group("resolve_unchecked/already-filled");
     g.throughput(Throughput::Elements(BENCH_LEN_STRINGS as u64));
-    fn bench_for_backend<BB: BackendBenchmark>(g: &mut BenchmarkGroup<WallTime>) {
+    fn bench_for_backend<'i, BB: BackendBenchmark<'i>>(g: &mut BenchmarkGroup<WallTime>) {
         g.bench_with_input(
             BB::NAME,
             &(BENCH_LEN_STRINGS, BENCH_STRING_LEN),
@@ -220,7 +220,7 @@ fn bench_resolve_unchecked_already_filled(c: &mut Criterion) {
 fn bench_get_already_filled(c: &mut Criterion) {
     let mut g = c.benchmark_group("get/already-filled");
     g.throughput(Throughput::Elements(BENCH_LEN_STRINGS as u64));
-    fn bench_for_backend<BB: BackendBenchmark>(g: &mut BenchmarkGroup<WallTime>) {
+    fn bench_for_backend<'i, BB: BackendBenchmark<'i>>(g: &mut BenchmarkGroup<WallTime>) {
         g.bench_with_input(
             BB::NAME,
             &(BENCH_LEN_STRINGS, BENCH_STRING_LEN),
@@ -246,11 +246,11 @@ fn bench_get_already_filled(c: &mut Criterion) {
 fn bench_iter_already_filled(c: &mut Criterion) {
     let mut g = c.benchmark_group("iter/already-filled");
     g.throughput(Throughput::Elements(BENCH_LEN_STRINGS as u64));
-    fn bench_for_backend<BB: BackendBenchmark>(g: &mut BenchmarkGroup<WallTime>)
+    fn bench_for_backend<'i, BB: BackendBenchmark<'i>>(g: &mut BenchmarkGroup<WallTime>)
     where
-        for<'a> &'a <BB as BackendBenchmark>::Backend: IntoIterator<
+        for<'a> &'a <BB as BackendBenchmark<'i>>::Backend: IntoIterator<
             Item = (
-                <<BB as BackendBenchmark>::Backend as Backend>::Symbol,
+                <<BB as BackendBenchmark<'i>>::Backend as Backend<'i>>::Symbol,
                 &'a str,
             ),
         >,

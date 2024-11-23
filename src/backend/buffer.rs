@@ -1,46 +1,33 @@
 #![cfg(feature = "backends")]
 
-use super::Backend;
+use super::{Backend, PhantomBackend};
 use crate::{symbol::expect_valid_symbol, DefaultSymbol, Symbol};
 use alloc::vec::Vec;
-use core::{marker::PhantomData, mem, str};
+use core::{mem, str};
 
-/// An interner backend that appends all interned string information in a single buffer.
+/// An interner backend that concatenates all interned string contents into one large
+/// buffer [`Vec`]. Unlike [`StringBackend`][crate::backend::StringBackend], string
+/// lengths are stored in the same buffer as strings preceeding the respective string data.
 ///
-/// # Usage Hint
+/// ## Trade-offs
+/// - **Advantages:**
+///   - Accessing interned strings is fast, as it requires a single lookup.
+/// - **Disadvantages:**
+///   - Iteration is slow because it requires consecutive reading of lengths to advance.
 ///
-/// Use this backend if memory consumption is what matters most to you.
-/// Note though that unlike all other backends symbol values are not contigous!
+/// ## Use Cases
+/// This backend is ideal for storing many small (<255 characters) strings.
 ///
-/// # Usage
-///
-/// - **Fill:** Efficiency of filling an empty string interner.
-/// - **Resolve:** Efficiency of interned string look-up given a symbol.
-/// - **Allocations:** The number of allocations performed by the backend.
-/// - **Footprint:** The total heap memory consumed by the backend.
-/// - **Contiguous:** True if the returned symbols have contiguous values.
-/// - **Iteration:** Efficiency of iterating over the interned strings.
-///
-/// Rating varies between **bad**, **ok**, **good** and **best**.
-///
-/// | Scenario    |  Rating  |
-/// |:------------|:--------:|
-/// | Fill        | **best** |
-/// | Resolve     | **bad**  |
-/// | Allocations | **best** |
-/// | Footprint   | **best** |
-/// | Supports `get_or_intern_static` | **no** |
-/// | `Send` + `Sync` | **yes** |
-/// | Contiguous  | **no**   |
-/// | Iteration   | **bad** |
+/// Refer to the [comparison table][crate::_docs::comparison_table] for comparison with
+/// other backends.
 #[derive(Debug)]
-pub struct BufferBackend<S = DefaultSymbol> {
+pub struct BufferBackend<'i, S: Symbol = DefaultSymbol> {
     len_strings: usize,
     buffer: Vec<u8>,
-    marker: PhantomData<fn() -> S>,
+    marker: PhantomBackend<'i, Self>,
 }
 
-impl<S> PartialEq for BufferBackend<S>
+impl<'i, S> PartialEq for BufferBackend<'i, S>
 where
     S: Symbol,
 {
@@ -49,9 +36,9 @@ where
     }
 }
 
-impl<S> Eq for BufferBackend<S> where S: Symbol {}
+impl<'i, S> Eq for BufferBackend<'i, S> where S: Symbol {}
 
-impl<S> Clone for BufferBackend<S> {
+impl<'i, S: Symbol> Clone for BufferBackend<'i, S> {
     fn clone(&self) -> Self {
         Self {
             len_strings: self.len_strings,
@@ -61,7 +48,7 @@ impl<S> Clone for BufferBackend<S> {
     }
 }
 
-impl<S> Default for BufferBackend<S> {
+impl<'i, S: Symbol> Default for BufferBackend<'i, S> {
     #[cfg_attr(feature = "inline-more", inline)]
     fn default() -> Self {
         Self {
@@ -72,7 +59,7 @@ impl<S> Default for BufferBackend<S> {
     }
 }
 
-impl<S> BufferBackend<S>
+impl<'i, S> BufferBackend<'i, S>
 where
     S: Symbol,
 {
@@ -147,15 +134,19 @@ where
     }
 }
 
-impl<S> Backend for BufferBackend<S>
+impl<'i, S> Backend<'i> for BufferBackend<'i, S>
 where
     S: Symbol,
 {
-    type Symbol = S;
-    type Iter<'a>
-        = Iter<'a, S>
+    type Access<'l> = &'l str
     where
-        Self: 'a;
+         Self: 'l;
+    type Symbol = S;
+    type Iter<'l>
+        = Iter<'i, 'l, S>
+    where
+        'i: 'l,
+        Self: 'l;
 
     #[cfg_attr(feature = "inline-more", inline)]
     fn with_capacity(capacity: usize) -> Self {
@@ -307,12 +298,12 @@ fn decode_var_usize_cold(buffer: &[u8]) -> Option<(usize, usize)> {
     Some((result, i + 1))
 }
 
-impl<'a, S> IntoIterator for &'a BufferBackend<S>
+impl<'i, 'l, S> IntoIterator for &'l BufferBackend<'i, S>
 where
     S: Symbol,
 {
-    type Item = (S, &'a str);
-    type IntoIter = Iter<'a, S>;
+    type Item = (S, &'l str);
+    type IntoIter = Iter<'i, 'l, S>;
 
     #[cfg_attr(feature = "inline-more", inline)]
     fn into_iter(self) -> Self::IntoIter {
@@ -320,15 +311,15 @@ where
     }
 }
 
-pub struct Iter<'a, S> {
-    backend: &'a BufferBackend<S>,
+pub struct Iter<'i, 'l, S: Symbol> {
+    backend: &'l BufferBackend<'i, S>,
     remaining: usize,
     next: usize,
 }
 
-impl<'a, S> Iter<'a, S> {
+impl<'i, 'l, S: Symbol> Iter<'i, 'l, S> {
     #[cfg_attr(feature = "inline-more", inline)]
-    pub fn new(backend: &'a BufferBackend<S>) -> Self {
+    pub fn new(backend: &'l BufferBackend<'i, S>) -> Self {
         Self {
             backend,
             remaining: backend.len_strings,
@@ -337,11 +328,11 @@ impl<'a, S> Iter<'a, S> {
     }
 }
 
-impl<'a, S> Iterator for Iter<'a, S>
+impl<'i, 'l, S> Iterator for Iter<'i, 'l, S>
 where
     S: Symbol,
 {
-    type Item = (S, &'a str);
+    type Item = (S, &'l str);
 
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -365,7 +356,7 @@ where
     }
 }
 
-impl<S> ExactSizeIterator for Iter<'_, S>
+impl<'i, S> ExactSizeIterator for Iter<'i, '_, S>
 where
     S: Symbol,
 {

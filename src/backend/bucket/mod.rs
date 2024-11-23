@@ -4,50 +4,44 @@ mod fixed_str;
 mod interned_str;
 
 use self::{fixed_str::FixedString, interned_str::InternedStr};
-use super::Backend;
+use super::{Backend, PhantomBackend};
 use crate::{symbol::expect_valid_symbol, DefaultSymbol, Symbol};
 use alloc::{string::String, vec::Vec};
 use core::{iter::Enumerate, marker::PhantomData, slice};
 
-/// An interner backend that reduces memory allocations by using string buckets.
-///
-/// # Note
-///
-/// Implementation inspired by matklad's blog post that can be found here:
-/// <https://matklad.github.io/2020/03/22/fast-simple-rust-interner.html>
-///
-/// # Usage Hint
-///
-/// Use when deallocations or copy overhead is costly or when
-/// interning of static strings is especially common.
-///
-/// # Usage
-///
-/// - **Fill:** Efficiency of filling an empty string interner.
-/// - **Resolve:** Efficiency of interned string look-up given a symbol.
-/// - **Allocations:** The number of allocations performed by the backend.
-/// - **Footprint:** The total heap memory consumed by the backend.
-/// - **Contiguous:** True if the returned symbols have contiguous values.
-/// - **Iteration:** Efficiency of iterating over the interned strings.
-///
-/// Rating varies between **bad**, **ok**, **good** and **best**.
-///
-/// | Scenario    |  Rating  |
-/// |:------------|:--------:|
-/// | Fill        | **good** |
-/// | Resolve     | **best**   |
-/// | Allocations | **good** |
-/// | Footprint   | **ok**   |
-/// | Supports `get_or_intern_static` | **yes** |
-/// | `Send` + `Sync` | **yes** |
-/// | Contiguous  | **yes**  |
-/// | Iteration   | **best** |
+/// An interner backend that reduces memory allocations by using buckets.
+/// 
+/// # Overview
+/// This interner uses fixed-size buckets to store interned strings. Each bucket is
+/// allocated once and holds a set number of strings. When a bucket becomes full, a new
+/// bucket is allocated to hold more strings. Buckets are never deallocated, which reduces
+/// the overhead of frequent memory allocations and copying.
+/// 
+/// ## Trade-offs
+/// - **Advantages:**
+///   - Strings in already used buckets remain valid and accessible even as new strings
+///     are added.
+/// - **Disadvantages:**
+///   - Slightly slower access times due to double indirection (looking up the string
+///     involves an extra level of lookup through the bucket).
+///   - Memory may be used inefficiently if many buckets are allocated but only partially
+///     filled because of large strings.
+/// 
+/// ## Use Cases
+/// This backend is ideal when interned strings must remain valid even after new ones are
+/// added.general use
+/// 
+/// Refer to the [comparison table][crate::_docs::comparison_table] for comparison with
+/// other backends.
+/// 
+/// [matklad's blog post]:
+///     https://matklad.github.io/2020/03/22/fast-simple-rust-interner.html
 #[derive(Debug)]
-pub struct BucketBackend<S = DefaultSymbol> {
+pub struct BucketBackend<'i, S: Symbol = DefaultSymbol> {
     spans: Vec<InternedStr>,
     head: FixedString,
     full: Vec<String>,
-    marker: PhantomData<fn() -> S>,
+    marker: PhantomBackend<'i, Self>,
 }
 
 /// # Safety
@@ -55,16 +49,16 @@ pub struct BucketBackend<S = DefaultSymbol> {
 /// The bucket backend requires a manual [`Send`] impl because it is self
 /// referential. When cloning a bucket backend a deep clone is performed and
 /// all references to itself are updated for the clone.
-unsafe impl<S> Send for BucketBackend<S> where S: Symbol {}
+unsafe impl<'i, S> Send for BucketBackend<'i, S> where S: Symbol {}
 
 /// # Safety
 ///
 /// The bucket backend requires a manual [`Send`] impl because it is self
 /// referential. Those references won't escape its own scope and also
 /// the bucket backend has no interior mutability.
-unsafe impl<S> Sync for BucketBackend<S> where S: Symbol {}
+unsafe impl<'i, S> Sync for BucketBackend<'i, S> where S: Symbol {}
 
-impl<S> Default for BucketBackend<S> {
+impl<'i, S: Symbol> Default for BucketBackend<'i, S> {
     #[cfg_attr(feature = "inline-more", inline)]
     fn default() -> Self {
         Self {
@@ -76,10 +70,14 @@ impl<S> Default for BucketBackend<S> {
     }
 }
 
-impl<S> Backend for BucketBackend<S>
+impl<'i, S> Backend<'i> for BucketBackend<'i, S>
 where
     S: Symbol,
 {
+    type Access<'local> = &'local str
+    where
+        Self: 'local,
+        'i: 'local;
     type Symbol = S;
     type Iter<'a>
         = Iter<'a, S>
@@ -136,7 +134,7 @@ where
     }
 }
 
-impl<S> BucketBackend<S>
+impl<'i, S> BucketBackend<'i, S>
 where
     S: Symbol,
 {
@@ -167,7 +165,7 @@ where
     }
 }
 
-impl<S> Clone for BucketBackend<S> {
+impl<'i, S: Symbol> Clone for BucketBackend<'i, S> {
     fn clone(&self) -> Self {
         // For performance reasons we copy all cloned strings into a single cloned
         // head string leaving the cloned `full` empty.
@@ -191,9 +189,9 @@ impl<S> Clone for BucketBackend<S> {
     }
 }
 
-impl<S> Eq for BucketBackend<S> where S: Symbol {}
+impl<'i, S> Eq for BucketBackend<'i, S> where S: Symbol {}
 
-impl<S> PartialEq for BucketBackend<S>
+impl<'i, S> PartialEq for BucketBackend<'i, S>
 where
     S: Symbol,
 {
@@ -203,12 +201,12 @@ where
     }
 }
 
-impl<'a, S> IntoIterator for &'a BucketBackend<S>
+impl<'i, 'l, S> IntoIterator for &'l BucketBackend<'i, S>
 where
     S: Symbol,
 {
-    type Item = (S, &'a str);
-    type IntoIter = Iter<'a, S>;
+    type Item = (S, &'l str);
+    type IntoIter = Iter<'l, S>;
 
     #[cfg_attr(feature = "inline-more", inline)]
     fn into_iter(self) -> Self::IntoIter {
@@ -216,14 +214,14 @@ where
     }
 }
 
-pub struct Iter<'a, S> {
-    iter: Enumerate<slice::Iter<'a, InternedStr>>,
+pub struct Iter<'l, S> {
+    iter: Enumerate<slice::Iter<'l, InternedStr>>,
     symbol_marker: PhantomData<fn() -> S>,
 }
 
-impl<'a, S> Iter<'a, S> {
+impl<'i, 'l, S: Symbol> Iter<'l, S> {
     #[cfg_attr(feature = "inline-more", inline)]
-    pub fn new(backend: &'a BucketBackend<S>) -> Self {
+    pub fn new(backend: &'l BucketBackend<'i, S>) -> Self {
         Self {
             iter: backend.spans.iter().enumerate(),
             symbol_marker: Default::default(),
@@ -231,11 +229,11 @@ impl<'a, S> Iter<'a, S> {
     }
 }
 
-impl<'a, S> Iterator for Iter<'a, S>
+impl<'l, S> Iterator for Iter<'l, S>
 where
     S: Symbol,
 {
-    type Item = (S, &'a str);
+    type Item = (S, &'l str);
 
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
