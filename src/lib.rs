@@ -8,9 +8,9 @@
 //! ### Example: Interning & Symbols
 //!
 //! ```
-//! use string_interner::StringInterner;
+//! use string_interner::{DefaultBackend, StringInterner};
 //!
-//! let mut interner = StringInterner::default();
+//! let mut interner = StringInterner::<DefaultBackend>::default();
 //! let sym0 = interner.get_or_intern("Elephant");
 //! let sym1 = interner.get_or_intern("Tiger");
 //! let sym2 = interner.get_or_intern("Horse");
@@ -33,8 +33,8 @@
 //! ### Example: Look-up
 //!
 //! ```
-//! # use string_interner::StringInterner;
-//! let mut interner = StringInterner::default();
+//! # use string_interner::{DefaultBackend, StringInterner};
+//! let mut interner = StringInterner::<DefaultBackend>::default();
 //! let sym = interner.get_or_intern("Banana");
 //! assert_eq!(interner.resolve(sym), Some("Banana"));
 //! ```

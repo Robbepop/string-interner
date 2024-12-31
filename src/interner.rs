@@ -51,8 +51,7 @@ where
     }
 }
 
-#[cfg(feature = "backends")]
-impl Default for StringInterner<crate::DefaultBackend> {
+impl<B: Backend, H: BuildHasher + Default> Default for StringInterner<B, H> {
     #[cfg_attr(feature = "inline-more", inline)]
     fn default() -> Self {
         StringInterner::new()
