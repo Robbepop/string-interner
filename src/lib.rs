@@ -87,8 +87,8 @@
 //! - **Resolve:** Efficiency of resolving a symbol of an interned string.
 //! - **Allocations:** The number of allocations performed by the backend.
 //! - **Footprint:** The total heap memory consumed by the backend.
-//! - **Contiguous:** True if the returned symbols have contiguous values.
 //! - **Iteration:** Efficiency of iterating over the interned strings.
+//! - **Contiguous:** True if the returned symbols have contiguous values.
 //! - **Stable Refs:** If the string references are stable after the first insertion.
 //!
 //! | **Property** | **BucketBackend** | **StringBackend** | **BufferBackend** |
