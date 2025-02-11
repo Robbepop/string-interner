@@ -89,6 +89,7 @@
 //! - **Footprint:** The total heap memory consumed by the backend.
 //! - **Contiguous:** True if the returned symbols have contiguous values.
 //! - **Iteration:** Efficiency of iterating over the interned strings.
+//! - **Stable Refs:** If the string references are stable after the first insertion.
 //!
 //! | **Property** | **BucketBackend** | **StringBackend** | **BufferBackend** |
 //! |:-------------|:-----------------:|:-----------------:|:-----------------:|
@@ -96,8 +97,9 @@
 //! | **Resolve**  | best              | good              | bad               |
 //! | Allocations  | ok                | good              | best              |
 //! | Footprint    | ok                | good              | best              |
-//! | Contiguous   | yes               | yes               | no                |
 //! | Iteration    | best              | good              | bad               |
+//! | Contiguous   | yes               | yes               | no                |
+//! | Stable Refs  | yes               | no                | no                |
 //!
 //! ## When to use which backend?
 //!
