@@ -327,15 +327,13 @@ where
 impl<'a, B, H> IntoIterator for &'a StringInterner<B, H>
 where
     B: Backend,
-    <B as Backend>::Symbol: Symbol,
-    &'a B: IntoIterator<Item = (<B as Backend>::Symbol, &'a str)>,
     H: BuildHasher,
 {
     type Item = (<B as Backend>::Symbol, &'a str);
-    type IntoIter = <&'a B as IntoIterator>::IntoIter;
+    type IntoIter = <B as Backend>::Iter<'a>;
 
     #[cfg_attr(feature = "inline-more", inline)]
     fn into_iter(self) -> Self::IntoIter {
-        self.backend.into_iter()
+        self.backend.iter()
     }
 }
