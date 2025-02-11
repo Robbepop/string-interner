@@ -98,6 +98,7 @@
 //! | Allocations  | ok                | good              | best              |
 //! | Footprint    | ok                | good              | best              |
 //! | Iteration    | best              | good              | bad               |
+//! |              |                   |                   |                   |
 //! | Contiguous   | yes               | yes               | no                |
 //! | Stable Refs  | yes               | no                | no                |
 //!
