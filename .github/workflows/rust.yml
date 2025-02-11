@@ -19,7 +19,7 @@ jobs:
         with:
           targets: wasm32-unknown-unknown, thumbv7em-none-eabi
       - name: Set up Rust cache
-        run: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@v2
       - name: Checkout Submodules
         run: git submodule update --init --recursive
       - name: Build
@@ -41,7 +41,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Set up Rust cache
-        run: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@v2
       - name: Checkout Submodules
         run: git submodule update --init --recursive
       - name: Test (Release)
@@ -59,7 +59,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Set up Rust cache
-        run: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@v2
       - name: Test (Memory Consumption)
         run: cargo test --release --features test-allocations -- --test-threads 1 test_memory_consumption
 
@@ -85,7 +85,7 @@ jobs:
         with:
           components: rust-docs, rust-src
       - name: Set up Rust cache
-        run: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@v2
       - name: Check Docs
         env:
           RUSTDOCFLAGS: '-D warnings'
@@ -100,7 +100,7 @@ jobs:
         with:
           components: clippy
       - name: Set up Rust cache
-        run: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@v2
       - name: Check Clippy
         run: cargo clippy -- -D warnings
 
@@ -111,7 +111,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Set up Rust cache
-        run: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@v2
       - name: Install `cargo-outdated`
         uses: cargo install cargo-outdated
       - name: Check Dependencies
@@ -124,7 +124,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Set up Rust cache
-        run: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@v2
       - name: Install `cargo-audit`
         uses: cargo install cargo-audit
       - name: Audit Dependencies
@@ -139,7 +139,7 @@ jobs:
         with:
           components: miri
       - name: Set up Rust cache
-        run: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@v2
       - name: Test with Miri
         run: cargo miri test
 
