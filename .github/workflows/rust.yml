@@ -123,6 +123,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Set up Rust cache
         uses: Swatinem/rust-cache@v2
+      - name: Install `cargo-audit`
+        uses: cargo install cargo-audit
       - name: Audit Dependencies
         run: cargo audit --deny warnings
 
