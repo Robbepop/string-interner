@@ -1,5 +1,27 @@
 # Release Notes
 
+## 0.19.0 - 2025/02/11
+
+## Fixed
+
+- Fixed the `IntoIterator` impl that triggered a Rust compiler miscompilation in some versions. [#80]
+    - See the associated [`rustc` issue](https://github.com/rust-lang/rust/issues/136856).
+
+## Improvements
+
+- Updated and improved documentation about backend properties. [#83] [#84]
+- Update outdated dependencies. [#82]
+
+## Internal
+
+- Improve and modernize GitHub Actions CI. [#81]
+
+[#80]: https://github.com/Robbepop/string-interner/pull/80
+[#81]: https://github.com/Robbepop/string-interner/pull/81
+[#82]: https://github.com/Robbepop/string-interner/pull/82
+[#83]: https://github.com/Robbepop/string-interner/pull/83
+[#84]: https://github.com/Robbepop/string-interner/pull/84
+
 ## 0.18.0 - 2024/11/12
 
 ## Fixed
