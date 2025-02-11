@@ -111,7 +111,7 @@ jobs:
       - name: Set up Rust cache
         uses: Swatinem/rust-cache@v2
       - name: Install `cargo-outdated`
-        uses: cargo install cargo-outdated
+        run: cargo install cargo-outdated
       - name: Check Dependencies
         run: cargo outdated --root-deps-only --workspace --exit-code 1
 
@@ -124,7 +124,7 @@ jobs:
       - name: Set up Rust cache
         uses: Swatinem/rust-cache@v2
       - name: Install `cargo-audit`
-        uses: cargo install cargo-audit
+        run: cargo install cargo-audit
       - name: Audit Dependencies
         run: cargo audit --deny warnings
 
