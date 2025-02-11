@@ -105,13 +105,15 @@ jobs:
         run: cargo clippy -- -D warnings
 
   outdated:
-    name: Outdated
+    name: Outdated Dependencies
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Set up Rust cache
         uses: Swatinem/rust-cache@v2
+      - name: Install `cargo-outdated`
+        uses: cargo install cargo-outdated
       - name: Check Dependencies
         run: cargo outdated --root-deps-only --workspace --exit-code 1
 
