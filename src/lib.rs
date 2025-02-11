@@ -95,13 +95,13 @@
 //! | Contiguous      | ✅ | ✅ | ❌ | | The returned symbols have contiguous values. |
 //! | Stable Refs     | ✅ | ❌ | ❌ | | The interned strings have stable references. |
 //! | Static Strings  | ✅ | ❌ | ❌ | | Allows to intern `&'static str` without heap allocations. |
-//! 
+//!
 //! 1. Performance of interning pre-interned string is the same for all backends since
 //!    this is implemented in the `StringInterner` front-end via a `HashMap` query for
 //!    all `StringInterner` instances.
-//! 
+//!
 //! ### Legend
-//! 
+//!
 //! - ⭐: best performance in cathegory
 //! - 👍: good performance
 //! - 🤷: okay performance
