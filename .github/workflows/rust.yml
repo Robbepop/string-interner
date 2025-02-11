@@ -71,10 +71,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
         with:
           components: rustfmt
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+      - name: Check Formatting
+        run: cargo fmt --all -- --check
 
   doc:
     name: Documentation
