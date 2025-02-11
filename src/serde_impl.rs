@@ -85,3 +85,37 @@ where
         Ok(interner)
     }
 }
+
+macro_rules! impl_serde_for_symbol {
+    ($name:ident, $ty:ty) => {
+        impl ::serde::Serialize for $crate::symbol::$name {
+            fn serialize<T: ::serde::Serializer>(
+                &self,
+                serializer: T,
+            ) -> ::core::result::Result<T::Ok, T::Error> {
+                self.value.serialize(serializer)
+            }
+        }
+
+        impl<'de> ::serde::Deserialize<'de> for $crate::symbol::$name {
+            fn deserialize<D: ::serde::Deserializer<'de>>(
+                deserializer: D,
+            ) -> ::core::result::Result<Self, D::Error> {
+                let index = <$ty as ::serde::Deserialize<'de>>::deserialize(deserializer)?;
+                let ::core::option::Option::Some(symbol) = Self::new(index) else {
+                    return ::core::result::Result::Err(<D::Error as ::serde::de::Error>::custom(
+                        ::core::concat!(
+                            "invalid index value for `",
+                            ::core::stringify!($name),
+                            "`"
+                        ),
+                    ));
+                };
+                ::core::result::Result::Ok(symbol)
+            }
+        }
+    };
+}
+impl_serde_for_symbol!(SymbolU16, u16);
+impl_serde_for_symbol!(SymbolU32, u32);
+impl_serde_for_symbol!(SymbolUsize, usize);
