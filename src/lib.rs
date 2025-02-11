@@ -81,26 +81,29 @@
 //!
 //! The `string_interner` crate provides different backends with different strengths.
 //! The table below compactly shows when to use which backend according to the following
-//! performance characteristics.
+//! performance characteristics and properties.
 //!
-//! - **Fill:** Efficiency of filling an empty string interner.
-//! - **Resolve:** Efficiency of resolving a symbol of an interned string.
-//! - **Allocations:** The number of allocations performed by the backend.
-//! - **Footprint:** The total heap memory consumed by the backend.
-//! - **Iteration:** Efficiency of iterating over the interned strings.
-//! - **Contiguous:** True if the returned symbols have contiguous values.
-//! - **Stable Refs:** If the string references are stable after the first insertion.
+//! | **Property** | **BucketBackend** | **StringBackend** | **BufferBackend** | | Explanation |
+//! |:-------------|:-----------------:|:-----------------:|:-----------------:|:--|:--|
+//! | Fill            | 🤷 | 👍 | ⭐ | | Efficiency of filling an empty string interner. |
+//! | Fill Duplicates | 1) | 1) | 1) | | Efficiency of filling a string interner with strings that are already interned. |
+//! | Resolve         | ⭐ | 👍 | 👎 | | Efficiency of resolving a symbol of an interned string. |
+//! | Allocations     | 🤷 | 👍 | ⭐ | | The number of allocations performed by the backend. |
+//! | Footprint       | 🤷 | 👍 | ⭐ | | The total heap memory consumed by the backend. |
+//! | Iteration       | ⭐ | 👍 | 👎 | | Efficiency of iterating over the interned strings. |
+//! |                 | | | | | |
+//! | Contiguous      | ✅ | ✅ | ❌ | | The returned symbols have contiguous values. |
+//! | Stable Refs     | ✅ | ❌ | ❌ | | The interned strings have stable references. |
+//! | Static Strings  | ✅ | ❌ | ❌ | | Allows to intern `&'static str` without heap allocations. |
 //!
-//! | **Property** | **BucketBackend** | **StringBackend** | **BufferBackend** |
-//! |:-------------|:-----------------:|:-----------------:|:-----------------:|
-//! | **Fill**     | ok                | good              | best              |
-//! | **Resolve**  | best              | good              | bad               |
-//! | Allocations  | ok                | good              | best              |
-//! | Footprint    | ok                | good              | best              |
-//! | Iteration    | best              | good              | bad               |
-//! |              |                   |                   |                   |
-//! | Contiguous   | yes               | yes               | no                |
-//! | Stable Refs  | yes               | no                | no                |
+//! 1. Performance of interning pre-interned string is the same for all backends since
+//!    this is implemented in the `StringInterner` front-end via a `HashMap` query for
+//!    all `StringInterner` instances.
+//!
+//! ### Legend
+//!
+//! | ⭐ | **best performance** | 👍 | **good performance** | 🤷 | **okay performance** | 👎 | **bad performance** |
+//! |-|-|-|-|-|-|-|-|
 //!
 //! ## When to use which backend?
 //!
