@@ -102,10 +102,9 @@
 //!
 //! ### Legend
 //!
-//! - ⭐: best performance in cathegory
-//! - 👍: good performance
-//! - 🤷: okay performance
-//! - 👎: bad performance
+//! | ⭐ | **best performance** | | 👍 | **good performance** |
+//! |-|-|-|-|-|
+//! | 🤷 | **okay performance** | | 👎 | **bad performance** |
 //!
 //! ## When to use which backend?
 //!
