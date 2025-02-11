@@ -11,6 +11,7 @@
 
 - Updated and improved documentation about backend properties. [#83] [#84]
 - Update outdated dependencies. [#82]
+- Added `serde::{Serialize,Deserialize}` impls for all crate defined symbol types. [#86]
 
 ## Internal
 
@@ -21,6 +22,7 @@
 [#82]: https://github.com/Robbepop/string-interner/pull/82
 [#83]: https://github.com/Robbepop/string-interner/pull/83
 [#84]: https://github.com/Robbepop/string-interner/pull/84
+[#86]: https://github.com/Robbepop/string-interner/pull/86
 
 ## 0.18.0 - 2024/11/12
 
