@@ -63,14 +63,20 @@ macro_rules! gen_symbol_for {
         $( #[$doc] )*
         #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
         pub struct $name {
-            value: $non_zero,
+            pub(crate) value: $non_zero,
+        }
+
+        impl $name {
+            pub(crate) fn new(index: $base_ty) -> Option<Self> {
+                <$non_zero>::new((index).wrapping_add(1))
+                    .map(|value| Self { value })
+            }
         }
 
         impl Symbol for $name {
             #[inline]
             fn try_from_usize(index: usize) -> Option<Self> {
-                <$non_zero>::new((index as $base_ty).wrapping_add(1))
-                    .map(|value| Self { value })
+                Self::new(index as $base_ty)
             }
 
             #[inline]
