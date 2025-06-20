@@ -85,20 +85,26 @@
 //!
 //! | **Property** | **BucketBackend** | **StringBackend** | **BufferBackend** | | Explanation |
 //! |:-------------|:-----------------:|:-----------------:|:-----------------:|:--|:--|
-//! | Fill            | 🤷 | 👍 | ⭐ | | Efficiency of filling an empty string interner. |
-//! | Fill Duplicates | 1) | 1) | 1) | | Efficiency of filling a string interner with strings that are already interned. |
-//! | Resolve         | ⭐ | 👍 | 👎 | | Efficiency of resolving a symbol of an interned string. |
-//! | Allocations     | 🤷 | 👍 | ⭐ | | The number of allocations performed by the backend. |
-//! | Footprint       | 🤷 | 👍 | ⭐ | | The total heap memory consumed by the backend. |
-//! | Iteration       | ⭐ | 👍 | 👎 | | Efficiency of iterating over the interned strings. |
-//! |                 | | | | | |
-//! | Contiguous      | ✅ | ✅ | ❌ | | The returned symbols have contiguous values. |
-//! | Stable Refs     | ✅ | ❌ | ❌ | | The interned strings have stable references. |
-//! | Static Strings  | ✅ | ❌ | ❌ | | Allows to intern `&'static str` without heap allocations. |
+//! | Fill              | 🤷 | 👍 | ⭐ | | Efficiency of filling an empty string interner. |
+//! | Fill Duplicates   | 1) | 1) | 1) | | Efficiency of filling a string interner with strings that are already interned. |
+//! | Resolve           | ⭐ | 👍 | 👎 | | Efficiency of resolving a symbol of an interned string. |
+//! | Resolve Unchecked | 👍 | 👍 | ⭐ 2) | | Efficiency of unchecked resolving a symbol of an interned string. |
+//! | Allocations       | 🤷 | 👍 | ⭐ | | The number of allocations performed by the backend. |
+//! | Footprint         | 🤷 | 👍 | ⭐ | | The total heap memory consumed by the backend. |
+//! | Iteration         | ⭐ | 👍 | 👎 | | Efficiency of iterating over the interned strings. |
+//! |                   | | | | | |
+//! | Contiguous        | ✅ | ✅ | ❌ | | The returned symbols have contiguous values. |
+//! | Stable Refs       | ✅ | ❌ | ❌ | | The interned strings have stable references. |
+//! | Static Strings    | ✅ | ❌ | ❌ | | Allows to intern `&'static str` without heap allocations. |
 //!
 //! 1. Performance of interning pre-interned string is the same for all backends since
 //!    this is implemented in the `StringInterner` front-end via a `HashMap` query for
 //!    all `StringInterner` instances.
+//!
+//! 2. `BufferBackend` is slow with checked resolving because its internal representation
+//!    is extremely sensible to the correctness of the symbols, thus a lot of checks
+//!    are performed. If you will only use symbols probided by the same instance of
+//!    `BufferBackend`, `resolve_unchecked` is a lot faster.
 //!
 //! ### Legend
 //!
