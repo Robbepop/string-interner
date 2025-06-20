@@ -103,7 +103,7 @@
 //!
 //! 2. `BufferBackend` is slow with checked resolving because its internal representation
 //!    is extremely sensible to the correctness of the symbols, thus a lot of checks
-//!    are performed. If you will only use symbols probided by the same instance of
+//!    are performed. If you will only use symbols provided by the same instance of
 //!    `BufferBackend`, `resolve_unchecked` is a lot faster.
 //!
 //! ### Legend
