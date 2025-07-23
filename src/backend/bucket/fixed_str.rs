@@ -44,7 +44,7 @@ impl FixedString {
     pub fn push_str(&mut self, string: &str) -> Option<InternedStr> {
         let len = self.len();
         if self.capacity() < len + string.len() {
-            return None
+            return None;
         }
         self.contents.push_str(string);
         debug_assert_eq!(self.contents.len(), len + string.len());

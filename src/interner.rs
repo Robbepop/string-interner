@@ -1,24 +1,12 @@
 use crate::{
     backend::Backend,
-    compat::{
-        DefaultHashBuilder,
-        HashMap,
-    },
-    DefaultBackend,
-    DefaultSymbol,
-    Symbol,
+    compat::{DefaultHashBuilder, HashMap},
+    DefaultBackend, DefaultSymbol, Symbol,
 };
 use core::{
     fmt,
-    fmt::{
-        Debug,
-        Formatter,
-    },
-    hash::{
-        BuildHasher,
-        Hash,
-        Hasher,
-    },
+    fmt::{Debug, Formatter},
+    hash::{BuildHasher, Hash, Hasher},
     iter::FromIterator,
 };
 

@@ -4,16 +4,12 @@ use cfg_if::cfg_if;
 
 pub use ::hashbrown::{
     hash_map,
-    hash_map::{
-        DefaultHashBuilder,
-        HashMap,
-    },
+    hash_map::{DefaultHashBuilder, HashMap},
 };
 
 cfg_if! {
     if #[cfg(feature = "std")] {
         pub use ::std::{
-            vec,
             vec::Vec,
             string::{String, ToString},
             boxed::Box,
@@ -21,7 +17,6 @@ cfg_if! {
     } else {
         extern crate alloc;
         pub use self::alloc::{
-            vec,
             vec::Vec,
             string::{String, ToString},
             boxed::Box,

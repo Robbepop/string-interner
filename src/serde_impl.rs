@@ -1,28 +1,10 @@
-use crate::{
-    backend::Backend,
-    StringInterner,
-    Symbol,
-};
+use crate::{backend::Backend, StringInterner, Symbol};
 #[cfg(not(feature = "std"))]
 use alloc::boxed::Box;
-use core::{
-    default::Default,
-    fmt,
-    hash::BuildHasher,
-    marker,
-};
+use core::{default::Default, fmt, hash::BuildHasher, marker};
 use serde::{
-    de::{
-        Deserialize,
-        Deserializer,
-        SeqAccess,
-        Visitor,
-    },
-    ser::{
-        Serialize,
-        SerializeSeq,
-        Serializer,
-    },
+    de::{Deserialize, Deserializer, SeqAccess, Visitor},
+    ser::{Serialize, SerializeSeq, Serializer},
 };
 
 impl<B, H> Serialize for StringInterner<B, H>

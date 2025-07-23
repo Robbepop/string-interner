@@ -137,8 +137,5 @@ pub use self::{
     backend::DefaultBackend,
     compat::DefaultHashBuilder,
     interner::StringInterner,
-    symbol::{
-        DefaultSymbol,
-        Symbol,
-    },
+    symbol::{DefaultSymbol, Symbol},
 };
