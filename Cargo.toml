@@ -14,7 +14,7 @@ categories = ["data-structures"]
 edition = "2021"
 
 [dependencies]
-hashbrown = { version = "0.15.1", default-features = false, features = ["default-hasher", "raw-entry"] }
+hashbrown = { version = "0.16.0", default-features = false, features = ["default-hasher", "raw-entry"] }
 serde = { version = "1.0", default-features = false, features = ["alloc"], optional = true }
 
 [dev-dependencies]
