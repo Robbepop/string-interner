@@ -78,7 +78,7 @@ pub const BENCH_LEN_STRINGS: usize = 100_000;
 /// The length of a single interned string.
 pub const BENCH_STRING_LEN: usize = 5;
 
-type FxBuildHasher = fxhash::FxBuildHasher;
+type FxBuildHasher = rustc_hash::FxBuildHasher;
 type StringInternerWith<B> = StringInterner<B, FxBuildHasher>;
 
 pub trait BackendBenchmark {
