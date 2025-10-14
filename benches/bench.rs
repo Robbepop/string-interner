@@ -10,7 +10,6 @@ use self::setup::{
     BENCH_STRING_LEN,
 };
 use criterion::{
-    black_box,
     criterion_group,
     criterion_main,
     measurement::WallTime,
@@ -19,6 +18,7 @@ use criterion::{
     Criterion,
     Throughput,
 };
+use std::hint::black_box;
 use string_interner::backend::Backend;
 
 criterion_group!(
