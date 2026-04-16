@@ -12,6 +12,7 @@ and fast access to the underlying strings.
 """
 categories = ["data-structures"]
 edition = "2021"
+rust-version = "1.65.0"
 
 [dependencies]
 hashbrown = { version = "0.16.0", default-features = false, features = ["default-hasher", "raw-entry"] }
