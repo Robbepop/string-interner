@@ -1,5 +1,25 @@
 # Release Notes
 
+## 0.20.0 - 2026/04/30
+
+### Fixed
+
+- Fixed off-by-one bug in `serde` support. [#91]
+
+### Improvements
+
+- Improve documentation about custom hashing. [#90]
+- Add notification about `unchecked` resolution for `BufferBackend`. [#92]
+- Updated dependencies. [#100] [#101]
+- Specify Rust MSRV to be 1.65. [#101]
+
+[#90]: https://github.com/Robbepop/string-interner/pull/90
+[#91]: https://github.com/Robbepop/string-interner/pull/91
+[#92]: https://github.com/Robbepop/string-interner/pull/92
+[#96]: https://github.com/Robbepop/string-interner/pull/96
+[#100]: https://github.com/Robbepop/string-interner/pull/100
+[#101]: https://github.com/Robbepop/string-interner/pull/101
+
 ## 0.19.0 - 2025/02/11
 
 ## Fixed
