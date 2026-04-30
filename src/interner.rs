@@ -1,4 +1,4 @@
-use crate::{backend::Backend, Symbol};
+use crate::{Symbol, backend::Backend};
 use core::{
     fmt,
     fmt::{Debug, Formatter},

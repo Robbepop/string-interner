@@ -1,7 +1,7 @@
 use string_interner::{
-    backend::{Backend, BucketBackend, BufferBackend, StringBackend},
     DefaultSymbol,
     StringInterner,
+    backend::{Backend, BucketBackend, BufferBackend, StringBackend},
 };
 
 /// Alphabet containing all characters that may be put into a benchmark string.

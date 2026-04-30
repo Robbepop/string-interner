@@ -1,7 +1,7 @@
 mod allocator;
 
 use allocator::TracingAllocator;
-use string_interner::{backend, DefaultHashBuilder, DefaultSymbol, Symbol};
+use string_interner::{DefaultHashBuilder, DefaultSymbol, Symbol, backend};
 
 #[global_allocator]
 static ALLOCATOR: TracingAllocator = TracingAllocator::new();

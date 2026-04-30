@@ -1,7 +1,7 @@
 #![cfg(feature = "backends")]
 
 use super::Backend;
-use crate::{symbol::expect_valid_symbol, DefaultSymbol, Symbol};
+use crate::{DefaultSymbol, Symbol, symbol::expect_valid_symbol};
 use alloc::vec::Vec;
 use core::{marker::PhantomData, mem, str};
 

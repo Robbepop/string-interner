@@ -1,4 +1,4 @@
-use crate::{backend::Backend, StringInterner, Symbol};
+use crate::{StringInterner, Symbol, backend::Backend};
 use alloc::boxed::Box;
 use core::{default::Default, fmt, hash::BuildHasher, marker};
 use serde::{
@@ -123,8 +123,8 @@ impl_serde_for_symbol!(SymbolUsize, usize);
 #[cfg(test)]
 mod tests {
     use crate::{
-        symbol::{SymbolU16, SymbolU32, SymbolUsize},
         Symbol,
+        symbol::{SymbolU16, SymbolU32, SymbolUsize},
     };
     use serde_json;
 

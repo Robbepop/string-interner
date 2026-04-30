@@ -1,22 +1,22 @@
 mod setup;
 
 use self::setup::{
-    generate_test_strings,
+    BENCH_LEN_STRINGS,
+    BENCH_STRING_LEN,
     BackendBenchmark,
     BenchBucket,
     BenchBuffer,
     BenchString,
-    BENCH_LEN_STRINGS,
-    BENCH_STRING_LEN,
+    generate_test_strings,
 };
 use criterion::{
-    criterion_group,
-    criterion_main,
-    measurement::WallTime,
     BatchSize,
     BenchmarkGroup,
     Criterion,
     Throughput,
+    criterion_group,
+    criterion_main,
+    measurement::WallTime,
 };
 use std::hint::black_box;
 use string_interner::backend::Backend;
