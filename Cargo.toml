@@ -11,7 +11,7 @@ description = """Efficient string interner with minimal memory footprint
 and fast access to the underlying strings.
 """
 categories = ["data-structures"]
-edition = "2021"
+edition = "2024"
 rust-version = "1.85.0"
 
 [dependencies]

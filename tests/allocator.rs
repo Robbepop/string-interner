@@ -36,13 +36,17 @@ impl TracingAllocator {
 
 unsafe impl GlobalAlloc for TracingAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        self.stats.push_allocations(layout);
-        self.inner.alloc(layout)
+        unsafe {
+            self.stats.push_allocations(layout);
+            self.inner.alloc(layout)
+        }
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        self.stats.push_deallocations(layout);
-        self.inner.dealloc(ptr, layout);
+        unsafe {
+            self.stats.push_deallocations(layout);
+            self.inner.dealloc(ptr, layout);
+        }
     }
 }
 
