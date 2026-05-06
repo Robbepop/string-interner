@@ -112,6 +112,10 @@ jobs:
         uses: Swatinem/rust-cache@v2
       - name: Install `cargo-outdated`
         run: cargo install cargo-outdated
+      - name: Install `cargo-hack`
+        uses: taiki-e/install-action@cargo-hack
+      - name: Remove dev-dependencies
+        run: cargo hack --remove-dev-deps --workspace
       - name: Check Dependencies
         run: cargo outdated --root-deps-only --workspace --exit-code 1
 
